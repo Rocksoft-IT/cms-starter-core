@@ -1,6 +1,6 @@
 {
   "name": "@rocksoft/cms-starter-core",
-  "version": "0.1.0",
+  "version": "0.0.0",
   "type": "module",
   "private": true,
   "description": "Shared CMS-driven Astro starter core (blocks, block renderer, API client, types) consumed by each client site.",
