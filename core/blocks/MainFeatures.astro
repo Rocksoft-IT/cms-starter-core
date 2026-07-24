@@ -1,0 +1,51 @@
+---
+// Core mainfeatures block ("services menu"): an intro column (eyebrow/heading/intro) beside a
+// two-column list of navigation tiles. Each tile is a label with an optional link and an
+// optional icon image; without an icon a small brand-colored marker keeps the rows scannable.
+import type { MainFeaturesBlock } from '../../types/blocks'
+
+interface Props {
+  block: MainFeaturesBlock
+}
+
+const { block } = Astro.props
+const { eyebrow, heading, intro, tiles = [] } = block.data
+
+// A tile earns a row as long as it has a label to show.
+const rows = tiles.filter((tile) => tile.label)
+---
+
+<section class="section-mainfeatures py-16">
+  <div class="container-global">
+    <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.25fr] gap-12 items-center">
+      <div class="flex flex-col gap-4">
+        {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+        {heading && <h2 class="section-heading">{heading}</h2>}
+        {intro && <p class="section-intro">{intro}</p>}
+      </div>
+
+      {
+        rows.length > 0 && (
+          <ul class="list-none p-0 m-0 grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+            {rows.map((tile) => (
+              <li class="flex items-center gap-3 font-bold text-[18px] leading-[1.4]">
+                {tile.icon ? (
+                  <img src={tile.icon} alt="" loading="lazy" class="w-8 h-8 object-contain shrink-0" />
+                ) : (
+                  <span class="w-2.5 h-2.5 rounded-[3px] bg-primary shrink-0" aria-hidden="true" />
+                )}
+                {tile.link ? (
+                  <a href={tile.link} class="text-text-primary hover:underline">
+                    {tile.label}
+                  </a>
+                ) : (
+                  tile.label
+                )}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </div>
+</section>

@@ -1,0 +1,26 @@
+---
+import type { Block } from '../types/blocks'
+import { cmsConfig } from '~site/cms.config'
+
+interface Props {
+  blocks: Block[]
+}
+const { blocks } = Astro.props
+
+const typesNeeded = new Set<string>(blocks.map((b) => b.type))
+const registry: Record<string, any> = Object.fromEntries(
+  await Promise.all(
+    Object.entries(cmsConfig.blocks)
+      .filter(([type]) => typesNeeded.has(type))
+      .map(async ([type, loader]) => [type, (await loader()).default]),
+  ),
+)
+---
+
+{
+  blocks.map((block) => {
+    const Component = registry[block.type]
+    if (!Component) return null
+    return <Component block={block} />
+  })
+}

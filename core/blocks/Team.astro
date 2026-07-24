@@ -1,0 +1,117 @@
+---
+// Core team block. Renders a responsive grid of member cards (photo + name + role) under an
+// optional eyebrow/heading. Every field is optional and degrades gracefully:
+//  - a member with no photo shows a neutral initial placeholder instead of a broken <img>;
+//  - the <img> `alt` is derived from the member name (empty alt for the decorative placeholder);
+//  - `anchor_id` becomes the section `id` so the block is a deep-link / scroll target. Whitespace
+//    is collapsed to hyphens so the value is a usable URL fragment; Astro escapes the attribute.
+import type { TeamBlock } from '../../types/blocks'
+import { sectionAnchorId } from '../../lib/anchor'
+
+interface Props {
+  block: TeamBlock
+}
+
+const { block } = Astro.props
+const { anchor_id, eyebrow, heading, members = [] } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
+
+// A member is worth a card as long as it carries anything to show.
+const cards = members.filter((m) => m.name || m.role || m.photo)
+
+function initial(name?: string) {
+  return name?.trim().charAt(0).toUpperCase() || ''
+}
+---
+
+<section class="section-team" id={sectionId}>
+  <div class="container-global py-16">
+    {
+      (eyebrow || heading) && (
+        <div class="text-center mb-[68px]">
+          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+          {heading && <h2 class="section-heading mt-2 text-text-primary">{heading}</h2>}
+        </div>
+      )
+    }
+
+    {
+      cards.length > 0 && (
+        <ul class="team-grid list-none p-0 m-0">
+          {cards.map((member) => (
+            <li class="team-card">
+              <div class="team-photo">
+                {member.photo ? (
+                  <img src={member.photo} alt={member.name || ''} loading="lazy" />
+                ) : (
+                  <span class="team-photo-placeholder" aria-hidden="true">
+                    {initial(member.name)}
+                  </span>
+                )}
+              </div>
+              {member.name && <p class="team-name">{member.name}</p>}
+              {member.role && <p class="team-role">{member.role}</p>}
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </div>
+</section>
+
+<style>
+  .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 40px 24px;
+  }
+
+  .team-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .team-photo {
+    width: 160px;
+    height: 160px;
+    border-radius: 9999px;
+    overflow: hidden;
+    background-color: var(--color-section-bg, #f3f7fb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .team-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .team-photo-placeholder {
+    font-family: var(--font-suse, sans-serif);
+    font-weight: 700;
+    font-size: 48px;
+    line-height: 1;
+    color: var(--color-muted, #757575);
+  }
+
+  .team-name {
+    font-weight: 700;
+    font-size: 20px;
+    line-height: 1.3;
+    margin-top: 20px;
+    color: var(--color-text-primary, #151516);
+  }
+
+  .team-role {
+    font-size: 16px;
+    line-height: 1.5;
+    margin-top: 4px;
+    color: var(--color-text-secondary, #4a4a57);
+  }
+</style>

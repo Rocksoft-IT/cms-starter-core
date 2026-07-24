@@ -1,0 +1,17 @@
+---
+import type { VideoSectionBlock } from '../../types/blocks'
+interface Props {
+  block: VideoSectionBlock
+}
+const { block } = Astro.props
+---
+
+<section class="video-section py-16 px-6">
+  <div class="max-w-4xl mx-auto">
+    {block.data.heading && <h2 class="text-3xl font-bold mb-6">{block.data.heading}</h2>}
+    <div class="aspect-video">
+      <iframe src={block.data.video_url} class="w-full h-full rounded-lg" allowfullscreen></iframe>
+    </div>
+    {block.data.body && <p class="mt-6 text-lg">{block.data.body}</p>}
+  </div>
+</section>

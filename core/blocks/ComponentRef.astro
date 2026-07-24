@@ -1,0 +1,39 @@
+---
+// Core component_ref block (ref block): the API resolves the referenced global Component and
+// merges its per-locale fields flat into the block data, stamping `component_type` so this
+// renderer can dispatch. The flat fields already match each target's shape:
+//  - cta_default      → the cta_banner renderer (cta_label/cta_href adapted into its ctas[]);
+//  - mainfeatures_global → the mainfeatures block renderer, data passed through as-is.
+// `footer` and any unrecognised type render nothing: the site footer is global chrome the
+// layout composes once — not something to embed mid-page.
+import type { ComponentRefBlock, MainFeaturesBlock, CtaBannerBlock } from '../../types/blocks'
+import CtaBanner from './CtaBanner.astro'
+import MainFeatures from './MainFeatures.astro'
+
+interface Props {
+  block: ComponentRefBlock
+}
+
+const { data } = Astro.props.block
+const type = data.component_type
+
+// cta_default resolves flat (eyebrow/heading/body/cta_label/cta_href) — fold the single CTA
+// into cta_banner's ctas[] list shape. Built only for the branch that uses it.
+const ctaData: CtaBannerBlock['data'] | null =
+  type === 'cta_default'
+    ? {
+        eyebrow: data.eyebrow as string | undefined,
+        heading: data.heading as string | undefined,
+        body: data.body as string | undefined,
+        ctas:
+          data.cta_label && data.cta_href ? [{ label: data.cta_label as string, href: data.cta_href as string }] : [],
+      }
+    : null
+---
+
+{ctaData && <CtaBanner block={{ type: 'cta_banner', data: ctaData }} />}
+{
+  type === 'mainfeatures_global' && (
+    <MainFeatures block={{ type: 'mainfeatures', data: data as unknown as MainFeaturesBlock['data'] }} />
+  )
+}

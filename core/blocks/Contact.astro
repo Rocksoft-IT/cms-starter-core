@@ -1,0 +1,54 @@
+---
+// Core "contact" block (contact). The NAP — address + phone — split out of the former combined
+// hours_location. The address arrives as a textarea (whitespace-pre-line preserves the editor's
+// line breaks), and links to `maps_url` when present; because the address must stay the
+// <address> element's only child, the maps link wraps the element rather than the text. The
+// phone is a `tel:` link only when a dialable `phone_e164` is present — otherwise inert text, so
+// a bare link that isn't focusable never reads as broken.
+import type { ContactBlock } from '../../types/blocks'
+
+interface Props {
+  block: ContactBlock
+}
+
+const { block } = Astro.props
+const { eyebrow, heading, address, maps_url, phone_display, phone_e164 } = block.data
+
+const phoneText = phone_display || phone_e164
+---
+
+<section class="section-contact">
+  <div class="container-global py-16">
+    {
+      (eyebrow || heading) && (
+        <div class="mb-6">
+          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+          {heading && <h2 class="section-heading mt-2 text-text-primary">{heading}</h2>}
+        </div>
+      )
+    }
+
+    {
+      (address || phoneText) && (
+        <div class="flex flex-col gap-2">
+          {address &&
+            (maps_url ? (
+              <a class="text-text-secondary hover:underline" href={maps_url} target="_blank" rel="noopener noreferrer">
+                <address class="not-italic leading-[1.6] whitespace-pre-line text-text-secondary">{address}</address>
+              </a>
+            ) : (
+              <address class="not-italic leading-[1.6] whitespace-pre-line text-text-secondary">{address}</address>
+            ))}
+          {phoneText &&
+            (phone_e164 ? (
+              <a class="font-semibold text-primary hover:underline" href={`tel:${phone_e164}`}>
+                {phoneText}
+              </a>
+            ) : (
+              <span class="font-semibold text-primary">{phoneText}</span>
+            ))}
+        </div>
+      )
+    }
+  </div>
+</section>

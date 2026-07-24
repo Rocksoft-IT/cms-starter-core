@@ -1,0 +1,90 @@
+// Shared shape of a site's cms.config.ts — the per-site seam a site edits INSTEAD of core
+// code: locales, brand tokens, menu keys, the block component registry, and the page-type
+// dispatch registry. Each site under sites/<slug>/ exports a `cmsConfig: CmsConfig`; the
+// active site is selected at build time via the SITE env (see astro.config.mjs), and core
+// code imports it only through the `~site` alias — never a literal sites/<slug> path.
+// Secrets (API url/token) stay in env (ASTRO_API_URL / ASTRO_API_TOKEN); structure lives here.
+
+import type { PageTypeConfig, ExtraRouteRule } from './routing'
+import type { Block } from '../types/blocks'
+
+export interface BrandTokens {
+  /**
+   * Brand palette. Keys become UnoCSS theme color names and `--color-<key>` CSS vars.
+   *
+   * The shared uno.config.ts shortcuts consume the CORE palette keys (primary, accent,
+   * secondary, section-bg, text-primary, text-secondary, button-*, muted, body) — a site's
+   * palette must define all of them (with its own brand values) for the core blocks to
+   * render, and may add its own site-specific keys on top.
+   */
+  colors: Record<string, string>
+}
+
+/** Lazy component loader — return value's `.default` is an Astro component factory. */
+export type BlockLoader = () => Promise<any>
+
+export interface CmsConfig {
+  /**
+   * The locale that routes at the site root, unprefixed, and the fallback for missing
+   * translations.
+   *
+   * There is deliberately no `locales` list here any more (#559). The enabled locales are a
+   * per-client property of the CMS, read at build time from `GET /api/locales`; a copy in
+   * project config could only ever disagree with it, and the disagreement is expensive —
+   * the sitemap publishes one file per CMS locale, so a frontend building from a shorter
+   * static list advertises URLs it never built. This value is the one locale the frontend
+   * legitimately owns, because it decides URL shape rather than content: it is also used
+   * before the API answers (html[lang] fallback) and by the mock build.
+   */
+  defaultLocale: string
+  brand: BrandTokens
+  /** Web-font stylesheets to load in <head>. Layout.astro emits a <link rel="preconnect">
+   *  per `preconnect` entry (set `crossorigin` for origins serving the font binaries —
+   *  browsers fetch those CORS, e.g. fonts.gstatic.com) and a <link rel="stylesheet"> per
+   *  `stylesheets` URL. Omit for system fonts. Pair with `--font-*` overrides in the site's
+   *  styles/site.css. */
+  fonts?: {
+    preconnect?: Array<{ href: string; crossorigin?: boolean }>
+    stylesheets?: string[]
+  }
+  /** API menu keys consumed via GET /api/menus/{key}. */
+  menus: {
+    header: string
+    footer?: string
+  }
+  /** Block type → component loader. Keyed by the generated `Block['type']` union — a
+   *  renamed/typo'd key here is now an `astro check` compile error instead of a silent
+   *  runtime skip (a still-registered type simply not covered by any project isn't an
+   *  error, hence `Partial`). Run `pnpm cms:types` after adding a block type in the backend. */
+  blocks: Partial<Record<Block['type'], BlockLoader>>
+  /** Page type → component + props shaper. Drives [..uri].astro dispatch via buildStaticPaths. */
+  pageTypes?: Record<string, PageTypeConfig>
+  /** Extra route builders for derived routes (e.g. a blog's category pages). */
+  extraRoutes?: ExtraRouteRule[]
+  layout?: {
+    /** Max-width for the 'container' layout variant of blocks that honour it (e.g. custom_html).
+     *  Plain CSS value. Default: '1200px'. */
+    containerWidth?: string
+  }
+  /** Static SEO / social-share fallbacks. Every field is a *fallback* only: the per-page
+   *  `page.seo` object from the API (diligently-dashboard #469) always wins. These fill the
+   *  gaps while the backend hasn't shipped that data yet (or for fields it leaves null). */
+  seo?: {
+    /** og:site_name fallback when the API doesn't resolve one. */
+    siteName?: string
+    /** Absolute production origin (e.g. 'https://example.com'), used to build a canonical
+     *  URL from `page.path` when `page.seo.url` is absent. No trailing slash. */
+    siteUrl?: string
+    /** Last-resort share image (absolute URL) when no page/section/client image resolves.
+     *  Platforms require an absolute URL for og:image. */
+    defaultImage?: string
+    /** og:type fallback. Default: 'website'. */
+    defaultType?: 'website' | 'article'
+  }
+}
+
+/** Optional per-site UnoCSS additions (sites/<slug>/uno.ts) merged into the shared
+ *  uno.config.ts — site shortcuts on top of the core set. */
+export interface SiteUnoConfig {
+  shortcuts?: Record<string, string>
+}

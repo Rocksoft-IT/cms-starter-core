@@ -1,0 +1,14 @@
+---
+import type { ParagraphBlock } from '../../types/blocks'
+import RichText from '../RichText.astro'
+
+interface Props {
+  block: ParagraphBlock
+}
+
+const { block } = Astro.props
+---
+
+<div class="section-content">
+  <RichText class="rich-body" html={block.data.body} />
+</div>

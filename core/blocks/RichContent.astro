@@ -1,0 +1,13 @@
+---
+import type { RichContentBlock } from '../../types/blocks'
+import RichText from '../RichText.astro'
+interface Props {
+  block: RichContentBlock
+}
+const { block } = Astro.props
+---
+
+<section class="section-content">
+  {block.data.heading && <h2 class="rich-heading">{block.data.heading}</h2>}
+  <RichText class="rich-body" html={block.data.body} />
+</section>

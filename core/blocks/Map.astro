@@ -1,0 +1,26 @@
+---
+// Core "map" block (map). A standalone, composable map embed — drop it on its own or beside
+// another block via `columns`. The iframe itself lives in the shared MapEmbed partial so its
+// markup and a11y (the required title) are defined once and reusable. Renders nothing when
+// there is neither a heading nor an embed URL.
+import type { MapBlock } from '../../types/blocks'
+import MapEmbed from '../MapEmbed.astro'
+
+interface Props {
+  block: MapBlock
+}
+
+const { block } = Astro.props
+const { heading, map_embed_src } = block.data
+---
+
+{
+  (heading || map_embed_src) && (
+    <section class="section-map">
+      <div class="container-global py-16">
+        {heading && <h2 class="section-heading mb-6 text-text-primary">{heading}</h2>}
+        <MapEmbed src={map_embed_src} title={heading ?? 'Map'} />
+      </div>
+    </section>
+  )
+}

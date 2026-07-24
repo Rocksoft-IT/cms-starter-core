@@ -1,0 +1,23 @@
+---
+import type { ButtonGroupBlock } from '../../types/blocks'
+
+interface Props {
+  block: ButtonGroupBlock
+}
+
+const { block } = Astro.props
+const { buttons = [] } = block.data
+
+// Same style precedence as Button.astro: explicit `outline` wins; `primary`/absent
+// follows the brand's default style (global.css flips .btn-primary via data-btn-primary).
+---
+
+<div class="section-buttons">
+  {
+    buttons.map((btn) => (
+      <a href={btn.href} class={btn.style === 'outline' ? 'btn-outline' : 'btn-primary'}>
+        {btn.label}
+      </a>
+    ))
+  }
+</div>

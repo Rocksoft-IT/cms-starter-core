@@ -1,0 +1,143 @@
+---
+// Generic renderer for CMS section-defined custom fields (diligently-dashboard #600/#601).
+//
+// A Super Admin can declare extra fields on a CMS section at runtime (label + immutable key +
+// type from `text | select | date | list`) without a code deploy. The API ships each record's
+// values inline with their schema, so this component renders a field it did not know at build
+// time — no per-field component, no cms.config.ts entry. These are NOT page-builder blocks.
+//
+// Everything arrives already resolved for the requested locale: `label`, the `text`/`list`
+// values, and a `select`'s option label. The one thing this component derives is the locale
+// presentation of a `date` (the API sends a raw ISO string). A `select`'s stable `key` is
+// never shown to the user — only its resolved `label`.
+//
+// Degrades on every axis: an unknown `type` is skipped (the backend may add types later), a
+// field with no renderable value drops out, and an absent/empty `custom_fields` renders nothing.
+import type { PageApiItem } from '../lib/api'
+import { formatDate } from './format'
+
+interface Props {
+  fields?: PageApiItem['custom_fields']
+  /** The locale this route was built for — formats `date` fields; falls back to 'en'. */
+  locale?: string
+}
+
+const { fields, locale } = Astro.props
+const resolvedLocale = locale ?? 'en'
+
+// A `date` field's rendering (locale-aware, UTC-safe) lives in core's shared formatters so a
+// section landing's item dates and a custom `date` field on the same page format identically.
+
+// A `select` value is `{ key, label }` with a locale-resolved label. Show the label only; a bare
+// string is tolerated (already a label, never the key). Anything without a usable label drops out
+// rather than exposing the stable `key`.
+function selectLabel(value: unknown): string | null {
+  if (value && typeof value === 'object' && 'label' in value) {
+    const label = (value as { label?: unknown }).label
+    return typeof label === 'string' && label.trim() !== '' ? label : null
+  }
+  return typeof value === 'string' && value.trim() !== '' ? value : null
+}
+
+function listItems(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((v): v is string => typeof v === 'string' && v.trim() !== '')
+}
+
+function textValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value : null
+}
+
+// Resolve each field to a renderable shape up front so the template only iterates fields that
+// actually produce output. Unknown types and empty values become `null` and drop out.
+type Resolved =
+  | { key: string; label: string; kind: 'scalar'; text: string }
+  | { key: string; label: string; kind: 'list'; items: string[] }
+
+const items: Resolved[] = (fields ?? [])
+  .map((f): Resolved | null => {
+    switch (f.type) {
+      case 'text': {
+        const t = textValue(f.value)
+        return t ? { key: f.key, label: f.label, kind: 'scalar', text: t } : null
+      }
+      case 'date': {
+        const t = formatDate(f.value, resolvedLocale)
+        return t ? { key: f.key, label: f.label, kind: 'scalar', text: t } : null
+      }
+      case 'select': {
+        const t = selectLabel(f.value)
+        return t ? { key: f.key, label: f.label, kind: 'scalar', text: t } : null
+      }
+      case 'list': {
+        const li = listItems(f.value)
+        return li.length ? { key: f.key, label: f.label, kind: 'list', items: li } : null
+      }
+      default:
+        return null // unknown type — skip, don't crash
+    }
+  })
+  .filter((x): x is Resolved => x !== null)
+---
+
+{
+  items.length > 0 && (
+    <section class="custom-fields">
+      <dl class="custom-fields-list">
+        {items.map((f) => (
+          <div class="custom-field">
+            <dt class="custom-field-label">{f.label}</dt>
+            {f.kind === 'list' ? (
+              <dd class="custom-field-value">
+                <ul class="custom-field-ul">
+                  {f.items.map((it) => (
+                    <li>{it}</li>
+                  ))}
+                </ul>
+              </dd>
+            ) : (
+              <dd class="custom-field-value">{f.text}</dd>
+            )}
+          </div>
+        ))}
+      </dl>
+    </section>
+  )
+}
+
+<style>
+  .custom-fields {
+    width: 90%;
+    max-width: 900px;
+    margin-inline: auto;
+    padding-block: 2rem;
+  }
+  .custom-fields-list {
+    margin: 0;
+    display: grid;
+    gap: 1.5rem;
+  }
+  .custom-field {
+    margin: 0;
+  }
+  .custom-field-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary, #4a4a57);
+    margin: 0 0 0.35rem;
+  }
+  .custom-field-value {
+    margin: 0;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    color: var(--color-text-primary, #151516);
+  }
+  .custom-field-ul {
+    margin: 0;
+    padding-inline-start: 1.25rem;
+    display: grid;
+    gap: 0.25rem;
+  }
+</style>

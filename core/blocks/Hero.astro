@@ -1,0 +1,193 @@
+---
+import type { HeroBlock } from '../../types/blocks'
+import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
+import RichText from '../RichText.astro'
+import BlockRenderer from '../BlockRenderer.astro'
+
+interface Props {
+  block: HeroBlock
+}
+
+const { block } = Astro.props
+const { heading, subheading, ctas = [], columns = [], columns_layout } = block.data
+
+// Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading
+// occupy the FIRST slot of the chosen layout; each `columns` entry supplies a further slot
+// holding ordinary blocks the editor composed — so "image left, heading right" is authored
+// rather than picked from a fixed set of variants. With no `columns` (the common case) nothing
+// changes: the single-column hero renders exactly as before, lottie players included.
+const multiColumn = columns.length > 0
+
+// Track sizing: each column's `width` numerator, falling back to its slot's layout share (see
+// src/lib/layout-shares.ts for the width/layout contract). The hero's own text occupies slot 0
+// of the layout and has no column entry, so column `i` occupies slot `i + 1`.
+const layoutShares = parseLayoutShares(columns_layout)
+const textGrow = shareAt(undefined, layoutShares, 0)
+---
+
+{
+  multiColumn ? (
+    <section class="section-hero">
+      <div class="container-hero">
+        <div class="hero-2col">
+          <div class="hero-2col-left" style={`flex-grow:${textGrow}`}>
+            <RichText class="heading-h1" html={heading} />
+            {subheading && <RichText class="subhero-text" html={subheading} />}
+          </div>
+          {columns.map((column, i) => (
+            <div class="hero-2col-right" style={`flex-grow:${shareAt(column.width, layoutShares, i + 1)}`}>
+              <BlockRenderer blocks={column.blocks} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Honeycomb + radial-gradient background */}
+      <div class="absolute inset-0 -z-1 pointer-events-none">
+        <div class="hero-bg-honeycomb" />
+        <div class="hero-gradient-overlay" />
+      </div>
+    </section>
+  ) : (
+    <section class="section-hero">
+      <div class="container-hero">
+        <div class="hero-wrapper">
+          <div class="hero-col">
+            <div class="hero-text">
+              <RichText class="heading-h1" html={heading} />
+              {subheading && <RichText class="subhero-text" html={subheading} />}
+            </div>
+            <div class="buttons-lottie-group">
+              <lottie-player
+                class="image-hero-lottie"
+                data-src="/documents/AnalyticsAnimation-1.json"
+                loop
+                autoplay
+                aria-hidden="true"
+              />
+              {ctas.length > 0 && (
+                <div class="hero-ctas">
+                  {ctas.map((cta, i) => (
+                    <a href={cta.href} class={i === 0 ? 'btn-primary' : 'btn-outline'}>
+                      {cta.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+              <lottie-player
+                class="image-hero-lottie"
+                data-src="/documents/MegaphoneAnimation.json"
+                loop
+                autoplay
+                aria-hidden="true"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Honeycomb + radial-gradient background */}
+      <div class="absolute inset-0 -z-1 pointer-events-none">
+        <div class="hero-bg-honeycomb" />
+        <div class="hero-gradient-overlay" />
+      </div>
+    </section>
+  )
+}
+
+{
+  /* Lottie is only ever used by the single-column hero, so a columns hero must not pay for the
+     player bundle. */
+  !multiColumn && (
+    <>
+      <script is:inline defer src="https://unpkg.com/@lottiefiles/lottie-player@2/dist/lottie-player.js" />
+      {/* Passed via set:html so the raw JS is emitted verbatim. Inside a JSX fragment an inline
+          <script>'s children are treated as literal text, so a `{`…`}` expression child would be
+          printed as-is — wrapping the whole body in a dead `{ "string" }` block that never runs. */}
+      <script
+        is:inline
+        set:html={`if (window.matchMedia('(min-width: 768px)').matches) {
+          customElements.whenDefined('lottie-player').then(function () {
+            document.querySelectorAll('.image-hero-lottie[data-src]').forEach(function (el) {
+              // Reveal a player only once its animation actually loads. If the JSON is missing
+              // (e.g. a starter without the brand /documents/*.json assets), the player fires
+              // 'error' and stays hidden instead of showing lottie-player's error-emoji fallback.
+              var reveal = function () {
+                el.classList.add('is-loaded')
+              }
+              el.addEventListener('ready', reveal)
+              el.addEventListener('load', reveal)
+              el.addEventListener('error', function () {
+                el.classList.remove('is-loaded')
+              })
+              el.setAttribute('src', el.getAttribute('data-src') || '')
+            })
+          })
+        }`}
+      />
+    </>
+  )
+}
+
+<style>
+  .hero-bg-honeycomb {
+    /* Home hero: two distinct amber honeycomb tints (matches webflow). Deliberately NOT mapped
+       to a single brand token — themeable via the dedicated --hero-c1/--hero-c2 seam instead. */
+    --c1: var(--hero-c1, #fff9e6);
+    --c2: var(--hero-c2, #ffefd2);
+  }
+
+  /* Hidden until the animation successfully loads (see the reveal listeners above). Keeps the
+     220x220 track reserved so revealing doesn't shift layout, and suppresses lottie-player's
+     error-emoji fallback when the /documents/*.json assets are absent. */
+  .image-hero-lottie {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .image-hero-lottie.is-loaded {
+    opacity: 1;
+  }
+
+  /* ── Multi-column hero ───────────────────────────────────────────────────── */
+  /* Structure only. Whatever a column holds (an image, a form, buttons) brings its own block
+     styling, so a project can theme its columns without editing this file. */
+  .hero-2col {
+    display: flex;
+    flex-flow: row;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    padding-top: 5vh;
+    padding-bottom: 10vh;
+  }
+  /* `flex-basis: 0` so the inline flex-grow (from the layout token / each column's width)
+     decides the split; without it the tracks would size to their content first. */
+  .hero-2col-left {
+    flex: 1 1 0;
+    text-align: center;
+  }
+  .hero-2col-right {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  @media (max-width: 991px) {
+    .hero-2col {
+      flex-flow: column;
+      gap: 48px;
+    }
+    .hero-2col-left,
+    .hero-2col-right {
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 767px) {
+    .image-hero-lottie {
+      display: none;
+    }
+    .buttons-lottie-group {
+      justify-content: center;
+    }
+  }
+</style>

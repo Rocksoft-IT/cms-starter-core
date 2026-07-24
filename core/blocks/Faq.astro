@@ -1,0 +1,208 @@
+---
+// Core FAQ block — an accessible, single-open accordion. Uses native <details name=…>, whose
+// shared `name` makes the items mutually exclusive (opening one closes the others) with NO
+// JavaScript; it stays keyboard-operable and announced by screen readers out of the box. A
+// browser without exclusive-<details> support degrades to allowing several open at once — the
+// content is always reachable either way.
+//
+// Colors and fonts come from brand CSS vars (var(--color-*, fallback)), so a per-client palette
+// (e.g. smbp's green accordion) rethemes it at build time without touching this component.
+import type { FaqBlock } from '../../types/blocks'
+import RichText from '../RichText.astro'
+interface Props {
+  block: FaqBlock
+}
+const { block } = Astro.props
+const { eyebrow, heading, intro, items = [] } = block.data
+
+// Exclusive-accordion group name. Derived from the heading (deterministic — no build-to-build
+// churn) so two FAQ blocks with different headings on one page form independent groups; blocks
+// without a heading share one group, a benign edge case.
+const slug = (heading ?? 'section')
+  .toLowerCase()
+  .replace(/[^a-z0-9]+/g, '-')
+  .replace(/^-+|-+$/g, '')
+  .slice(0, 32)
+const groupName = `faq-${slug || 'section'}`
+---
+
+<section class="section-faq">
+  <div class="faq-inner">
+    {
+      (eyebrow || heading || intro) && (
+        <header class="faq-header">
+          {eyebrow && <p class="faq-eyebrow">{eyebrow}</p>}
+          {heading && <h2 class="faq-heading">{heading}</h2>}
+          {intro && <p class="faq-intro">{intro}</p>}
+        </header>
+      )
+    }
+    <ul class="faq-list" role="list">
+      {
+        items.map((item) => (
+          <li>
+            <details name={groupName} class="faq-item">
+              <summary class="faq-summary">
+                <span class="faq-question">{item.question}</span>
+                <span class="faq-chevron" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </span>
+              </summary>
+              <div class="faq-answer-wrap">
+                <RichText class="faq-answer" html={item.answer} />
+              </div>
+            </details>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
+
+<style>
+  .section-faq {
+    padding: 4rem 0;
+  }
+  .faq-inner {
+    width: 90%;
+    max-width: 760px;
+    margin-inline: auto;
+  }
+
+  /* ── Header ── */
+  .faq-header {
+    margin-bottom: 1.75rem;
+  }
+  .faq-eyebrow {
+    margin: 0 0 0.6rem;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-eyebrow, var(--color-primary, #2f6b3a));
+  }
+  .faq-heading {
+    margin: 0;
+    font-family: var(--font-primary, inherit);
+    font-weight: 700;
+    font-size: 32px;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--color-heading, var(--color-text-primary, #23302a));
+  }
+  .faq-intro {
+    margin: 0.5rem 0 0;
+    max-width: 60ch;
+    font-size: 16px;
+    line-height: 1.5;
+    color: var(--color-muted, #7a8178);
+  }
+
+  /* ── List / items ── */
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .faq-item {
+    background: var(--color-surface, #ffffff);
+    border: 1px solid var(--color-border, #ece9e2);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 16px rgba(31, 36, 32, 0.04);
+    transition: border-color 0.2s ease;
+  }
+  .faq-item:hover {
+    border-color: var(--color-primary-soft, var(--color-primary, #2f6b3a));
+  }
+
+  /* ── Summary (the toggle row) ── */
+  .faq-summary {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    padding: 20px 24px;
+    cursor: pointer;
+    list-style: none;
+    transition: background-color 0.15s ease;
+  }
+  /* Hide the native disclosure triangle across engines. */
+  .faq-summary::-webkit-details-marker {
+    display: none;
+  }
+  .faq-summary::marker {
+    content: '';
+  }
+  .faq-summary:hover {
+    background: var(--color-surface-alt, #f9faf7);
+  }
+  details[open] > .faq-summary {
+    background: var(--color-surface-alt, #f9faf7);
+  }
+  .faq-question {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--font-primary, inherit);
+    font-weight: 600;
+    font-size: 17px;
+    line-height: 1.35;
+    color: var(--color-heading, var(--color-text-primary, #23302a));
+  }
+  .faq-chevron {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--color-surface-tint, #eef4ea);
+    color: var(--color-primary, #2f6b3a);
+    transition: transform 0.2s ease;
+  }
+  details[open] .faq-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* ── Answer ── */
+  .faq-answer-wrap {
+    padding: 4px 24px 22px;
+    animation: faq-dropIn 0.22s ease both;
+  }
+  .faq-answer-wrap::before {
+    content: '';
+    display: block;
+    height: 1px;
+    margin: 0 0 16px;
+    background: var(--color-border, #f0f1ec);
+  }
+  .faq-answer {
+    font-size: 15.5px;
+    line-height: 1.7;
+    max-width: 74ch;
+    color: var(--color-text-secondary, #5c6459);
+  }
+
+  @keyframes faq-dropIn {
+    from {
+      opacity: 0;
+      transform: translateY(-6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .faq-chevron,
+    .faq-answer-wrap {
+      transition: none;
+      animation: none;
+    }
+  }
+</style>

@@ -1,0 +1,192 @@
+---
+// Section teaser (block `section_teaser`): lists a section's NEWEST items, resolved inline by the
+// API into `data.items` — each item already carries name / path / date / thumbnail, plus an
+// optional `status` and `attachment_count`. Two layouts share one header:
+//   - `cards`: a responsive news grid (image, date, title) — the H3 "latest news" look.
+//   - `list`:  a notice-board row list with a date badge, an optional status pill and an
+//              attachment count — the H4 "tablica / przetargi" look.
+// Pure renderer: ordering + limiting happened server-side, so this never sorts or slices.
+import type { SectionTeaserBlock } from '../../types/blocks'
+import { defaultLocale } from '../i18n'
+import { formatDate } from '../format'
+
+interface Props {
+  block: SectionTeaserBlock
+}
+
+const { block } = Astro.props
+const {
+  eyebrow,
+  heading,
+  layout = 'cards',
+  items = [],
+  action_label,
+  action_href,
+  item_action_label,
+  attachments_label,
+} = block.data
+
+const locale = Astro.currentLocale ?? defaultLocale
+const hasHeader = Boolean(eyebrow || heading)
+const isList = layout === 'list'
+const hasAction = Boolean(action_label && action_href)
+// A trimmed non-empty string, or null — for optional labels/fields that should render nothing
+// when unset or blank.
+const nonEmpty = (v: unknown): string | null => (typeof v === 'string' && v.trim() !== '' ? v : null)
+// Per-item "read more" CTA label (cards). Optional — no label, no CTA row.
+const itemCta = nonEmpty(item_action_label)
+// Noun for the list layout's attachment count ("{n} {label}"). Optional — falls back to the
+// bare count beside the paperclip icon when unset.
+const attachLabel = nonEmpty(attachments_label)
+
+// Day + short month for the list layout's date badge, from the item's raw ISO date (UTC-safe,
+// matching core/format). Null when the item has no parseable date, so the badge is simply omitted.
+function dateBadge(iso?: string | null): { day: string; month: string } | null {
+  if (typeof iso !== 'string' || iso.trim() === '') return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  return {
+    day: new Intl.DateTimeFormat(locale, { day: '2-digit', timeZone: 'UTC' }).format(d),
+    month: new Intl.DateTimeFormat(locale, { month: 'short', timeZone: 'UTC' }).format(d),
+  }
+}
+
+// The resolved thumbnail is a MediaUrls.for() object ({ url, … }); a bare string is tolerated for
+// hand-written fixtures. Returns null when there's no image, so the <img> is skipped.
+function thumbUrl(t: unknown): string | null {
+  if (typeof t === 'string') return t
+  if (t && typeof t === 'object' && typeof (t as { url?: unknown }).url === 'string') {
+    return (t as { url: string }).url
+  }
+  return null
+}
+---
+
+{
+  (hasHeader || items.length > 0) && (
+    <section class:list={['section-teaser py-16', isList && 'is-list']}>
+      <div class="container-global">
+        {hasHeader && (
+          <div class="section-header">
+            {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+            {heading && <h2 class="section-heading text-text-primary">{heading}</h2>}
+          </div>
+        )}
+
+        {/* Cards layout — news grid */}
+        {items.length > 0 && !isList && (
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {items.map((item) => {
+              const href = typeof item.path === 'string' ? item.path : undefined
+              const img = thumbUrl(item.thumbnail)
+              const date = formatDate(item.date, locale)
+              const lead = nonEmpty(item.lead)
+              return (
+                <article class="flex flex-col overflow-hidden rounded-[16px] border border-gray-200 bg-section-bg">
+                  {img && (
+                    <a href={href} class="block aspect-[16/9] overflow-hidden" tabindex="-1" aria-hidden="true">
+                      <img src={img} alt={item.name ?? ''} class="h-full w-full object-cover" loading="lazy" />
+                    </a>
+                  )}
+                  <div class="flex flex-1 flex-col gap-2 p-6">
+                    {date && (
+                      <time class="text-[13px] text-text-secondary" datetime={item.date ?? undefined}>
+                        {date}
+                      </time>
+                    )}
+                    <h3 class="text-[20px] font-bold leading-tight text-text-primary">
+                      <a href={href} class="hover:text-primary">
+                        {item.name}
+                      </a>
+                    </h3>
+                    {lead && <p class="text-[14px] leading-[1.55] text-text-secondary">{lead}</p>}
+                    {itemCta && href && (
+                      <a
+                        href={href}
+                        class="mt-auto inline-flex items-center gap-[6px] pt-1 text-[14px] font-bold text-primary hover:underline"
+                      >
+                        {itemCta}
+                        <span aria-hidden="true">&rarr;</span>
+                      </a>
+                    )}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+
+        {/* List layout — notice board */}
+        {items.length > 0 && isList && (
+          <ul class="m-0 flex list-none flex-col gap-3 p-0">
+            {items.map((item) => {
+              const href = typeof item.path === 'string' ? item.path : undefined
+              const badge = dateBadge(item.date)
+              const status = nonEmpty(item.status)
+              const attachments = typeof item.attachment_count === 'number' ? item.attachment_count : 0
+              // One source of truth for the attachment text (visible label + aria-label).
+              const attachText = attachLabel ? `${attachments} ${attachLabel}` : `${attachments}`
+              return (
+                <li>
+                  <a
+                    href={href}
+                    class="flex items-center gap-4 rounded-[12px] border border-gray-200 bg-section-bg p-4 transition-colors hover:border-primary"
+                  >
+                    {badge && (
+                      <span class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[10px] bg-text-primary leading-none text-white">
+                        <span class="text-[20px] font-bold">{badge.day}</span>
+                        <span class="text-[11px] uppercase">{badge.month}</span>
+                      </span>
+                    )}
+                    <span class="min-w-0 flex-1">
+                      <span class="block truncate font-semibold text-text-primary">{item.name}</span>
+                      {(status || attachments > 0) && (
+                        <span class="mt-1 flex items-center gap-3 text-[12px] text-text-secondary">
+                          {status && (
+                            <span
+                              class="section-teaser-status inline-flex items-center rounded-full bg-primary/10 px-2 py-[2px] font-semibold uppercase text-primary"
+                              data-status={status}
+                            >
+                              {status}
+                            </span>
+                          )}
+                          {attachments > 0 && (
+                            <span class="inline-flex items-center gap-1" aria-label={attachText}>
+                              <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                aria-hidden="true"
+                              >
+                                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+                              </svg>
+                              {attachText}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </span>
+                    <span aria-hidden="true" class="shrink-0 text-text-secondary">
+                      &rsaquo;
+                    </span>
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+
+        {hasAction && (
+          <div class="mt-10 text-center">
+            <a href={action_href} class="btn-primary">
+              {action_label}
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}

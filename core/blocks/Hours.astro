@@ -1,0 +1,46 @@
+---
+// Core "opening hours" block (hours). A `day_label` / `hours_label` repeater with optional
+// eyebrow, heading and footnote — split out of the former combined hours_location so opening
+// hours are just hours (map and NAP are their own blocks now: `map`, `contact`).
+//
+// Degrades gracefully: a row is rendered only when it carries a label, and the whole block
+// collapses to nothing when there are no rows and no heading.
+import type { HoursBlock } from '../../types/blocks'
+
+interface Props {
+  block: HoursBlock
+}
+
+const { block } = Astro.props
+const { eyebrow, heading, hours = [], footnote } = block.data
+
+const rows = hours.filter((row) => row.day_label || row.hours_label)
+---
+
+<section class="section-hours">
+  <div class="container-global py-16">
+    {
+      (eyebrow || heading) && (
+        <div class="mb-10">
+          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+          {heading && <h2 class="section-heading mt-2 text-text-primary">{heading}</h2>}
+        </div>
+      )
+    }
+
+    {
+      rows.length > 0 && (
+        <dl class="m-0 flex flex-col gap-3">
+          {rows.map((row) => (
+            <div class="flex justify-between gap-4 border-b border-b-solid border-black/8 pb-3 last:border-b-0 last:pb-0">
+              <dt class="font-semibold text-text-primary">{row.day_label}</dt>
+              <dd class="m-0 text-right text-text-secondary">{row.hours_label}</dd>
+            </div>
+          ))}
+        </dl>
+      )
+    }
+
+    {footnote && <p class="mt-4 text-[0.9rem] text-muted">{footnote}</p>}
+  </div>
+</section>

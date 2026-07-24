@@ -1,0 +1,15 @@
+---
+import type { HeadingBlock } from '../../types/blocks'
+
+interface Props {
+  block: HeadingBlock
+}
+
+const { block } = Astro.props
+// Render the authored level (h2-h4); default h2. Capitalized so Astro treats it as a dynamic tag.
+const Tag = block.data.level ?? 'h2'
+---
+
+<section class="section-content">
+  <Tag class="rich-heading">{block.data.text}</Tag>
+</section>

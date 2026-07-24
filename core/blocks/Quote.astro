@@ -1,0 +1,161 @@
+---
+// Core pull-quote block. A prominent quotation with optional supporting image,
+// attribution and a source link. Everything except the quote itself is optional and
+// degrades gracefully: with no image the text spans the full width; with no headline/
+// lede the block is just the quote + attribution; with no source link the citation is
+// the plain attribution line.
+//
+// The `quote` field is CMS richtext, so it flows through RichText (which sanitizes) rather
+// than being interpolated raw — matching every other richtext surface in the starter.
+import type { QuoteBlock } from '../../types/blocks'
+import RichText from '../RichText.astro'
+
+interface Props {
+  block: QuoteBlock
+}
+
+const { block } = Astro.props
+const {
+  source_tag,
+  headline,
+  lede,
+  quote,
+  attribution,
+  source_link_label,
+  source_link_href,
+  image,
+  alt = '',
+} = block.data
+
+// A source link needs an href; the label falls back to the href so a URL-only field still renders.
+const hasSourceLink = Boolean(source_link_href)
+const sourceLinkText = source_link_label || source_link_href
+---
+
+<section class="section-quote">
+  <div class:list={['quote-inner', { 'quote-has-image': image }]}>
+    {
+      image && (
+        <figure class="quote-figure">
+          <img src={image} alt={alt} class="quote-image" loading="lazy" />
+        </figure>
+      )
+    }
+    <div class="quote-body">
+      {source_tag && <p class="quote-source-tag">{source_tag}</p>}
+      {headline && <h2 class="quote-headline">{headline}</h2>}
+      {lede && <p class="quote-lede">{lede}</p>}
+      {
+        quote && (
+          <blockquote class="quote-mark">
+            <RichText class="quote-text" html={quote} />
+          </blockquote>
+        )
+      }
+      {
+        (attribution || hasSourceLink) && (
+          <figcaption class="quote-cite">
+            {attribution && <span class="quote-attribution">{attribution}</span>}
+            {hasSourceLink && (
+              <a class="quote-source-link" href={source_link_href}>
+                {sourceLinkText}
+              </a>
+            )}
+          </figcaption>
+        )
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .section-quote {
+    padding-block: 4rem;
+  }
+  .quote-inner {
+    width: 90%;
+    max-width: 900px;
+    margin-inline: auto;
+  }
+
+  /* When an image is present, place it beside the text on wider viewports and stack on mobile. */
+  .quote-has-image {
+    display: grid;
+    gap: 2.5rem;
+    align-items: center;
+  }
+  @media (min-width: 768px) {
+    .quote-has-image {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+  }
+
+  .quote-figure {
+    margin: 0;
+  }
+  .quote-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 12px;
+  }
+
+  .quote-source-tag {
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary, #3b5aff);
+    margin: 0 0 0.75rem;
+  }
+  .quote-headline {
+    font-size: clamp(1.75rem, 3vw, 2.5rem);
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 1rem;
+  }
+  .quote-lede {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary, #4a4a57);
+    margin: 0 0 1.5rem;
+  }
+
+  /* The pull-quote itself. A leading vertical rule + oversized type set it apart from prose. */
+  .quote-mark {
+    margin: 0;
+    padding-inline-start: 1.5rem;
+    border-inline-start: 4px solid var(--color-primary, #3b5aff);
+  }
+  /* `.quote-text` is the div emitted by the RichText child component, so it does NOT carry
+     this block's scope attribute — target it (and its authored <p> children) through the
+     scoped `.quote-mark` parent with :global() so the styles actually land. */
+  .quote-mark :global(.quote-text) {
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .quote-mark :global(.quote-text p) {
+    margin: 0 0 0.75rem;
+  }
+  .quote-mark :global(.quote-text p:last-child) {
+    margin-bottom: 0;
+  }
+
+  .quote-cite {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.75rem;
+    align-items: baseline;
+    margin-top: 1.5rem;
+    font-size: 1rem;
+  }
+  .quote-attribution {
+    font-weight: 700;
+  }
+  .quote-source-link {
+    color: var(--color-primary, #3b5aff);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>

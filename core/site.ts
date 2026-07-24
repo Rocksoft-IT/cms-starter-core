@@ -1,0 +1,22 @@
+import { cmsConfig } from '~site/cms.config'
+
+/**
+ * The site's public origin, without a trailing slash — the single source of truth for every
+ * absolute URL the build emits: the canonical/og:url in <Seo>, and the `Sitemap:` line in
+ * robots.txt.
+ *
+ * Order: `ASTRO_SITE_URL` (per-environment, so a staging deploy doesn't advertise production
+ * URLs) then `cmsConfig.seo.siteUrl` (per-project default). Before #514 these two surfaces read
+ * different things — `astro.config.mjs` had no `site` at all and `<Seo>` fell back to
+ * `Astro.url.href`, i.e. the BUILD host — so a canonical could point at localhost while the
+ * sitemap pointed at the real domain.
+ *
+ * Returns null when neither is set, and every caller degrades rather than inventing an origin:
+ * <Seo> keeps its build-URL fallback, robots.txt omits the Sitemap line. A wrong absolute URL
+ * is worse than an absent one — it is the address crawlers would index.
+ */
+export function siteUrl(): string | null {
+  const configured = import.meta.env.ASTRO_SITE_URL || cmsConfig.seo?.siteUrl || ''
+
+  return configured ? configured.replace(/\/+$/, '') : null
+}

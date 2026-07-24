@@ -1,0 +1,12 @@
+---
+import { sanitize } from '../lib/sanitize'
+
+interface Props {
+  html: string | null | undefined
+  class?: string
+}
+
+const { html, class: className } = Astro.props
+---
+
+<div class={className} set:html={sanitize(html)} />

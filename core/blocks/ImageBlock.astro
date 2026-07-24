@@ -1,0 +1,107 @@
+---
+// Core image block. Renders a single figure with responsive sizing:
+// aspect-ratio, object-fit, object-position and max-height, each with an
+// optional mobile (<=767px) / desktop (>=768px) override. The global value is
+// applied inline on the <img>; per-breakpoint overrides are emitted as scoped
+// @media rules. Free-text values pass through sanitizeCssValue() before hitting
+// the <style> tag. All fields are optional — an unset block renders w-full h-auto,
+// exactly as before any sizing field existed.
+//
+// Horizontal placement (`maxWidth` + `align`) applies to the FIGURE, not the image, so a
+// caption stays as wide as the picture it belongs to. Note that `align` alone does nothing:
+// a full-width figure has no room to move in. It only becomes visible once `maxWidth`
+// (or a max-height + aspect-ratio pair) makes the figure narrower than its container.
+import type { ImageBlock } from '../../types/blocks'
+import { sanitizeCssValue } from '../../lib/sanitize'
+
+interface Props {
+  block: ImageBlock
+}
+
+const MOBILE_BREAKPOINT = 767
+const DESKTOP_BREAKPOINT = 768
+
+const { block } = Astro.props
+const {
+  src,
+  alt = '',
+  caption,
+  aspectRatio,
+  objectFit = 'cover',
+  objectPosition,
+  maxHeight,
+  maxWidth,
+  align,
+  mobileAspectRatio,
+  mobileObjectFit,
+  mobileObjectPosition,
+  mobileMaxHeight,
+  desktopAspectRatio,
+  desktopObjectFit,
+  desktopObjectPosition,
+  desktopMaxHeight,
+} = block.data
+
+const imgId = `img-${Math.random().toString(36).substr(2, 9)}`
+
+// Build base inline styles — free-text fields go through sanitizeCssValue() to block
+// CSS rule-break injection ({};@) before interpolation into the <style> tag below.
+const safeAspectRatio = sanitizeCssValue(aspectRatio)
+const safeObjectPosition = sanitizeCssValue(objectPosition)
+const safeMaxHeight = sanitizeCssValue(maxHeight)
+const safeMobileAspectRatio = sanitizeCssValue(mobileAspectRatio)
+const safeMobileObjectPosition = sanitizeCssValue(mobileObjectPosition)
+const safeMobileMaxHeight = sanitizeCssValue(mobileMaxHeight)
+const safeDesktopAspectRatio = sanitizeCssValue(desktopAspectRatio)
+const safeDesktopObjectPosition = sanitizeCssValue(desktopObjectPosition)
+const safeDesktopMaxHeight = sanitizeCssValue(desktopMaxHeight)
+
+// Figure-level placement. `margin-inline` does the aligning, so it composes with whatever
+// the surrounding layout does — no absolute positioning, no wrapper element.
+const safeMaxWidth = sanitizeCssValue(maxWidth)
+const figureStyles: string[] = []
+if (safeMaxWidth) figureStyles.push(`max-width: ${safeMaxWidth}`)
+if (align === 'center') figureStyles.push('margin-inline: auto')
+else if (align === 'right') figureStyles.push('margin-inline-start: auto')
+else if (align === 'left') figureStyles.push('margin-inline-end: auto')
+const figureStyle = figureStyles.length > 0 ? figureStyles.join('; ') : undefined
+
+const baseStyles: string[] = []
+if (safeAspectRatio) baseStyles.push(`aspect-ratio: ${safeAspectRatio}`)
+baseStyles.push(`object-fit: ${objectFit}`)
+if (safeObjectPosition) baseStyles.push(`object-position: ${safeObjectPosition}`)
+if (safeMaxHeight) baseStyles.push(`max-height: ${safeMaxHeight}`)
+const baseStyle = baseStyles.length > 0 ? baseStyles.join('; ') : undefined
+
+// Build responsive media queries
+const mobileStyles: string[] = []
+const desktopStyles: string[] = []
+
+if (safeMobileAspectRatio) mobileStyles.push(`aspect-ratio: ${safeMobileAspectRatio}`)
+if (mobileObjectFit) mobileStyles.push(`object-fit: ${mobileObjectFit}`)
+if (safeMobileObjectPosition) mobileStyles.push(`object-position: ${safeMobileObjectPosition}`)
+if (safeMobileMaxHeight) mobileStyles.push(`max-height: ${safeMobileMaxHeight}`)
+
+if (safeDesktopAspectRatio) desktopStyles.push(`aspect-ratio: ${safeDesktopAspectRatio}`)
+if (desktopObjectFit) desktopStyles.push(`object-fit: ${desktopObjectFit}`)
+if (safeDesktopObjectPosition) desktopStyles.push(`object-position: ${safeDesktopObjectPosition}`)
+if (safeDesktopMaxHeight) desktopStyles.push(`max-height: ${safeDesktopMaxHeight}`)
+
+let mediaQuery = ''
+if (mobileStyles.length > 0) {
+  mediaQuery += `@media (max-width: ${MOBILE_BREAKPOINT}px) { #${imgId} { ${mobileStyles.join('; ')}; } } `
+}
+if (desktopStyles.length > 0) {
+  mediaQuery += `@media (min-width: ${DESKTOP_BREAKPOINT}px) { #${imgId} { ${desktopStyles.join('; ')}; } } `
+}
+---
+
+{
+  src && (
+    <figure class="section-image" style={figureStyle}>
+      {mediaQuery && <style is:global set:html={mediaQuery} />}
+      <img id={imgId} src={src} alt={alt} class="w-full h-auto block mx-auto" style={baseStyle || undefined} />
+      {caption && <figcaption class="font-montserrat text-[14px] text-grey text-center mt-3">{caption}</figcaption>}
+    </figure>
+  )
+}

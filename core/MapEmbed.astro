@@ -1,0 +1,30 @@
+---
+// Shared map-embed partial. Renders a lazy, titled <iframe> for an embeddable map URL (e.g. a
+// Google Maps `map_embed_src`). Kept as a standalone partial so the embed markup + a11y live in
+// one place: the `map` block uses it, and any other block that wants an inline map (composed via
+// `columns`) can reuse it without duplicating the iframe. Renders nothing when `src` is empty,
+// so a half-authored block never emits an empty iframe. The `title` is required for screen-reader
+// users — an untitled iframe reads as "Frame" and fails WCAG 4.1.2. The wrapper reserves an
+// aspect ratio so the lazy iframe doesn't shift layout on load.
+interface Props {
+  src: string | null | undefined
+  title?: string
+}
+
+const { src, title = 'Map' } = Astro.props
+---
+
+{
+  src && (
+    <div class="aspect-[16/9] overflow-hidden rounded-xl md:aspect-[21/9]">
+      <iframe
+        class="block h-full w-full border-0"
+        src={src}
+        title={title}
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allowfullscreen
+      />
+    </div>
+  )
+}

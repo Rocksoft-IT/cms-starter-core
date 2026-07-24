@@ -1,0 +1,60 @@
+---
+import type { ColumnsBlock } from '../../types/blocks'
+import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
+import BlockRenderer from '../BlockRenderer.astro'
+
+interface Props {
+  block: ColumnsBlock
+}
+
+const { block } = Astro.props
+
+// Track sizing: each column's `width` numerator, falling back to its slot's `layout` share (see
+// src/lib/layout-shares.ts for the width/layout contract). Falling back BEFORE dropping empties
+// keeps each surviving column aligned to its original slot.
+const layoutShares = parseLayoutShares(block.data.layout)
+
+const columns = (block.data.columns ?? [])
+  .map((col, i) => ({ blocks: col.blocks ?? [], share: shareAt(col.width, layoutShares, i) }))
+  // The live API unconditionally drops an empty column at resolve time (and `drop_when_empty` drops
+  // the whole block once EVERY column is empty) — mirror the per-column drop here so a stray empty
+  // column in a hand-authored payload doesn't claim a track and skew the row. A lone surviving column
+  // is a single `fr` track, so it naturally reclaims the whole row.
+  .filter((col) => col.blocks.length > 0)
+
+// On mobile the grid auto-stacks to one column, in authoring order (see the scoped <style>).
+const template = columns.map((col) => `${col.share}fr`).join(' ')
+---
+
+<section class="section-columns">
+  <div class="columns-grid" style={`--cols: ${template};`}>
+    {
+      columns.map((col) => (
+        <div class="columns-col">
+          <BlockRenderer blocks={col.blocks} />
+        </div>
+      ))
+    }
+  </div>
+</section>
+
+<style>
+  .section-columns {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 0;
+  }
+  .columns-grid {
+    display: grid;
+    grid-template-columns: var(--cols);
+    gap: 2rem;
+    align-items: start;
+  }
+  /* Auto-stack full-width, in authoring order, below the mobile breakpoint. */
+  @media (max-width: 767px) {
+    .columns-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>

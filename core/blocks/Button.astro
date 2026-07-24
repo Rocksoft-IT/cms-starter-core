@@ -1,0 +1,20 @@
+---
+import type { ButtonBlock } from '../../types/blocks'
+
+interface Props {
+  block: ButtonBlock
+}
+
+const { block } = Astro.props
+const { label, href, style } = block.data
+
+// Block-level style vs the brand-level default (CMS Branding, dashboard PR #632):
+// an explicit `outline` on the block always renders outline; `primary` (or no style)
+// picks the primary button *as the brand renders it* — .btn-primary is flipped to the
+// outline look by global.css when <html data-btn-primary="outline"> (see Layout.astro).
+// Keep ButtonGroup.astro's mapping identical to this one.
+---
+
+<div class="section-buttons">
+  <a href={href} class={style === 'outline' ? 'btn-outline' : 'btn-primary'}>{label}</a>
+</div>
