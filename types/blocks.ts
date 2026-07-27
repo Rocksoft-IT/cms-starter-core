@@ -299,7 +299,14 @@ export interface NavTilesBlock {
 
 export interface FaqBlock {
   type: 'faq'
-  data: { eyebrow?: string; heading?: string; intro?: string; items?: Array<{ question?: string; answer?: string }> }
+  data: {
+    eyebrow?: string
+    heading?: string
+    intro?: string
+    cta_label?: string
+    cta_href?: string
+    items?: Array<{ question?: string; answer?: string }>
+  }
 }
 
 export interface TeamBlock {

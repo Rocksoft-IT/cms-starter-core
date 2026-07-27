@@ -1,8 +1,9 @@
-// Shared shape of a site's cms.config.ts — the per-site seam a site edits INSTEAD of core
-// code: locales, brand tokens, menu keys, the block component registry, and the page-type
-// dispatch registry. Each site under sites/<slug>/ exports a `cmsConfig: CmsConfig`; the
-// active site is selected at build time via the SITE env (see astro.config.mjs), and core
-// code imports it only through the `~site` alias — never a literal sites/<slug> path.
+// Shared shape of a site's cms.config.ts — the seam a site edits INSTEAD of core code: locales,
+// brand tokens, menu keys, the block component registry, and the page-type dispatch registry.
+// ONE site per repo: `src/cms.config.ts` exports a `cmsConfig: CmsConfig`, and core reaches it only
+// through the `~site` alias (→ `./src`, set in astro.config.mjs and mirrored in tsconfig.json) —
+// never a literal path. There is no `sites/<slug>` and no `SITE` env; that multi-site selection
+// machinery was removed.
 // Secrets (API url/token) stay in env (ASTRO_API_URL / ASTRO_API_TOKEN); structure lives here.
 
 import type { PageTypeConfig, ExtraRouteRule } from './routing'
@@ -81,7 +82,7 @@ export interface CmsConfig {
   }
 }
 
-/** Optional per-site UnoCSS additions (sites/<slug>/uno.ts) merged into the shared
+/** Optional per-site UnoCSS additions (`src/uno.ts`) merged into the shared
  *  uno.config.ts — site shortcuts on top of the core set. */
 export interface SiteUnoConfig {
   shortcuts?: Record<string, string>

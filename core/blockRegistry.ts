@@ -7,9 +7,8 @@ import type { BlockLoader } from './config'
  * — so a NEW core block renders on every site without a per-site edit, while a site can still
  * override a type (re-declare it after the spread) or add its own site-specific blocks.
  *
- * This is the seam the npm-core epic (#843) formalizes: today it lives in `src/core/`; when the
- * core becomes a package it moves with it, and the site keeps only its overrides. Paths are
- * relative to `src/core/`, so the map travels with the core wherever it lives.
+ * The seam the npm-core epic (#843) formalized: the core is a package now, and a site keeps only
+ * its overrides. Paths are relative to this file, so the map travels with the core.
  */
 export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   promo_split: () => import('./blocks/PromoSplit.astro'),

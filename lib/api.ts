@@ -85,7 +85,7 @@ export interface PageApiItem {
   // render a field it did not know at build time. `label` and the translatable values (text,
   // list, a select's option label) arrive already resolved for the requested locale — no lookup
   // here. A `select` value is `{ key, label }`; the stable `key` is never shown to the user.
-  // Rendered generically by src/core/CustomFields.astro; absent on an API that predates them.
+  // Rendered generically by core/CustomFields.astro; absent on an API that predates them.
   custom_fields?: Array<{
     key: string
     type: 'text' | 'select' | 'date' | 'list'

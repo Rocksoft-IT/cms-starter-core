@@ -189,6 +189,16 @@ export const coreShortcuts: Record<string, string> = {
   'section-faq': 'section-y',
   'faq-inner': 'container-global',
   'faq-header': 'mb-7',
+  // With a CTA the heading block and the link sit on one baseline-aligned row, wrapping on narrow
+  // viewports; without one the row is a plain block and changes nothing.
+  'faq-header-row': 'flex flex-wrap items-end justify-between gap-4',
+  // A quiet pill: this is the way out for someone the answers did not help, not the section's
+  // primary action. A site that wants its own button remaps this one key.
+  'faq-action':
+    'inline-flex items-center gap-2 shrink-0 whitespace-nowrap no-underline cursor-pointer ' +
+    'rounded-full border border-solid border-border px-[18px] py-[10px] ' +
+    'bg-surface text-heading font-semibold text-[14px] ' +
+    'transition-colors hover:border-primary hover:text-primary',
   'faq-eyebrow': 'eyebrow m-0 mb-[0.6rem]',
   'faq-heading': 'm-0 font-brand font-bold text-[32px] leading-[1.15] tracking-[-0.02em] text-heading',
   'faq-intro': 'mt-2 mb-0 max-w-[60ch] text-[16px] leading-[1.5] text-muted',

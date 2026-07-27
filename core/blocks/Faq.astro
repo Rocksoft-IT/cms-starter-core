@@ -15,7 +15,14 @@ interface Props {
   block: FaqBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, intro, items = [] } = block.data
+const { eyebrow, heading, intro, cta_label, cta_href, items = [] } = block.data
+
+// The optional inline CTA needs both halves — a label with nowhere to go, or a bare URL with no
+// label, renders nothing rather than a broken link.
+const hasCta = Boolean(cta_label && cta_href)
+// An absolute http(s) target leaves the site, so it opens in a new tab and gets the external glyph.
+// A path stays in place, plain.
+const ctaExternal = hasCta && /^https?:\/\//.test(cta_href!)
 
 // Exclusive-accordion group name. Derived from the heading (deterministic — no build-to-build
 // churn) so two FAQ blocks with different headings on one page form independent groups; blocks
@@ -31,11 +38,40 @@ const groupName = `faq-${slug || 'section'}`
 <section class="section-faq">
   <div class="faq-inner">
     {
-      (eyebrow || heading || intro) && (
+      (eyebrow || heading || intro || hasCta) && (
         <header class="faq-header">
           {eyebrow && <p class="faq-eyebrow">{eyebrow}</p>}
-          {heading && <h2 class="faq-heading">{heading}</h2>}
-          {intro && <p class="faq-intro">{intro}</p>}
+          <div class:list={[hasCta && 'faq-header-row']}>
+            <div>
+              {heading && <h2 class="faq-heading">{heading}</h2>}
+              {intro && <p class="faq-intro">{intro}</p>}
+            </div>
+            {hasCta && (
+              <a
+                class="faq-action"
+                href={cta_href}
+                target={ctaExternal ? '_blank' : undefined}
+                rel={ctaExternal ? 'noopener noreferrer' : undefined}
+              >
+                {cta_label}
+                {ctaExternal && (
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="15"
+                    height="15"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M7 17 17 7M8 7h9v9" />
+                  </svg>
+                )}
+              </a>
+            )}
+          </div>
         </header>
       )
     }

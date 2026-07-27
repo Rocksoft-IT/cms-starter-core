@@ -1,8 +1,28 @@
 # @rocksoft/cms-starter-core
 
 Client sites pin this package by git tag (`package.json`:
-`git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.3.0`), so a bump is a deliberate act —
+`git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.4.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
+
+## v0.4.0 — an inline CTA on the FAQ block
+
+**Additive: nothing breaks, and nothing must change in a client to take this.** Bump the pin and
+`pnpm install`.
+
+- **The `faq` block gains `cta_label` + `cta_href`** — an optional action beside the heading, for the
+  person the answers did not help. Same field names as `promo_split`'s CTA, so an editor learns one
+  vocabulary. Both halves are required: a label with nowhere to go, or a bare URL with no label,
+  renders nothing rather than a dead link. An absolute `http(s)` target opens in a new tab with
+  `rel="noopener noreferrer"` and gets an external glyph; a path stays in place.
+- **New shortcuts:** `faq-header-row` (the header becomes a baseline-aligned row only when there is
+  something to sit beside the heading) and `faq-action` (a quiet pill in core tokens — this is the way
+  out, not the section's primary action). Remap `faq-action` to use your own button.
+- Fill the link in the panel, on the FAQ block. It is content, not code.
+
+Comment corrections across the package in the same release: ten references to the pre-flatten
+multi-site layout (`sites/<slug>/`, a `SITE` env, `src/core/`) were still sitting in docstrings,
+including on the public `CmsConfig` interface every client reads. `core/mock.ts` now also states why
+it, and everything importing it, can only be loaded by a Vite build.
 
 ## v0.3.0 — core becomes a skeleton
 
@@ -12,7 +32,8 @@ no longer needed anywhere** (a CI check now rejects it). Scoped CSS in core drop
 to 76, across 3 files instead of 11.
 
 Full rationale and phase-by-phase history: `context/changes/core-styling-seams/` in the
-diligently-dashboard monorepo. The contract itself: `docs/starter.md` § "Styling contract".
+diligently-dashboard repo (which holds the backend and the starter dev tree). The contract itself:
+`docs/starter.md` § "Styling contract".
 
 ### BREAKING — required to build
 
