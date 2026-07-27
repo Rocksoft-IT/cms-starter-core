@@ -101,7 +101,7 @@ if (desktopStyles.length > 0) {
     <figure class="section-image" style={figureStyle}>
       {mediaQuery && <style is:global set:html={mediaQuery} />}
       <img id={imgId} src={src} alt={alt} class="w-full h-auto block mx-auto" style={baseStyle || undefined} />
-      {caption && <figcaption class="font-montserrat text-[14px] text-grey text-center mt-3">{caption}</figcaption>}
+      {caption && <figcaption class="text-[14px] text-muted text-center mt-3">{caption}</figcaption>}
     </figure>
   )
 }

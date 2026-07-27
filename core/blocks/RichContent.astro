@@ -8,6 +8,8 @@ const { block } = Astro.props
 ---
 
 <section class="section-content">
-  {block.data.heading && <h2 class="rich-heading">{block.data.heading}</h2>}
-  <RichText class="rich-body" html={block.data.body} />
+  <div class="content-inner">
+    {block.data.heading && <h2 class="rich-heading">{block.data.heading}</h2>}
+    <RichText class="rich-body" html={block.data.body} />
+  </div>
 </section>

@@ -3,6 +3,7 @@
 // two-column list of navigation tiles. Each tile is a label with an optional link and an
 // optional icon image; without an icon a small brand-colored marker keeps the rows scannable.
 import type { MainFeaturesBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: MainFeaturesBlock
@@ -18,11 +19,7 @@ const rows = tiles.filter((tile) => tile.label)
 <section class="section-mainfeatures py-16">
   <div class="container-global">
     <div class="grid grid-cols-1 lg:grid-cols-[1fr_1.25fr] gap-12 items-center">
-      <div class="flex flex-col gap-4">
-        {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-        {heading && <h2 class="section-heading">{heading}</h2>}
-        {intro && <p class="section-intro">{intro}</p>}
-      </div>
+      <SectionHeader {eyebrow} {heading} {intro} />
 
       {
         rows.length > 0 && (

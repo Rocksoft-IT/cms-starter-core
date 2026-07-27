@@ -6,7 +6,9 @@
 // the plain attribution line.
 //
 // The `quote` field is CMS richtext, so it flows through RichText (which sanitizes) rather
-// than being interpolated raw — matching every other richtext surface in the starter.
+// than being interpolated raw — matching every other richtext surface in the starter. RichText
+// applies the class it is given to its own element, so `quote-text` styles it directly and this
+// block needs no CSS of its own.
 import type { QuoteBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 
@@ -67,95 +69,3 @@ const sourceLinkText = source_link_label || source_link_href
     </div>
   </div>
 </section>
-
-<style>
-  .section-quote {
-    padding-block: 4rem;
-  }
-  .quote-inner {
-    width: 90%;
-    max-width: 900px;
-    margin-inline: auto;
-  }
-
-  /* When an image is present, place it beside the text on wider viewports and stack on mobile. */
-  .quote-has-image {
-    display: grid;
-    gap: 2.5rem;
-    align-items: center;
-  }
-  @media (min-width: 768px) {
-    .quote-has-image {
-      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-    }
-  }
-
-  .quote-figure {
-    margin: 0;
-  }
-  .quote-image {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 12px;
-  }
-
-  .quote-source-tag {
-    font-size: 0.85rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--color-primary, #3b5aff);
-    margin: 0 0 0.75rem;
-  }
-  .quote-headline {
-    font-size: clamp(1.75rem, 3vw, 2.5rem);
-    font-weight: 700;
-    line-height: 1.2;
-    margin: 0 0 1rem;
-  }
-  .quote-lede {
-    font-size: 1.125rem;
-    line-height: 1.7;
-    color: var(--color-text-secondary, #4a4a57);
-    margin: 0 0 1.5rem;
-  }
-
-  /* The pull-quote itself. A leading vertical rule + oversized type set it apart from prose. */
-  .quote-mark {
-    margin: 0;
-    padding-inline-start: 1.5rem;
-    border-inline-start: 4px solid var(--color-primary, #3b5aff);
-  }
-  /* `.quote-text` is the div emitted by the RichText child component, so it does NOT carry
-     this block's scope attribute — target it (and its authored <p> children) through the
-     scoped `.quote-mark` parent with :global() so the styles actually land. */
-  .quote-mark :global(.quote-text) {
-    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
-    font-weight: 500;
-    line-height: 1.4;
-  }
-  .quote-mark :global(.quote-text p) {
-    margin: 0 0 0.75rem;
-  }
-  .quote-mark :global(.quote-text p:last-child) {
-    margin-bottom: 0;
-  }
-
-  .quote-cite {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.25rem 0.75rem;
-    align-items: baseline;
-    margin-top: 1.5rem;
-    font-size: 1rem;
-  }
-  .quote-attribution {
-    font-weight: 700;
-  }
-  .quote-source-link {
-    color: var(--color-primary, #3b5aff);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-  }
-</style>

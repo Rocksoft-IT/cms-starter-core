@@ -1,13 +1,11 @@
 ---
 import type { CustomHtmlBlock } from '../../types/blocks'
-import { cmsConfig } from '~site/cms.config'
 
 interface Props {
   block: CustomHtmlBlock
 }
 const { block } = Astro.props
 const { html, full_width } = block.data
-const containerWidth = cmsConfig.layout?.containerWidth ?? '1200px'
 ---
 
 <section class="section-custom-html py-8">
@@ -15,11 +13,5 @@ const containerWidth = cmsConfig.layout?.containerWidth ?? '1200px'
     /* set:html is intentionally unsanitized — admin is trusted and scripts must be preserved.
       Projects with untrusted editors can opt into sanitization using the sanitize-html dependency. */
   }
-  {
-    full_width ? (
-      <div set:html={html} />
-    ) : (
-      <div style={`max-width:${containerWidth};margin-inline:auto;padding-inline:5%`} set:html={html} />
-    )
-  }
+  {full_width ? <div set:html={html} /> : <div class="custom-html-inner" set:html={html} />}
 </section>

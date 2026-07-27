@@ -9,6 +9,7 @@ import type { PricingTableBlock } from '../../types/blocks'
 import { sanitizeSvg } from '../../lib/sanitize'
 import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: PricingTableBlock
@@ -38,14 +39,7 @@ const idPrefix = sectionId ?? 'pricing-table'
 
 <section id={sectionId} class:list={['section-pricing-table py-20', background === 'dark' && 'is-dark']}>
   <div class="container-global">
-    {
-      (eyebrow || heading) && (
-        <div class="section-header">
-          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-          {heading && <h2 class="section-heading">{heading}</h2>}
-        </div>
-      )
-    }
+    <SectionHeader {eyebrow} {heading} />
 
     {
       showTabs && (

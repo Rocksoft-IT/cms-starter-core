@@ -1,57 +1,27 @@
 ---
+// Core separator block — a centred rule, a full-width hairline, or three dots.
+//
+// The variant class is looked up from a literal map rather than interpolated (`separator-${style}`)
+// for two reasons: UnoCSS extracts class names statically, so an interpolated one generates NO CSS
+// at all, and a CMS value must never reach a class name unchecked. An unknown style falls back to
+// the default rule instead of emitting a class nothing styles. The dots ride a
+// `before:content-[...]` utility, so this block carries no CSS of its own.
 import type { SeparatorBlock } from '../../types/blocks'
 
 interface Props {
   block: SeparatorBlock
 }
 
+const VARIANTS = {
+  default: 'separator-default',
+  wide: 'separator-wide',
+  dots: 'separator-dots',
+} as const
+
 const { block } = Astro.props
-const style = block.data.style ?? 'default'
+const variant = VARIANTS[block.data.style as keyof typeof VARIANTS] ?? VARIANTS.default
 ---
 
 <div class="section-separator">
-  <hr class:list={['separator', `separator-${style}`]} />
+  <hr class:list={['separator', variant]} />
 </div>
-
-<style>
-  .section-separator {
-    width: 90%;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 1.5rem 0;
-  }
-  .separator {
-    border: 0;
-    margin: 0 auto;
-  }
-  /* Default: a short centred rule (a la Gutenberg's default separator). */
-  .separator-default {
-    width: 100px;
-    border-top: 2px solid var(--color-muted, #757575);
-  }
-  /* Wide: a full-width hairline. */
-  .separator-wide {
-    width: 100%;
-    border-top: 1px solid var(--color-muted, #757575);
-  }
-  /* Dots: three centred dots. */
-  .separator-dots {
-    width: 100%;
-    height: 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-  }
-  .separator-dots::before,
-  .separator-dots::after,
-  .separator-dots {
-    color: var(--color-muted, #757575);
-  }
-  .separator-dots::before {
-    content: '•  •  •';
-    letter-spacing: 0.5rem;
-    font-size: 1.25rem;
-    line-height: 1;
-  }
-</style>

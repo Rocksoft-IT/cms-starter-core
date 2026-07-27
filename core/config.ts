@@ -61,11 +61,9 @@ export interface CmsConfig {
   pageTypes?: Record<string, PageTypeConfig>
   /** Extra route builders for derived routes (e.g. a blog's category pages). */
   extraRoutes?: ExtraRouteRule[]
-  layout?: {
-    /** Max-width for the 'container' layout variant of blocks that honour it (e.g. custom_html).
-     *  Plain CSS value. Default: '1200px'. */
-    containerWidth?: string
-  }
+  // No `layout` key: geometry is not CMS configuration. Widths and rhythm live in the frontend —
+  // `--layout-*` tokens in core/styles/tokens.css and the container shortcuts in core/uno.core.ts,
+  // both overridable from the site layer. This config carries only what the CMS owns.
   /** Static SEO / social-share fallbacks. Every field is a *fallback* only: the per-page
    *  `page.seo` object from the API (diligently-dashboard #469) always wins. These fill the
    *  gaps while the backend hasn't shipped that data yet (or for fields it leaves null). */

@@ -8,8 +8,12 @@
 // they are hand-authored here rather than generated (`pnpm cms:types` skips any block with a
 // `blocks`-typed field but still adds it to the Block union by name; a regenerate would
 // otherwise drop the interface while leaving the union member, which fails to compile).
-// `ColumnChild` is every block type EXCEPT those, matching the panel: depth-1 nesting only, and
-// a nesting block may not be a column child (ADR-0002).
+// `ColumnChild` is now RECURSIVE (ADR-0003, superseding the depth-1 ADR-0002): a column/panel
+// child may itself be a nesting block, so a `columns` (or a future `tabs`) can sit inside
+// another container. The type is structurally recursive; the actual nesting DEPTH is bounded at
+// runtime to Blocks::NESTING_CAP (=2) by the engine (childPalette + BlockResolver), not by the
+// type — TS can't cleanly express "recursive but at most 2 deep", and the renderer recurses via
+// BlockRenderer regardless of depth.
 
 // One resolved column of a nesting block. `width` is optional: the live API always materializes
 // it from the layout preset (BlockResolver iterates ColumnLayouts::widths()), but hand-authored
@@ -43,7 +47,27 @@ export interface HeroBlock {
     columns?: ResolvedColumn[]
   }
 }
-export type ColumnChild = Exclude<Block, ColumnsBlock | HeroBlock>
+// Recursive (ADR-0003): a container child may itself be any block, including another container.
+// Depth is bounded at runtime (Blocks::NESTING_CAP = 2), not in the type. `HeroBlock` stays
+// excluded — a page hero is never a column/panel child (it's a top-level, full-width block).
+export type ColumnChild = Exclude<Block, HeroBlock>
+
+// `tabs` is a `panels`-kind nesting block (#894, ADR-0003): a set of named tabs, each holding
+// its own block array — the same recursive `ColumnChild` set a column accepts, so a `columns`
+// layout can live inside a tab (bounded to NESTING_CAP). `anchor` is derived server-side from
+// `name` per locale (slug + de-dup); the renderer uses it for the tab/panel element ids.
+export interface TabPanel {
+  name?: string
+  anchor?: string
+  blocks: ColumnChild[]
+}
+
+export interface TabsBlock {
+  type: 'tabs'
+  data: {
+    tabs: TabPanel[]
+  }
+}
 
 // Ref blocks (testimonials, pricing_table, component_ref): the block data merges content
 // resolved server-side from a referenced collection's field registry (cms.item_fields) or a
@@ -407,3 +431,4 @@ export type Block =
   | SectionTeaserBlock
   | PricingTableBlock
   | ColumnsBlock
+  | TabsBlock

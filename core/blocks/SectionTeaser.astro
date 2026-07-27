@@ -9,6 +9,7 @@
 import type { SectionTeaserBlock } from '../../types/blocks'
 import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: SectionTeaserBlock
@@ -66,12 +67,7 @@ function thumbUrl(t: unknown): string | null {
   (hasHeader || items.length > 0) && (
     <section class:list={['section-teaser py-16', isList && 'is-list']}>
       <div class="container-global">
-        {hasHeader && (
-          <div class="section-header">
-            {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-            {heading && <h2 class="section-heading text-text-primary">{heading}</h2>}
-          </div>
-        )}
+        <SectionHeader {eyebrow} {heading} />
 
         {/* Cards layout — news grid */}
         {items.length > 0 && !isList && (

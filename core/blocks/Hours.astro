@@ -6,6 +6,7 @@
 // Degrades gracefully: a row is rendered only when it carries a label, and the whole block
 // collapses to nothing when there are no rows and no heading.
 import type { HoursBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: HoursBlock
@@ -19,14 +20,7 @@ const rows = hours.filter((row) => row.day_label || row.hours_label)
 
 <section class="section-hours">
   <div class="container-global py-16">
-    {
-      (eyebrow || heading) && (
-        <div class="mb-10">
-          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-          {heading && <h2 class="section-heading mt-2 text-text-primary">{heading}</h2>}
-        </div>
-      )
-    }
+    <SectionHeader {eyebrow} {heading} />
 
     {
       rows.length > 0 && (

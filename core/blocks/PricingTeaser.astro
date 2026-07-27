@@ -4,6 +4,7 @@
 // link. The lightweight companion to `pricing_table` — cards are authored inline in the
 // page builder, not resolved from the plans collection.
 import type { PricingTeaserBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: PricingTeaserBlock
@@ -22,15 +23,7 @@ const bulletLines = (bullets?: string) =>
 
 <section class="section-pricing-teaser py-16">
   <div class="pricing-teaser-inner">
-    {
-      (eyebrow || heading || body) && (
-        <div class="section-header">
-          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-          {heading && <h2 class="section-heading">{heading}</h2>}
-          {body && <p class="section-intro max-w-[680px]">{body}</p>}
-        </div>
-      )
-    }
+    <SectionHeader {eyebrow} {heading} intro={body} />
 
     {
       cards.length > 0 && (

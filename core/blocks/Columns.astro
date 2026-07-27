@@ -1,4 +1,11 @@
 ---
+// Core columns block — renders nested blocks side by side, with track widths coming from the
+// block's `columns_layout` shares.
+//
+// The container sits on the grid, not on the <section>: the section stays full-bleed so a site can
+// give it a background, and the measure is one shortcut (`columns-grid` → `container-global`) a site
+// can remap. Track sizing rides the inline `--cols` custom property, read by an arbitrary-value
+// utility in that same shortcut — so this component needs no CSS of its own at all.
 import type { ColumnsBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import BlockRenderer from '../BlockRenderer.astro'
@@ -22,7 +29,7 @@ const columns = (block.data.columns ?? [])
   // is a single `fr` track, so it naturally reclaims the whole row.
   .filter((col) => col.blocks.length > 0)
 
-// On mobile the grid auto-stacks to one column, in authoring order (see the scoped <style>).
+// On mobile the grid auto-stacks to one column, in authoring order (see the `columns-grid` shortcut).
 const template = columns.map((col) => `${col.share}fr`).join(' ')
 ---
 
@@ -37,24 +44,3 @@ const template = columns.map((col) => `${col.share}fr`).join(' ')
     }
   </div>
 </section>
-
-<style>
-  .section-columns {
-    width: 90%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 2rem 0;
-  }
-  .columns-grid {
-    display: grid;
-    grid-template-columns: var(--cols);
-    gap: 2rem;
-    align-items: start;
-  }
-  /* Auto-stack full-width, in authoring order, below the mobile breakpoint. */
-  @media (max-width: 767px) {
-    .columns-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>

@@ -6,6 +6,7 @@
 // phone is a `tel:` link only when a dialable `phone_e164` is present — otherwise inert text, so
 // a bare link that isn't focusable never reads as broken.
 import type { ContactBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: ContactBlock
@@ -19,14 +20,7 @@ const phoneText = phone_display || phone_e164
 
 <section class="section-contact">
   <div class="container-global py-16">
-    {
-      (eyebrow || heading) && (
-        <div class="mb-6">
-          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-          {heading && <h2 class="section-heading mt-2 text-text-primary">{heading}</h2>}
-        </div>
-      )
-    }
+    <SectionHeader {eyebrow} {heading} />
 
     {
       (address || phoneText) && (

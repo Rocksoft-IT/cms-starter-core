@@ -36,6 +36,7 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   // Columns (layout container) — nests other blocks per column; ColumnsBlock/ColumnChild are
   // hand-authored in src/types/blocks.ts. Renders a grid, delegating children back to BlockRenderer.
   columns: () => import('./blocks/Columns.astro'),
+  tabs: () => import('./blocks/Tabs.astro'),
   pricing_teaser: () => import('./blocks/PricingTeaser.astro'),
   mainfeatures: () => import('./blocks/MainFeatures.astro'),
   highlights: () => import('./blocks/Highlights.astro'),

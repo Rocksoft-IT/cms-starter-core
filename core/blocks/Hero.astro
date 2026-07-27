@@ -130,64 +130,13 @@ const textGrow = shareAt(undefined, layoutShares, 0)
 }
 
 <style>
-  .hero-bg-honeycomb {
-    /* Home hero: two distinct amber honeycomb tints (matches webflow). Deliberately NOT mapped
-       to a single brand token — themeable via the dedicated --hero-c1/--hero-c2 seam instead. */
-    --c1: var(--hero-c1, #fff9e6);
-    --c2: var(--hero-c2, #ffefd2);
-  }
-
-  /* Hidden until the animation successfully loads (see the reveal listeners above). Keeps the
-     220x220 track reserved so revealing doesn't shift layout, and suppresses lottie-player's
-     error-emoji fallback when the /documents/*.json assets are absent. */
-  .image-hero-lottie {
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  .image-hero-lottie.is-loaded {
-    opacity: 1;
-  }
-
-  /* ── Multi-column hero ───────────────────────────────────────────────────── */
-  /* Structure only. Whatever a column holds (an image, a form, buttons) brings its own block
-     styling, so a project can theme its columns without editing this file. */
-  .hero-2col {
-    display: flex;
-    flex-flow: row;
-    align-items: center;
-    justify-content: center;
-    gap: 40px;
-    padding-top: 5vh;
-    padding-bottom: 10vh;
-  }
-  /* `flex-basis: 0` so the inline flex-grow (from the layout token / each column's width)
-     decides the split; without it the tracks would size to their content first. */
-  .hero-2col-left {
-    flex: 1 1 0;
-    text-align: center;
-  }
-  .hero-2col-right {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  @media (max-width: 991px) {
-    .hero-2col {
-      flex-flow: column;
-      gap: 48px;
-    }
-    .hero-2col-left,
-    .hero-2col-right {
-      width: 100%;
-    }
-  }
-
-  @media (max-width: 767px) {
-    .image-hero-lottie {
-      display: none;
-    }
-    .buttons-lottie-group {
-      justify-content: center;
+  @layer core {
+    /* Home hero: two distinct amber honeycomb tints (matches webflow). Deliberately NOT mapped to a
+       single brand token — themeable via the dedicated --hero-c1/--hero-c2 seam instead, which is
+       why this is the one rule the block keeps. */
+    .hero-bg-honeycomb {
+      --c1: var(--hero-c1, #fff9e6);
+      --c2: var(--hero-c2, #ffefd2);
     }
   }
 </style>

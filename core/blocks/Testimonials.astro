@@ -6,6 +6,7 @@
 // empty resolved collection renders just the header, or no section at all.
 import type { TestimonialsBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: TestimonialsBlock
@@ -39,12 +40,7 @@ function initial(name?: string) {
   (hasHeader || items.length > 0) && (
     <section class="section-testimonials py-16">
       <div class="container-global">
-        {hasHeader && (
-          <div class="text-center mb-[68px]">
-            {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-            {heading && <h2 class="section-heading mt-2 text-text-primary">{heading}</h2>}
-          </div>
-        )}
+        <SectionHeader {eyebrow} {heading} />
 
         {items.length > 0 && (
           <div class:list={['testimonials-list', isSlider && 'is-slider relative']}>
@@ -56,7 +52,7 @@ function initial(name?: string) {
             </svg>
 
             <div class="testimonial-mask">
-              <div class="testimonial-track flex">
+              <div class="testimonial-track">
                 {items.map((item) => {
                   const stars = item.rating != null ? Math.min(5, Math.max(1, Math.round(item.rating))) : null
                   return (
@@ -206,33 +202,3 @@ function initial(name?: string) {
     />
   )
 }
-
-<style>
-  /* Stacked cards (single layout / one item) are the default; `.is-slider` switches the
-     same markup into a sliding track. */
-  .testimonial-track {
-    flex-direction: column;
-    gap: 1.5rem;
-    max-width: 760px;
-    margin-inline: auto;
-    width: 100%;
-  }
-
-  .is-slider .testimonial-mask {
-    overflow: hidden;
-    width: 88%;
-    margin-inline: auto;
-  }
-
-  .is-slider .testimonial-track {
-    flex-direction: row;
-    gap: 0;
-    max-width: none;
-    transition: transform 0.5s ease;
-  }
-
-  .is-slider .testimonial-slide {
-    width: 100%;
-    flex-shrink: 0;
-  }
-</style>

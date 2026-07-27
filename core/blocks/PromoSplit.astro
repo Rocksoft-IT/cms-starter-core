@@ -16,38 +16,40 @@ const { eyebrow, heading, body, cta_label, cta_href, src, alt = '', reverse } = 
 ---
 
 <section class="section-promo-split">
-  <div class:list={['promo-split-inner', src && 'md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]']}>
-    <div class="promo-split-content">
-      {eyebrow && <span class="promo-split-eyebrow">{eyebrow}</span>}
-      {heading && <h2 class="promo-split-heading">{heading}</h2>}
-      {body && <p class="promo-split-body">{body}</p>}
+  <div class="promo-split-inner">
+    <div class:list={['promo-split-panel', src && 'md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]']}>
+      <div class="promo-split-content">
+        {eyebrow && <span class="promo-split-eyebrow">{eyebrow}</span>}
+        {heading && <h2 class="promo-split-heading">{heading}</h2>}
+        {body && <p class="promo-split-body">{body}</p>}
+        {
+          cta_label && cta_href && (
+            <a class="promo-split-cta" href={cta_href}>
+              {cta_label}
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M5 12h14M13 6l6 6-6 6" />
+              </svg>
+            </a>
+          )
+        }
+      </div>
       {
-        cta_label && cta_href && (
-          <a class="promo-split-cta" href={cta_href}>
-            {cta_label}
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2.2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </a>
+        src && (
+          <div class:list={['promo-split-media', reverse && 'md:order-first']}>
+            <img class="promo-split-image" src={src} alt={alt} loading="lazy" />
+          </div>
         )
       }
     </div>
-    {
-      src && (
-        <div class:list={['promo-split-media', reverse && 'md:order-first']}>
-          <img class="promo-split-image" src={src} alt={alt} loading="lazy" />
-        </div>
-      )
-    }
   </div>
 </section>

@@ -1,0 +1,38 @@
+---
+// The shared section header: an eyebrow label, an <h2> and an optional intro paragraph. Ten core
+// blocks rendered this same four-line markup, and it had already drifted — five spellings of the
+// wrapper class, an `mt-2 text-text-primary` on some headings and not others, and in two blocks a
+// missing `(eyebrow || heading) &&` guard that left an empty flex column still eating the header's
+// bottom margin. One component makes the guard structural and the drift impossible.
+//
+// It carries no visual values: everything lives in the `section-header` / `section-eyebrow` /
+// `section-heading` / `section-intro` shortcuts, so a site retunes every section header at once by
+// redefining those keys — same seam as every other block.
+//
+// The `action` slot exists because "no props, ever" already backfired: the smbp home needed a
+// header with an inline action beside the heading (a link pill), and with nowhere to put it the
+// site layer re-implemented the whole eyebrow/heading markup in its own component instead of
+// composing this one — the exact drift this extraction removes. An unused slot renders nothing, so
+// it costs the other ten call sites literally zero.
+interface Props {
+  eyebrow?: string
+  heading?: string
+  intro?: string
+}
+
+const { eyebrow, heading, intro } = Astro.props
+const hasAction = Astro.slots.has('action')
+---
+
+{
+  (eyebrow || heading || intro || hasAction) && (
+    <div class:list={['section-header', hasAction && 'section-header-with-action']}>
+      <div class="section-header-text">
+        {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+        {heading && <h2 class="section-heading">{heading}</h2>}
+        {intro && <p class="section-intro">{intro}</p>}
+      </div>
+      {hasAction && <slot name="action" />}
+    </div>
+  )
+}

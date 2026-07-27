@@ -1,6 +1,7 @@
 ---
 import type { FeaturesBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
+import SectionHeader from '../SectionHeader.astro'
 interface Props {
   block: FeaturesBlock
 }
@@ -9,13 +10,9 @@ const { eyebrow, heading, intro, steps = [] } = block.data
 ---
 
 <section class="section-features relative">
-  <div class="w-[90%] max-w-[1200px] mx-auto py-16">
+  <div class="features-inner">
     <div class="features-component">
-      <div class="text-center mb-[68px]">
-        {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-        {heading && <h2 class="font-suse font-bold text-[40px] leading-[1.2]">{heading}</h2>}
-        {intro && <p class="font-montserrat text-[18px] text-text-secondary leading-[1.7] mt-4">{intro}</p>}
-      </div>
+      <SectionHeader {eyebrow} {heading} {intro} />
       <div class="features-steps">
         {
           steps.map((step, i) => {
@@ -23,14 +20,11 @@ const { eyebrow, heading, intro, steps = [] } = block.data
             return (
               <div class={`features-card ${isEven ? 'features-card-bottom' : 'features-card-top'}`}>
                 <div class="features-number-badge">
-                  <span class="font-suse font-bold text-black text-[18px]">{step.number}</span>
+                  <span class="font-brand font-bold text-black text-[18px]">{step.number}</span>
                 </div>
                 <div class="features-card-content">
-                  <h3 class="font-suse font-bold text-[24px] leading-[1]">{step.title}</h3>
-                  <RichText
-                    class="font-montserrat text-[16px] text-text-secondary leading-[1.7] mt-2"
-                    html={step.description}
-                  />
+                  <h3 class="font-brand font-bold text-[24px] leading-[1]">{step.title}</h3>
+                  <RichText class="text-[16px] text-text-secondary leading-[1.7] mt-2" html={step.description} />
                 </div>
               </div>
             )
@@ -40,60 +34,3 @@ const { eyebrow, heading, intro, steps = [] } = block.data
     </div>
   </div>
 </section>
-
-<style>
-  .features-component {
-    display: flex;
-    flex-direction: column;
-    gap: 68px;
-    width: 720px;
-    max-width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .features-steps {
-    display: flex;
-    flex-direction: column;
-    gap: 68px;
-  }
-
-  .features-card {
-    display: flex;
-    flex-direction: row;
-    gap: 20px;
-    align-items: center;
-    background-color: white;
-    border-radius: 12px;
-    max-width: 400px;
-    padding: 24px;
-  }
-
-  .features-card-top {
-    align-self: flex-start;
-  }
-
-  .features-card-bottom {
-    align-self: flex-end;
-  }
-
-  .features-number-badge {
-    background-color: var(--color-jonquil, #ffcf00);
-    border-radius: 8px;
-    width: 54px;
-    min-width: 54px;
-    height: 54px;
-    min-height: 54px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-  }
-
-  @media (max-width: 639px) {
-    .features-card {
-      max-width: 100%;
-      align-self: stretch;
-    }
-  }
-</style>

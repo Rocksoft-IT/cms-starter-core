@@ -17,13 +17,13 @@ const { eyebrow, heading, body, badges = [], ctas = [] } = block.data
           </div>
         )
       }
-      {eyebrow && <p class="font-suse text-[20px] leading-[24px] uppercase font-normal text-white">{eyebrow}</p>}
-      {heading && <h2 class="font-suse font-bold text-[24px] leading-[1] text-white">{heading}</h2>}
-      {body && <p class="font-montserrat text-[18px] text-gray-300 leading-[1.7]">{body}</p>}
+      {eyebrow && <p class="cta-eyebrow">{eyebrow}</p>}
+      {heading && <h2 class="cta-heading">{heading}</h2>}
+      {body && <p class="cta-body">{body}</p>}
     </div>
     {
       ctas.length > 0 && (
-        <div class="flex flex-wrap gap-4 justify-center mt-8">
+        <div class="cta-actions">
           {ctas.map((cta) => (
             <a href={cta.href} class="btn-white">
               {cta.label}
@@ -34,51 +34,3 @@ const { eyebrow, heading, body, badges = [], ctas = [] } = block.data
     }
   </div>
 </section>
-
-<style>
-  .cta-content {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    text-align: center;
-  }
-
-  /* Optional highlight tags (`badges` repeater). Brand-neutral pill that reads on the dark
-     CTA background; a gentle pulse draws the eye. Self-contained keyframe so it never depends
-     on a project stylesheet being loaded. */
-  .cta-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: center;
-  }
-  .cta-badge {
-    display: inline-block;
-    padding: 0.3rem 0.7rem;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 9999px;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    animation: cta-badge-pulse 2.4s ease-in-out infinite;
-  }
-  @keyframes cta-badge-pulse {
-    0%,
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-    50% {
-      opacity: 0.75;
-      transform: scale(1.04);
-    }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .cta-badge {
-      animation: none;
-    }
-  }
-</style>

@@ -6,8 +6,11 @@
 //
 // Graceful degradation: a tile with no `icon` simply drops the image (the label still reads),
 // a tile with no `href` renders as a non-navigating card, and an empty `tiles` list renders
-// nothing at all. Colors come from brand CSS vars (var(--color-*, fallback)) so a per-client
-// palette rethemes it at build time without touching this component.
+// nothing at all.
+//
+// Visual values live in the `nav-tile*` shortcuts (core/uno.core.ts) and resolve as brand theme
+// colors, so a site rethemes the grid by redefining a shortcut in its src/uno.ts. Only the
+// featured-variant token seam and the reduced-motion opt-out remain as scoped CSS below.
 import type { NavTilesBlock } from '../../types/blocks'
 
 interface Props {
@@ -26,20 +29,28 @@ const renderable = tiles.filter((tile) => tile?.label || tile?.icon)
   renderable.length > 0 && (
     <section class="section-nav-tiles">
       <div class="nav-tiles-inner">
-        {heading && <h2 class="nav-tiles-heading font-suse font-bold text-[32px] leading-[1.2]">{heading}</h2>}
+        {heading && <h2 class="nav-tiles-heading">{heading}</h2>}
         <ul class="nav-tiles-grid" role="list">
           {renderable.map((tile) => {
             const Tag = tile.href ? 'a' : 'div'
             const props = tile.href ? { href: tile.href } : {}
             return (
               <li>
-                <Tag class:list={['nav-tile', { 'nav-tile-highlighted': tile.highlighted }]} {...props}>
+                <Tag
+                  class:list={[
+                    'nav-tile',
+                    // Hover lift and focus ring only where there is somewhere to go.
+                    tile.href && 'nav-tile-interactive',
+                    { 'nav-tile-highlighted': tile.highlighted },
+                  ]}
+                  {...props}
+                >
                   {tile.icon && (
                     <span class="nav-tile-icon">
                       <img src={tile.icon} alt="" aria-hidden="true" loading="lazy" />
                     </span>
                   )}
-                  {tile.label && <span class="nav-tile-label font-montserrat font-semibold">{tile.label}</span>}
+                  {tile.label && <span class="nav-tile-label">{tile.label}</span>}
                 </Tag>
               </li>
             )
@@ -51,112 +62,29 @@ const renderable = tiles.filter((tile) => tile?.label || tile?.icon)
 }
 
 <style>
-  .section-nav-tiles {
-    background-color: var(--color-section-bg, #f3f7fb);
-    padding: 4rem 0;
-  }
-
-  .nav-tiles-inner {
-    width: 90%;
-    max-width: 1200px;
-    margin-inline: auto;
-  }
-
-  .nav-tiles-heading {
-    color: var(--color-text-primary, #151516);
-    text-align: center;
-    margin-bottom: 2.5rem;
-  }
-
-  .nav-tiles-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 1.25rem;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  /* Each tile is the full clickable surface. `<a>` is natively keyboard-focusable; the
-     explicit :focus-visible ring keeps that visible against the tinted card background. */
-  .nav-tile {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.85rem;
-    height: 100%;
-    min-height: 140px;
-    padding: 1.75rem 1.25rem;
-    background: var(--color-body, #ffffff);
-    border: 1px solid rgba(16, 24, 65, 0.08);
-    border-radius: 14px;
-    text-align: center;
-    text-decoration: none;
-    color: var(--color-text-primary, #151516);
-    transition:
-      transform 0.18s ease,
-      box-shadow 0.18s ease,
-      border-color 0.18s ease;
-  }
-
-  /* Only genuinely navigable tiles get the interactive affordances. */
-  a.nav-tile:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 28px rgba(16, 24, 65, 0.12);
-    border-color: var(--color-primary, #3b5aff);
-  }
-
-  a.nav-tile:focus-visible {
-    outline: 3px solid var(--color-primary, #3b5aff);
-    outline-offset: 3px;
-  }
-
-  /* Featured variant — the emphasized tile an editor toggles with `highlighted`. Its color is
-     the dedicated `--color-nav-tile-featured` token, falling back to `--color-accent` so sites
-     that don't set it keep the previous look. A site whose `accent` means something else (smbp:
-     the amber "awarie" icon; the CMS also maps branding.accent_color onto `accent`) sets this
-     token to the color the design wants featured (smbp: brand-dark2). */
-  .nav-tile-highlighted {
-    background: var(--color-nav-tile-featured, var(--color-accent, #ff5c21));
-    border-color: var(--color-nav-tile-featured, var(--color-accent, #ff5c21));
-    color: #ffffff;
-  }
-
-  a.nav-tile-highlighted:hover {
-    border-color: var(--color-nav-tile-featured, var(--color-accent, #ff5c21));
-    box-shadow: 0 12px 30px rgba(31, 36, 32, 0.28);
-  }
-
-  a.nav-tile-highlighted:focus-visible {
-    outline-color: var(--color-nav-tile-featured, var(--color-accent, #ff5c21));
-  }
-
-  .nav-tile-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 48px;
-    height: 48px;
-  }
-
-  .nav-tile-icon img {
-    max-width: 100%;
-    max-height: 100%;
-    object-fit: contain;
-  }
-
-  .nav-tile-label {
-    font-size: 1.05rem;
-    line-height: 1.3;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .nav-tile {
-      transition: none;
+  /* `@layer core` keeps these the weakest declarations on the page, so a site's own CSS and every
+     Uno utility outrank them without !important. */
+  @layer core {
+    /* Featured variant — the emphasized tile an editor toggles with `highlighted`. Its color is
+       the dedicated `--color-nav-tile-featured` token, falling back to `--color-accent` so sites
+       that don't set it keep the previous look. A site whose `accent` means something else (smbp:
+       the amber "awarie" icon; the CMS also maps branding.accent_color onto `accent`) sets this
+       token to the color the design wants featured (smbp: brand-dark2). It stays CSS because it is
+       an OPTIONAL seam: unlike the palette keys the shortcuts consume, a site need not define it,
+       so it must not become a required theme color. */
+    .nav-tile-highlighted {
+      background: var(--color-nav-tile-featured, var(--color-accent));
+      border-color: var(--color-nav-tile-featured, var(--color-accent));
+      color: #ffffff;
     }
-    a.nav-tile:hover {
-      transform: none;
+
+    a.nav-tile-highlighted:hover {
+      border-color: var(--color-nav-tile-featured, var(--color-accent));
+      box-shadow: 0 12px 30px rgb(0 0 0 / 28%);
+    }
+
+    a.nav-tile-highlighted:focus-visible {
+      outline-color: var(--color-nav-tile-featured, var(--color-accent));
     }
   }
 </style>

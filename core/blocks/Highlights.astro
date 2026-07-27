@@ -3,6 +3,7 @@
 // shared header — a menu- or price-list-style section. Optional links row and a small-print
 // footnote close it out. Every field is optional and degrades gracefully.
 import type { HighlightsBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: HighlightsBlock
@@ -17,14 +18,7 @@ const linkRows = links.filter((link) => link.label && link.href)
 
 <section class="section-highlights py-16">
   <div class="highlights-inner">
-    {
-      (eyebrow || heading) && (
-        <div class="section-header">
-          {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-          {heading && <h2 class="section-heading">{heading}</h2>}
-        </div>
-      )
-    }
+    <SectionHeader {eyebrow} {heading} />
 
     {
       groups.map((category) => (
