@@ -4,6 +4,7 @@
 // footnote close it out. Every field is optional and degrades gracefully.
 import type { HighlightsBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: HighlightsBlock
@@ -52,7 +53,7 @@ const linkRows = links.filter((link) => link.label && link.href)
       linkRows.length > 0 && (
         <div class="flex flex-wrap justify-center gap-4 mt-10">
           {linkRows.map((link) => (
-            <a href={link.href} class="link-inline text-[16px]">
+            <a href={hrefOf(link.href)} class="link-inline text-[16px]">
               {link.label}
             </a>
           ))}

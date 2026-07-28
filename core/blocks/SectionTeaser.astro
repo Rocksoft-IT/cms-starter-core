@@ -10,6 +10,7 @@ import type { SectionTeaserBlock } from '../../types/blocks'
 import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
 import SectionHeader from '../SectionHeader.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: SectionTeaserBlock
@@ -73,7 +74,7 @@ function thumbUrl(t: unknown): string | null {
         {items.length > 0 && !isList && (
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             {items.map((item) => {
-              const href = typeof item.path === 'string' ? item.path : undefined
+              const href = hrefOf(item.path)
               const img = thumbUrl(item.thumbnail)
               const date = formatDate(item.date, locale)
               const lead = nonEmpty(item.lead)
@@ -116,7 +117,7 @@ function thumbUrl(t: unknown): string | null {
         {items.length > 0 && isList && (
           <ul class="m-0 flex list-none flex-col gap-3 p-0">
             {items.map((item) => {
-              const href = typeof item.path === 'string' ? item.path : undefined
+              const href = hrefOf(item.path)
               const badge = dateBadge(item.date)
               const status = nonEmpty(item.status)
               const attachments = typeof item.attachment_count === 'number' ? item.attachment_count : 0
@@ -177,7 +178,7 @@ function thumbUrl(t: unknown): string | null {
 
         {hasAction && (
           <div class="mt-10 text-center">
-            <a href={action_href} class="btn-primary">
+            <a href={hrefOf(action_href)} class="btn-primary">
               {action_label}
             </a>
           </div>

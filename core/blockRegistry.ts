@@ -39,6 +39,9 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   pricing_teaser: () => import('./blocks/PricingTeaser.astro'),
   mainfeatures: () => import('./blocks/MainFeatures.astro'),
   highlights: () => import('./blocks/Highlights.astro'),
+  // Documents — a titled list of downloadable files from the Files library; the API resolves each
+  // file id into { id, name, description, url, size }. DocumentFile is hand-authored in blocks.ts.
+  documents: () => import('./blocks/Documents.astro'),
   // Ref blocks — the API resolves the referenced collection/component into the block data; their
   // interfaces are hand-maintained in src/types/blocks.ts above the codegen marker.
   testimonials: () => import('./blocks/Testimonials.astro'),

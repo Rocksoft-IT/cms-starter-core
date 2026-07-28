@@ -11,6 +11,7 @@
 // native ::marker, the <details open> state selectors, and the answer's reveal animation.
 import type { FaqBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
+import { href as hrefOf } from '../../lib/href'
 interface Props {
   block: FaqBlock
 }
@@ -49,7 +50,7 @@ const groupName = `faq-${slug || 'section'}`
             {hasCta && (
               <a
                 class="faq-action"
-                href={cta_href}
+                href={hrefOf(cta_href)}
                 target={ctaExternal ? '_blank' : undefined}
                 rel={ctaExternal ? 'noopener noreferrer' : undefined}
               >

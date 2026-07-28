@@ -6,6 +6,7 @@
 // "ODK" section) — all colors via brand tokens, so any site rethemes it from its palette.
 // The 2-col split only applies when an image is set; a copy-only panel stays single-column.
 import type { PromoSplitBlock } from '../../types/blocks'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: PromoSplitBlock
@@ -24,7 +25,7 @@ const { eyebrow, heading, body, cta_label, cta_href, src, alt = '', reverse } = 
         {body && <p class="promo-split-body">{body}</p>}
         {
           cta_label && cta_href && (
-            <a class="promo-split-cta" href={cta_href}>
+            <a class="promo-split-cta" href={hrefOf(cta_href)}>
               {cta_label}
               <svg
                 width="16"

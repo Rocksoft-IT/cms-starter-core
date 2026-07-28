@@ -4,8 +4,8 @@
 // renderer can dispatch. The flat fields already match each target's shape:
 //  - cta_default      → the cta_banner renderer (cta_label/cta_href adapted into its ctas[]);
 //  - mainfeatures_global → the mainfeatures block renderer, data passed through as-is.
-// `footer` and any unrecognised type render nothing: the site footer is global chrome the
-// layout composes once — not something to embed mid-page.
+// `footer` and any unrecognised type render nothing HERE: the site footer is global chrome the
+// layout composes once via core/Footer.astro (self-fetching), not something to embed mid-page.
 import type { ComponentRefBlock, MainFeaturesBlock, CtaBannerBlock } from '../../types/blocks'
 import CtaBanner from './CtaBanner.astro'
 import MainFeatures from './MainFeatures.astro'

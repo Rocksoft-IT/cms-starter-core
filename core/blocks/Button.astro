@@ -1,5 +1,6 @@
 ---
 import type { ButtonBlock } from '../../types/blocks'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: ButtonBlock
@@ -16,5 +17,5 @@ const { label, href, style } = block.data
 ---
 
 <div class="section-buttons">
-  <a href={href} class={style === 'outline' ? 'btn-outline' : 'btn-primary'}>{label}</a>
+  <a href={hrefOf(href)} class={style === 'outline' ? 'btn-outline' : 'btn-primary'}>{label}</a>
 </div>

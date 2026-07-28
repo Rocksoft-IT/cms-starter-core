@@ -187,6 +187,23 @@ export interface SectionTeaserBlock {
   }
 }
 
+// One resolved document in a `documents` block. The API's `files`-field resolver expands each
+// stored library-file id into this shape (packages/cms-core PagePayload::resolveFileRecord), so
+// the generated DocumentsBlock (below the marker) refers to it by name. Hand-maintained because
+// the flat block schema only knows the field is of type `files` — the resolved element shape
+// (backed by the App\Models\File record) is not derivable from cms.blocks alone.
+export interface DocumentFile {
+  id: number
+  /** Localized document name (default-locale fallback), or null. Always present (resolver emits it). */
+  name: string | null
+  /** Localized description (default-locale fallback), or null. Always present. */
+  description: string | null
+  /** Absolute public URL of the document (PDF), or null when no file is attached. Always present. */
+  url: string | null
+  /** Document size in bytes, or null when unknown. Always present. */
+  size: number | null
+}
+
 // --- GENERATED BELOW: do not edit, run `pnpm cms:types` ---
 export interface RichContentBlock {
   type: 'rich_content'
@@ -295,6 +312,11 @@ export interface NavTilesBlock {
     heading?: string
     tiles?: Array<{ label?: string; href?: string; icon?: string | null; highlighted?: boolean }>
   }
+}
+
+export interface DocumentsBlock {
+  type: 'documents'
+  data: { heading?: string; icon?: 'document' | 'folder' | 'download' | 'info' | 'book'; files?: DocumentFile[] }
 }
 
 export interface FaqBlock {
@@ -422,6 +444,7 @@ export type Block =
   | PricingTeaserBlock
   | MainFeaturesBlock
   | NavTilesBlock
+  | DocumentsBlock
   | FaqBlock
   | TeamBlock
   | ImageBlock

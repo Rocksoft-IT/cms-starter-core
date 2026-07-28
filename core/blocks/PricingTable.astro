@@ -10,6 +10,7 @@ import { sanitizeSvg } from '../../lib/sanitize'
 import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: PricingTableBlock
@@ -91,7 +92,7 @@ const idPrefix = sectionId ?? 'pricing-table'
                 {plan.fine_print && <p class="text-[12px] text-text-secondary leading-[1.5]">{plan.fine_print}</p>}
 
                 {plan.cta_label && plan.cta_href && (
-                  <a href={plan.cta_href} class="btn-primary justify-center mt-auto">
+                  <a href={hrefOf(plan.cta_href)} class="btn-primary justify-center mt-auto">
                     {plan.cta_label}
                   </a>
                 )}

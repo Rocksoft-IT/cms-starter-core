@@ -5,6 +5,7 @@
 // page builder, not resolved from the plans collection.
 import type { PricingTeaserBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: PricingTeaserBlock
@@ -49,7 +50,7 @@ const bulletLines = (bullets?: string) =>
                   <p class="text-[16px] leading-[1.7] text-text-secondary mb-4">{card.price_label}</p>
                 )}
                 {card.cta_label && card.cta_href && (
-                  <a href={card.cta_href} class="btn-primary justify-center mt-auto">
+                  <a href={hrefOf(card.cta_href)} class="btn-primary justify-center mt-auto">
                     {card.cta_label}
                   </a>
                 )}
@@ -63,7 +64,7 @@ const bulletLines = (bullets?: string) =>
     {
       footer_label && footer_href && (
         <p class="text-center mt-8 text-[16px]">
-          <a href={footer_href} class="link-inline">
+          <a href={hrefOf(footer_href)} class="link-inline">
             {footer_label}
           </a>
         </p>

@@ -7,6 +7,7 @@ import {
   getMockMenu,
   getMockEnabledSections,
   getMockCtaBanner,
+  getMockFooter,
   getMockLocales,
 } from '~site/fixtures'
 
@@ -296,4 +297,34 @@ export async function getCtaBanner(locale = 'en'): Promise<CtaBannerData | null>
   return apiFetch(`/api/components/cta_default?locale=${locale}`)
     .then((json) => json.data as CtaBannerData)
     .catch(() => null)
+}
+
+/** One footer link. `column` is the heading the link sits under — the frontend groups rows by
+ *  it (first-seen order), which is the explicit-column model that replaces the old "pair
+ *  consecutive footer menu groups two-by-two" heuristic. */
+export interface FooterLink {
+  column?: string
+  label?: string
+  href?: string
+}
+
+/** The `footer` global component (GET /api/components/footer). `company_text` and `footer_links`
+ *  are translatable (per-locale, resolved with default-locale fallback); social URLs and `logo`
+ *  are shared across locales. `company_text` is sanitized HTML — render it through RichText. */
+export interface FooterData {
+  name?: string
+  company_text?: string
+  footer_links?: FooterLink[]
+  facebook_url?: string
+  linkedin_url?: string
+  instagram_url?: string
+  logo?: SeoImage | null
+  component_type?: string
+}
+
+export async function getFooter(locale = 'en'): Promise<FooterData | null> {
+  if (MOCK_MODE) return getMockFooter(locale)
+  return apiFetch(`/api/components/footer?locale=${locale}`)
+    .then((json) => json.data as FooterData)
+    .catch(() => null) // 404 (no active footer) / offline → no footer; the renderer self-gates
 }

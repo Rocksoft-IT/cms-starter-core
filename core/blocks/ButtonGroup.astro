@@ -1,5 +1,6 @@
 ---
 import type { ButtonGroupBlock } from '../../types/blocks'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: ButtonGroupBlock
@@ -15,7 +16,7 @@ const { buttons = [] } = block.data
 <div class="section-buttons">
   {
     buttons.map((btn) => (
-      <a href={btn.href} class={btn.style === 'outline' ? 'btn-outline' : 'btn-primary'}>
+      <a href={hrefOf(btn.href)} class={btn.style === 'outline' ? 'btn-outline' : 'btn-primary'}>
         {btn.label}
       </a>
     ))

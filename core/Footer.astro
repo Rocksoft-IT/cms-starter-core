@@ -1,0 +1,85 @@
+---
+// Core site footer — a global CMS component (GET /api/components/footer), rendered once by the
+// layout the way Navbar renders the header. Like Navbar it SELF-GATES: no active `footer`
+// component (404 / offline) → getFooter returns null → nothing renders.
+//
+// Structure only. This core renderer emits semantic class hooks and NO visual CSS — each client
+// frontend styles `.site-footer` et al. in its own stylesheet (the core-structure / client-style
+// seam). Mirror CtaBanner.astro (semantic classes), not MainFeatures.astro (inline utilities).
+import { getFooter } from '../lib/api'
+import type { FooterLink } from '../lib/api'
+import RichText from './RichText.astro'
+import { href as hrefOf } from '../lib/href'
+
+interface Props {
+  /** The locale of the page this footer renders on — drives the per-locale content fetch. */
+  locale?: string
+}
+
+const { locale = 'en' } = Astro.props
+
+const footer = await getFooter(locale).catch(() => null)
+
+// Group the flat link list into explicit columns, preserving first-seen column order. An empty
+// `column` groups under one unlabelled column (heading omitted below).
+const columns = new Map<string, FooterLink[]>()
+for (const link of footer?.footer_links ?? []) {
+  const key = link.column ?? ''
+  if (!columns.has(key)) columns.set(key, [])
+  columns.get(key)!.push(link)
+}
+
+// Social links: only the URLs the editor filled in, in a fixed order. `data-social` lets a
+// client style/icon each one without the core hardcoding any glyph.
+const socials = (
+  [
+    ['facebook', footer?.facebook_url],
+    ['linkedin', footer?.linkedin_url],
+    ['instagram', footer?.instagram_url],
+  ] as [string, string | undefined][]
+).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== '')
+---
+
+{
+  footer && (
+    <footer class="site-footer">
+      <div class="footer-inner">
+        {footer.logo?.url && <img class="footer-brand" src={footer.logo.url} alt={footer.logo.alt ?? ''} />}
+
+        {footer.company_text && <RichText class="footer-legal" html={footer.company_text} />}
+
+        {columns.size > 0 && (
+          <div class="footer-columns">
+            {[...columns].map(([heading, links]) => (
+              <nav class="footer-column">
+                {heading && <p class="footer-column-heading">{heading}</p>}
+                <ul class="footer-links">
+                  {links.map(
+                    (link) =>
+                      link.href && (
+                        <li>
+                          <a href={hrefOf(link.href)}>{link.label ?? link.href}</a>
+                        </li>
+                      ),
+                  )}
+                </ul>
+              </nav>
+            ))}
+          </div>
+        )}
+
+        {socials.length > 0 && (
+          <ul class="footer-social">
+            {socials.map(([name, url]) => (
+              <li>
+                <a href={url} data-social={name} target="_blank" rel="noopener noreferrer">
+                  {name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </footer>
+  )
+}

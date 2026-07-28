@@ -1,0 +1,114 @@
+---
+// Documents block (`documents`): a titled list of downloadable files from the CMS Files library.
+// The API resolves each stored file id into `data.files` = [{ id, name, description, url, size }]
+// in the editor-chosen order (packages/cms-core PagePayload::resolveFileRecord). Pure renderer:
+// a section header (an optional glyph beside the title) over a list of rows, each a link to the
+// document — document icon on the left, name in the middle, download icon on the right.
+//
+// A row with no `url` is dropped (a stale/empty file reference can't link anywhere); if that
+// leaves no linkable file, the whole block renders nothing — a heading with no downloads is
+// pointless, so it is gated on rows, not on the heading (contract: empty list -> nothing).
+import type { DocumentsBlock } from '../../types/blocks'
+
+interface Props {
+  block: DocumentsBlock
+}
+
+const { block } = Astro.props
+const { heading, icon, files = [] } = block.data
+
+// Only files that resolved to a real URL can render as a link.
+const rows = files.filter((f) => typeof f.url === 'string' && f.url !== '')
+const hasHeading = typeof heading === 'string' && heading.trim() !== ''
+
+// The fixed heading-glyph set (matches the block's `icon` select options). Each is an outline
+// SVG path drawn with `currentColor`; an unknown/empty value renders no glyph. Kept inline (not
+// an <img>/icon font) so it needs no extra request and inherits the heading color.
+const HEADING_ICONS: Record<string, string> = {
+  document:
+    'M9 13h6m-6 4h6m2 4H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z',
+  folder: 'M3 7a2 2 0 0 1 2-2h3.586a1 1 0 0 1 .707.293L11 7h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z',
+  download: 'M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2M7 10l5 5 5-5M12 15V3',
+  info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 8h.01M11 12h1v4h1',
+  book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5A2.5 2.5 0 0 0 6.5 22H20V2H6.5A2.5 2.5 0 0 0 4 4.5v15z',
+}
+const headingIcon = typeof icon === 'string' ? HEADING_ICONS[icon] : undefined
+
+// The document glyph shown on the left of every row, and the download glyph on the right.
+const DOC_ICON = HEADING_ICONS.document
+const DOWNLOAD_ICON = HEADING_ICONS.download
+---
+
+{
+  rows.length > 0 && (
+    <section class="documents py-16">
+      <div class="container-global">
+        {hasHeading && (
+          <div class="mb-8 flex items-center gap-3">
+            {headingIcon && (
+              <svg
+                class="h-7 w-7 shrink-0 text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d={headingIcon} />
+              </svg>
+            )}
+            <h2 class="section-heading">{heading}</h2>
+          </div>
+        )}
+
+        {rows.length > 0 && (
+          <ul class="m-0 flex list-none flex-col gap-3 p-0">
+            {rows.map((file) => {
+              const label = typeof file.name === 'string' && file.name.trim() !== '' ? file.name : 'Document'
+              return (
+                <li>
+                  <a
+                    href={file.url!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    download
+                    class="flex items-center gap-4 rounded-[12px] border border-gray-200 bg-section-bg p-4 transition-colors hover:border-primary"
+                    aria-label={label}
+                  >
+                    <svg
+                      class="h-6 w-6 shrink-0 text-text-secondary"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d={DOC_ICON} />
+                    </svg>
+                    <span class="min-w-0 flex-1 truncate font-semibold text-text-primary">{label}</span>
+                    <svg
+                      class="h-5 w-5 shrink-0 text-primary"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d={DOWNLOAD_ICON} />
+                    </svg>
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </div>
+    </section>
+  )
+}

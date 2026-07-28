@@ -11,6 +11,7 @@
 // block needs no CSS of its own.
 import type { QuoteBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: QuoteBlock
@@ -59,7 +60,7 @@ const sourceLinkText = source_link_label || source_link_href
           <figcaption class="quote-cite">
             {attribution && <span class="quote-attribution">{attribution}</span>}
             {hasSourceLink && (
-              <a class="quote-source-link" href={source_link_href}>
+              <a class="quote-source-link" href={hrefOf(source_link_href)}>
                 {sourceLinkText}
               </a>
             )}

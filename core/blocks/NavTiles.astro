@@ -12,6 +12,7 @@
 // colors, so a site rethemes the grid by redefining a shortcut in its src/uno.ts. Only the
 // featured-variant token seam and the reduced-motion opt-out remain as scoped CSS below.
 import type { NavTilesBlock } from '../../types/blocks'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: NavTilesBlock
@@ -33,7 +34,7 @@ const renderable = tiles.filter((tile) => tile?.label || tile?.icon)
         <ul class="nav-tiles-grid" role="list">
           {renderable.map((tile) => {
             const Tag = tile.href ? 'a' : 'div'
-            const props = tile.href ? { href: tile.href } : {}
+            const props = tile.href ? { href: hrefOf(tile.href) } : {}
             return (
               <li>
                 <Tag

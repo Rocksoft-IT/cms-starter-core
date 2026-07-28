@@ -3,6 +3,7 @@ import type { HeroBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import RichText from '../RichText.astro'
 import BlockRenderer from '../BlockRenderer.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: HeroBlock
@@ -68,7 +69,7 @@ const textGrow = shareAt(undefined, layoutShares, 0)
               {ctas.length > 0 && (
                 <div class="hero-ctas">
                   {ctas.map((cta, i) => (
-                    <a href={cta.href} class={i === 0 ? 'btn-primary' : 'btn-outline'}>
+                    <a href={hrefOf(cta.href)} class={i === 0 ? 'btn-primary' : 'btn-outline'}>
                       {cta.label}
                     </a>
                   ))}

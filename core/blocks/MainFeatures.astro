@@ -4,6 +4,7 @@
 // optional icon image; without an icon a small brand-colored marker keeps the rows scannable.
 import type { MainFeaturesBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
+import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: MainFeaturesBlock
@@ -32,7 +33,7 @@ const rows = tiles.filter((tile) => tile.label)
                   <span class="w-2.5 h-2.5 rounded-[3px] bg-primary shrink-0" aria-hidden="true" />
                 )}
                 {tile.link ? (
-                  <a href={tile.link} class="text-text-primary hover:underline">
+                  <a href={hrefOf(tile.link)} class="text-text-primary hover:underline">
                     {tile.label}
                   </a>
                 ) : (

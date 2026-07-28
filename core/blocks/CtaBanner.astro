@@ -1,5 +1,6 @@
 ---
 import type { CtaBannerBlock } from '../../types/blocks'
+import { href as hrefOf } from '../../lib/href'
 interface Props {
   block: CtaBannerBlock
 }
@@ -25,7 +26,7 @@ const { eyebrow, heading, body, badges = [], ctas = [] } = block.data
       ctas.length > 0 && (
         <div class="cta-actions">
           {ctas.map((cta) => (
-            <a href={cta.href} class="btn-white">
+            <a href={hrefOf(cta.href)} class="btn-white">
               {cta.label}
             </a>
           ))}
