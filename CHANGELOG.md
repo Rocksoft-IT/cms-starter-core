@@ -1,8 +1,83 @@
 # @rocksoft/cms-starter-core
 
 Client sites pin this package by git tag (`package.json`:
-`git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.4.0`), so a bump is a deliberate act —
+`git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
+
+## v0.6.0 — one `cards` block, a `gallery`, and images sized to their slot
+
+Four changes since v0.5.0. **One of them needs a look before you bump**: three block types are gone,
+replaced by one.
+
+### Changed — `nav_tiles`, `mainfeatures` and `info_cards` became `cards`
+
+Three blocks carried the same shape — a repeater of items, each an icon and some text — and each
+solved the same problems differently: three repeater names, two spellings of the link field, three
+header sets, two ways to give an icon. An editor was picking a **block** in order to pick a **look**,
+and the names did not say so. Now one block, whose `layout` field chooses the presentation:
+`tiles` (compact, link-led), `cards` (icon chip, label, multi-line value), `steps` (numbered
+sequence). The same content can be re-laid-out without being re-entered.
+
+**What you must do:** nothing, if you register the core palette wholesale (`coreBlocks` from
+`@rocksoft/cms-starter-core/core/blockRegistry`) — `cards` arrives with the bump. If your
+`cms.config.ts` names `nav_tiles`, `mainfeatures` or `info_cards` explicitly, replace those three
+entries with `cards`.
+
+**Your content is converted for you.** A data migration on the CMS rewrites every persisted instance
+in place — position preserved, the stable `data.id` reused, idempotent and reversible. Deploy order
+does not matter either: this release still renders a `nav_tiles` block through the new component, so
+a frontend bumped before the migration runs, or after, is correct either way.
+
+Custom CSS naming the old shortcuts needs remapping — the vocabulary is now `section-cards` /
+`cards-inner` / `cards-grid` / `card`, with `is-tiles` / `is-cards` / `is-steps` on the section.
+
+### New — `gallery`
+
+A grid of photos as ONE editable thing: an optional eyebrow/heading, a note beside the heading (a
+caption for the SET, not per image), and a repeater of images each carrying its own alt text.
+Composing six image blocks by hand gave an editor a puzzle instead of a gallery, and no way to
+reorder the set at once. `anchor_id` makes it a scroll target, the same contract `team` and
+`pricing_table` already offer. An entry with no image is dropped rather than rendered broken; a
+missing alt yields an empty one — correct for a decorative tile, and better than inventing alt text
+from a filename.
+
+### New — images are served at the size their slot actually needs
+
+Every image-bearing block rendered `<img src>` and nothing else, so the browser downloaded the
+editor's original whatever size it was about to display it at — a 240px gallery tile could be handed
+a 4000px file. Blocks now emit `srcset` and `sizes` together (neither is any use alone).
+
+**Additive: nothing breaks and no client change is required.** Image fields stay URL strings; the
+responsive attributes ride in a sibling object the API adds. A block whose image has no variants
+renders exactly the tag it rendered before.
+
+Two things worth knowing:
+
+- **The `sizes` values are viewport fractions, not pixels** — deliberately. A slot's pixel width
+  depends on `container-global`, which every site overrides, so a pixel baked into core would be
+  right for one site and wrong for every other. A `vw` fraction slightly over-estimates the slot,
+  which costs bytes; under-estimating would cost sharpness.
+- **The smaller files have to exist.** New uploads and newly-authored blocks get them automatically;
+  everything authored earlier needs one backfill pass per kind, run on the CMS — see **Developer
+  Docs → Responsive images** in the panel. Until then a page renders exactly as it does today, just
+  without a `srcset`.
+
+### New — cookie consent
+
+A CMS-toggled consent banner, off unless the client enables it.
+
+## v0.5.0 — documents block, CMS-managed footer, href normalization
+
+Published 2026-07-28 without an entry here; recorded after the fact from the commits it carried, so
+it is a summary rather than the usual upgrade note.
+
+- **`documents` block** — a list of library files (PDF and friends) with resolved name, description,
+  size and URL.
+- **CMS-managed footer** — the footer becomes a global component edited in the panel (#232).
+- **Internal hrefs normalized to the configured trailing slash**, so a CMS value authored without
+  one stops 404ing under `trailingSlash: 'always'`.
+- Core unit tests moved into the package under Vitest, and the SEO/render smoke preset now ships
+  with core rather than with each site.
 
 ## v0.4.0 — an inline CTA on the FAQ block
 

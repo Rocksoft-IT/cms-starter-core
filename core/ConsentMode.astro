@@ -1,0 +1,55 @@
+---
+// Consent Mode v2 bootstrap + analytics loader (#521). Mount this in <head>, BEFORE any other
+// analytics. It SELF-GATES: it emits nothing unless the client both enabled cookie consent
+// (Settings → Privacy) AND has a Google Tag or GA4 id configured (Integrations). With consent
+// off, a build contains zero analytics — the shipped default.
+//
+// Ordering is the whole point: `consent 'default' = denied` runs first, a prior "accept" is
+// replayed from localStorage, and only then does the GTM/GA4 tag load — so nothing is measured
+// until the visitor has consented (CookieConsent.astro flips it to granted on accept).
+import { getSiteSettings } from '../lib/api'
+
+const settings = await getSiteSettings()
+
+// Only accept well-formed container ids from the CMS — the id is interpolated into a <script>,
+// so a malformed value is dropped rather than reflected.
+const gtmRaw = settings.integrations?.google_tag?.container_id
+const ga4Raw = settings.integrations?.ga4?.measurement_id
+const gtmId = typeof gtmRaw === 'string' && /^GTM-[A-Z0-9]+$/.test(gtmRaw) ? gtmRaw : null
+const ga4Id = typeof ga4Raw === 'string' && /^G-[A-Z0-9]+$/.test(ga4Raw) ? ga4Raw : null
+
+// Prefer GTM when both are set (a GTM container usually already hosts the GA4 tag).
+const active = settings.cookie_consent?.enabled === true && (gtmId !== null || ga4Id !== null)
+
+const STORAGE_KEY = 'cookie-consent'
+
+const bootstrap = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+window.gtag = gtag;
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied'});
+try { if (localStorage.getItem('${STORAGE_KEY}') === 'accepted') gtag('consent','update',{analytics_storage:'granted'}); } catch(e){}
+gtag('js', new Date());
+`.trim()
+
+const gtmLoader = gtmId
+  ? `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`
+  : null
+
+const ga4Config = !gtmId && ga4Id ? `gtag('config','${ga4Id}');` : null
+---
+
+{
+  active && (
+    <>
+      <script is:inline set:html={bootstrap} />
+      {gtmLoader && <script is:inline set:html={gtmLoader} />}
+      {!gtmId && ga4Id && (
+        <>
+          <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ga4Id}`} />
+          {ga4Config && <script is:inline set:html={ga4Config} />}
+        </>
+      )}
+    </>
+  )
+}

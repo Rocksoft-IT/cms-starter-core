@@ -159,8 +159,13 @@ export interface SectionTeaserItem {
   path?: string | null
   /** Raw ISO date from the item's `date` field, or null. */
   date?: string | null
-  /** Resolved featured image (MediaUrls.for shape); a bare string is tolerated for fixtures. */
-  thumbnail?: { url?: string; alt?: string | null; width?: number | null; height?: number | null } | string
+  /**
+   * Resolved featured image (MediaUrls.for shape); a bare string is tolerated for fixtures.
+   * Carries the same `srcset` the `_meta` siblings do — it comes from the same serializer.
+   */
+  thumbnail?:
+    | { url?: string; alt?: string | null; width?: number | null; height?: number | null; srcset?: string | null }
+    | string
   /** Present only when the section defines a `status` field (list layout renders it as a pill). */
   status?: string
   /** Present only when the item has attachments (list layout shows the count). */
@@ -204,6 +209,27 @@ export interface DocumentFile {
   size: number | null
 }
 
+// What a renderer needs to make one `<img>` responsive. The API attaches this to every resolved
+// image as a sibling of the URL field — `<key>_meta` for an in-block `image` field, `src_meta` for
+// a `media_upload` one — so a template reads ONE shape whichever world the picture came from, even
+// though the two produce their variants by completely different means (Spatie conversions vs.
+// generated sibling files). See BlockResolver::imageMeta / MediaUrls::responsiveMeta.
+//
+// Hand-maintained: these keys are added by the RESOLVER, not declared in the block schema, so the
+// generator emits the sibling by name (see gen-block-types.mjs) but cannot derive this shape.
+export interface ResponsiveImageMeta {
+  /** Intrinsic pixel width of the source, or null when the file could not be measured. */
+  width: number | null
+  /** Intrinsic pixel height, or null. Pair with `width` on the `<img>` to avoid layout shift. */
+  height: number | null
+  /**
+   * Ready-to-emit `srcset`, or null when there is nothing worth offering — fewer than two
+   * candidates, or no variants generated yet. Null means: render a plain `src` and NO `sizes`.
+   * A one-candidate srcset would become the browser's only choice.
+   */
+  srcset: string | null
+}
+
 // --- GENERATED BELOW: do not edit, run `pnpm cms:types` ---
 export interface RichContentBlock {
   type: 'rich_content'
@@ -212,6 +238,7 @@ export interface RichContentBlock {
     heading?: string
     body?: string
     image?: string | null
+    image_meta?: ResponsiveImageMeta
     alt?: string
     animation_url?: string
   }
@@ -272,6 +299,7 @@ export interface PromoSplitBlock {
     cta_label?: string
     cta_href?: string
     src?: string | null
+    src_meta?: ResponsiveImageMeta
     alt?: string
     reverse?: boolean
   }
@@ -296,27 +324,41 @@ export interface PricingTeaserBlock {
   }
 }
 
-export interface MainFeaturesBlock {
-  type: 'mainfeatures'
-  data: {
-    eyebrow?: string
-    heading?: string
-    intro?: string
-    tiles?: Array<{ icon?: string | null; label?: string; link?: string }>
-  }
-}
-
-export interface NavTilesBlock {
-  type: 'nav_tiles'
-  data: {
-    heading?: string
-    tiles?: Array<{ label?: string; href?: string; icon?: string | null; highlighted?: boolean }>
-  }
-}
-
 export interface DocumentsBlock {
   type: 'documents'
   data: { heading?: string; icon?: 'document' | 'folder' | 'download' | 'info' | 'book'; files?: DocumentFile[] }
+}
+
+export interface CardsBlock {
+  type: 'cards'
+  data: {
+    anchor_id?: string
+    eyebrow?: string
+    heading?: string
+    intro?: string
+    layout?: 'tiles' | 'cards' | 'steps'
+    items?: Array<{
+      icon?: 'location' | 'clock' | 'phone' | 'mail' | 'calendar' | 'info' | 'document' | 'folder' | 'download' | 'book'
+      image?: string | null
+      image_meta?: ResponsiveImageMeta
+      marker?: string
+      label?: string
+      value?: string
+      href?: string
+      highlighted?: boolean
+    }>
+  }
+}
+
+export interface GalleryBlock {
+  type: 'gallery'
+  data: {
+    anchor_id?: string
+    eyebrow?: string
+    heading?: string
+    note?: string
+    images?: Array<{ image?: string | null; image_meta?: ResponsiveImageMeta; alt?: string }>
+  }
 }
 
 export interface FaqBlock {
@@ -337,7 +379,7 @@ export interface TeamBlock {
     anchor_id?: string
     eyebrow?: string
     heading?: string
-    members?: Array<{ name?: string; role?: string; photo?: string | null }>
+    members?: Array<{ name?: string; role?: string; photo?: string | null; photo_meta?: ResponsiveImageMeta }>
   }
 }
 
@@ -345,6 +387,7 @@ export interface ImageBlock {
   type: 'image_block'
   data: {
     src?: string | null
+    src_meta?: ResponsiveImageMeta
     alt?: string
     caption?: string
     maxWidth?: string
@@ -395,6 +438,7 @@ export interface QuoteBlock {
     source_link_label?: string
     source_link_href?: string
     image?: string | null
+    image_meta?: ResponsiveImageMeta
     alt?: string
   }
 }
@@ -442,9 +486,9 @@ export type Block =
   | CtaBannerBlock
   | PromoSplitBlock
   | PricingTeaserBlock
-  | MainFeaturesBlock
-  | NavTilesBlock
   | DocumentsBlock
+  | CardsBlock
+  | GalleryBlock
   | FaqBlock
   | TeamBlock
   | ImageBlock

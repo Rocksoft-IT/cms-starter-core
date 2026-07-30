@@ -7,13 +7,14 @@
 // The 2-col split only applies when an image is set; a copy-only panel stays single-column.
 import type { PromoSplitBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 
 interface Props {
   block: PromoSplitBlock
 }
 
 const { block } = Astro.props
-const { eyebrow, heading, body, cta_label, cta_href, src, alt = '', reverse } = block.data
+const { eyebrow, heading, body, cta_label, cta_href, src, src_meta, alt = '', reverse } = block.data
 ---
 
 <section class="section-promo-split">
@@ -47,7 +48,13 @@ const { eyebrow, heading, body, cta_label, cta_href, src, alt = '', reverse } = 
       {
         src && (
           <div class:list={['promo-split-media', reverse && 'md:order-first']}>
-            <img class="promo-split-image" src={src} alt={alt} loading="lazy" />
+            <img
+              class="promo-split-image"
+              src={src}
+              alt={alt}
+              loading="lazy"
+              {...responsiveImageAttrs(src_meta, IMAGE_SIZES.halfPanel)}
+            />
           </div>
         )
       }

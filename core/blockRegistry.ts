@@ -24,7 +24,6 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   separator: () => import('./blocks/Separator.astro'),
   features: () => import('./blocks/Features.astro'),
   video_section: () => import('./blocks/VideoSection.astro'),
-  nav_tiles: () => import('./blocks/NavTiles.astro'),
   custom_html: () => import('./blocks/CustomHtml.astro'),
   quote: () => import('./blocks/Quote.astro'),
   // hours / map / contact — split out of the former combined hours_location; map reuses MapEmbed.astro.
@@ -37,11 +36,12 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   columns: () => import('./blocks/Columns.astro'),
   tabs: () => import('./blocks/Tabs.astro'),
   pricing_teaser: () => import('./blocks/PricingTeaser.astro'),
-  mainfeatures: () => import('./blocks/MainFeatures.astro'),
   highlights: () => import('./blocks/Highlights.astro'),
   // Documents — a titled list of downloadable files from the Files library; the API resolves each
   // file id into { id, name, description, url, size }. DocumentFile is hand-authored in blocks.ts.
   documents: () => import('./blocks/Documents.astro'),
+  gallery: () => import('./blocks/Gallery.astro'),
+  cards: () => import('./blocks/Cards.astro'),
   // Ref blocks — the API resolves the referenced collection/component into the block data; their
   // interfaces are hand-maintained in src/types/blocks.ts above the codegen marker.
   testimonials: () => import('./blocks/Testimonials.astro'),
@@ -49,3 +49,13 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   component_ref: () => import('./blocks/ComponentRef.astro'),
   section_teaser: () => import('./blocks/SectionTeaser.astro'),
 }
+
+// Transitional alias, one release only (context/changes/unify-cards-block/). `nav_tiles` is gone
+// from the CMS registry, but existing content still carries it until the data migration runs —
+// and a site whose core pin is bumped before the backend deploys would otherwise render nothing
+// where its tiles are. Registering it makes the deploy order stop mattering.
+//
+// Assigned after the literal rather than inside it: the key is deliberately absent from the
+// generated Block union, because nothing may AUTHOR this type any more — only read content that
+// still carries it. Drop this together with the alias next release.
+;(coreBlocks as Record<string, BlockLoader>).nav_tiles = () => import('./blocks/Cards.astro')

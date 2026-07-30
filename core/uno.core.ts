@@ -220,27 +220,6 @@ export const coreShortcuts: Record<string, string> = {
     'motion-reduce:animate-none',
   'faq-answer': 'text-[15.5px] leading-[1.7] max-w-[74ch] text-text-secondary',
 
-  // ── Nav tiles block ─────────────────────────────────────────────────────────
-  // Interactive affordances are a separate key the renderer only applies to tiles that actually
-  // navigate, so a half-authored tile never looks clickable. The featured variant stays in the
-  // component's scoped CSS — it is a documented token seam, not a value.
-  'section-nav-tiles': 'bg-section-bg section-y',
-  'nav-tiles-inner': 'container-global',
-  'nav-tiles-heading': 'font-brand font-bold text-[32px] leading-[1.2] text-text-primary text-center mb-10',
-  'nav-tiles-grid': 'grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-5 list-reset',
-  'nav-tile':
-    'flex flex-col items-center justify-center gap-[0.85rem] h-full min-h-[140px] px-5 py-7 ' +
-    'bg-surface border border-solid border-border rounded-[14px] text-center no-underline ' +
-    'text-text-primary transition duration-[0.18s] motion-reduce:transition-none',
-  'nav-tile-interactive':
-    'hover:-translate-y-[3px] hover:border-primary hover:shadow-[0_10px_28px_rgb(0_0_0_/_12%)] ' +
-    'motion-reduce:hover:translate-y-0 ' +
-    'focus-visible:outline focus-visible:outline-3 focus-visible:outline-primary focus-visible:outline-offset-[3px]',
-  'nav-tile-icon':
-    'inline-flex items-center justify-center w-12 h-12 ' +
-    '[&_img]:max-w-full [&_img]:max-h-full [&_img]:object-contain',
-  'nav-tile-label': 'font-semibold text-[1.05rem] leading-[1.3]',
-
   // ── Columns block ───────────────────────────────────────────────────────────
   // The container sits on the grid (the inner element), not on the <section>. Tracks come from
   // block data through the inline `--cols` custom property; below `md` they collapse to one column
@@ -388,6 +367,50 @@ export const coreShortcuts: Record<string, string> = {
   'team-name': 'mt-5 font-bold text-[20px] leading-[1.3] text-text-primary',
   'team-role': 'mt-1 text-[16px] leading-[1.5] text-text-secondary',
 
+  // ── Cards block ──────────────────────────────────────────────────────────
+  // One block, three layouts (context/changes/unify-cards-block/). The shared shortcuts carry
+  // what every layout agrees on; the `is-*` modifiers carry only the differences, so a site can
+  // retune one layout without touching the others.
+  'section-cards': 'section-y',
+  'cards-inner': 'container-global',
+  'cards-grid': 'grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] list-reset mt-6',
+  card: 'flex items-start gap-[14px] h-full no-underline',
+  'card-media':
+    'shrink-0 flex items-center justify-center w-10 h-10 rounded-[11px] bg-section-bg text-primary ' +
+    '[&>svg]:w-5 [&>svg]:h-5 [&>img]:w-full [&>img]:h-full [&>img]:object-contain',
+  'card-marker':
+    'shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-[15px]',
+  'card-label': 'font-semibold text-text-primary',
+  'card-value': 'mt-1 leading-[1.5] text-text-secondary whitespace-pre-line',
+
+  // Fact strip: a bordered card, small uppercase label over a larger value.
+  '.is-cards .card':
+    'bg-surface border border-solid border-border rounded-[16px] px-[22px] py-5 ' +
+    'transition-colors hover:border-primary',
+  '.is-cards .card-label': 'text-[12.5px] uppercase tracking-[0.04em] text-muted',
+  '.is-cards .card-value': 'text-[15.5px] font-semibold leading-[1.4] text-text-primary',
+
+  // Anchor-nav / services strip: compact, link-led, one tile optionally highlighted.
+  '.is-tiles .card':
+    'items-center bg-surface border border-solid border-border rounded-[14px] px-5 py-4 ' +
+    'transition-colors hover:border-primary',
+  '.is-tiles .card-label': 'text-[15px]',
+  '.is-tiles .is-highlighted': 'border-primary bg-section-bg',
+
+  // Numbered sequence: no card chrome, the marker carries the emphasis.
+  '.is-steps .card-label': 'text-[18px]',
+  '.is-steps .card-value': 'text-[16px]',
+
+  // ── Gallery block ────────────────────────────────────────────────────────
+  // Square-ish tiles on an auto-fill grid, so the column count follows the measure instead of
+  // being pinned to a number a narrower page cannot honour. A site retunes any of these.
+  'section-gallery': 'section-y',
+  'gallery-inner': 'container-global',
+  'gallery-note': 'text-[14px] text-muted m-0',
+  'gallery-grid': 'grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 list-reset mt-5',
+  'gallery-tile':
+    'relative h-[200px] rounded-[14px] overflow-hidden border border-solid border-border ' +
+    '[&>img]:w-full [&>img]:h-full [&>img]:object-cover',
   // ── CTA banner block ──────────────────────────────────────────────────────
   'section-cta': 'bg-black text-white py-20',
   'cta-content': 'flex flex-col gap-4 text-center',

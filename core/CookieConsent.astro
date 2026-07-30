@@ -1,0 +1,91 @@
+---
+// Cookie-consent banner (#521) — a simple window at the foot of the page. Like Footer.astro this
+// core renderer emits SEMANTIC MARKUP AND BEHAVIOUR ONLY, no visual CSS: each client styles
+// `.cookie-consent*` (position, colours, layout) in its own stylesheet. It SELF-GATES — nothing
+// renders unless the client enabled consent AND has an analytics id (there is nothing to gate
+// otherwise). Copy comes from the translatable `cookie_consent` global component, with built-in
+// defaults so the banner works the moment consent is switched on, before any copy is authored.
+//
+// Pairs with ConsentMode.astro in <head>: that denies analytics by default; the buttons here
+// flip the Consent Mode v2 signal to granted/denied and remember the choice in localStorage.
+import { getSiteSettings, getCookieConsent, getPages } from '../lib/api'
+
+interface Props {
+  /** Locale of the page — drives the per-locale copy fetch and privacy-link resolution. */
+  locale?: string
+}
+
+const { locale = 'en' } = Astro.props
+
+const settings = await getSiteSettings()
+const hasAnalytics = Boolean(
+  settings.integrations?.google_tag?.container_id || settings.integrations?.ga4?.measurement_id,
+)
+const active = settings.cookie_consent?.enabled === true && hasAnalytics
+
+const copy = active ? await getCookieConsent(locale).catch(() => null) : null
+
+// Built-in fallback copy (style-neutral, provider-agnostic) used until the CMS `cookie_consent`
+// component is authored. A client localises/overrides it by writing that component.
+const message =
+  copy?.message || 'We use cookies to measure traffic. Accept to allow analytics, or reject to keep them off.'
+const acceptLabel = copy?.accept_label || 'Accept'
+const rejectLabel = copy?.reject_label || 'Reject'
+const manageLabel = copy?.manage_label || 'Privacy policy'
+
+// Resolve the picked privacy page to its localized path (or omit the link when unset/unresolved).
+let privacyHref: string | null = null
+const privacyId = settings.cookie_consent?.privacy_page_id
+if (active && typeof privacyId === 'number') {
+  const pages = await getPages(locale).catch(() => [])
+  privacyHref = pages.find((p) => p.id === privacyId)?.path ?? null
+}
+
+const STORAGE_KEY = 'cookie-consent'
+
+const consentScript = `
+(function(){
+  var el = document.querySelector('[data-cookie-consent]');
+  if (!el) return;
+  function stored(){ try { return localStorage.getItem('${STORAGE_KEY}'); } catch(e){ return null; } }
+  function save(v){ try { localStorage.setItem('${STORAGE_KEY}', v); } catch(e){} }
+  function open(){ el.hidden = false; }
+  function close(){ el.hidden = true; }
+  if (!stored()) open();
+  var a = el.querySelector('[data-cookie-consent-accept]');
+  var r = el.querySelector('[data-cookie-consent-reject]');
+  if (a) a.addEventListener('click', function(){ save('accepted'); if (window.gtag) window.gtag('consent','update',{analytics_storage:'granted'}); close(); });
+  if (r) r.addEventListener('click', function(){ save('rejected'); if (window.gtag) window.gtag('consent','update',{analytics_storage:'denied'}); close(); });
+  document.querySelectorAll('[data-cookie-consent-open]').forEach(function(t){ t.addEventListener('click', function(e){ e.preventDefault(); open(); }); });
+})();
+`.trim()
+---
+
+{
+  active && (
+    <div class="cookie-consent" role="dialog" aria-live="polite" aria-label={manageLabel} data-cookie-consent hidden>
+      <p class="cookie-consent__message">
+        {message}
+        {privacyHref && (
+          <>
+            {' '}
+            <a class="cookie-consent__link" href={privacyHref}>
+              {manageLabel}
+            </a>
+          </>
+        )}
+      </p>
+      <div class="cookie-consent__actions">
+        {/* Reject is presented first and is the same kind of control as Accept — not a dark pattern. */}
+        <button type="button" class="cookie-consent__button cookie-consent__button--reject" data-cookie-consent-reject>
+          {rejectLabel}
+        </button>
+        <button type="button" class="cookie-consent__button cookie-consent__button--accept" data-cookie-consent-accept>
+          {acceptLabel}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+{active && <script is:inline set:html={consentScript} />}

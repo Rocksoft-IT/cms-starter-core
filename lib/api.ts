@@ -9,6 +9,8 @@ import {
   getMockCtaBanner,
   getMockFooter,
   getMockLocales,
+  getMockSiteSettings,
+  getMockCookieConsent,
 } from '~site/fixtures'
 
 /** A resolved media item for social sharing, as serialized by the CMS's MediaUrls.for(). */
@@ -327,4 +329,47 @@ export async function getFooter(locale = 'en'): Promise<FooterData | null> {
   return apiFetch(`/api/components/footer?locale=${locale}`)
     .then((json) => json.data as FooterData)
     .catch(() => null) // 404 (no active footer) / offline → no footer; the renderer self-gates
+}
+
+/** Site-wide settings (GET /api/site-settings). Only the fields the frontend consumes are typed
+ *  here; `integrations` is provider => key => value of the build-embeddable third-party ids
+ *  (e.g. `google_tag.container_id`, `ga4.measurement_id`), `cookie_consent` is the per-client
+ *  consent switch (#521). `[key: string]` keeps the other server fields (contact, og image)
+ *  accessible without retyping them. */
+export interface SiteSettingsData {
+  cookie_consent?: { enabled?: boolean; privacy_page_id?: number | null }
+  integrations?: Record<string, Record<string, string>>
+  [key: string]: unknown
+}
+
+// Memoized like branding: every route + the consent components read it, so fetch once per build.
+// Resolves to a safe "everything off" default on failure (never rejects), so no eviction is needed
+// and a transient error can never accidentally ship analytics.
+let siteSettingsMemo: Promise<SiteSettingsData> | undefined
+
+export function getSiteSettings(): Promise<SiteSettingsData> {
+  siteSettingsMemo ??= MOCK_MODE
+    ? getMockSiteSettings()
+    : apiFetch('/api/site-settings')
+        .then((json) => json.data as SiteSettingsData)
+        .catch(() => ({ cookie_consent: { enabled: false, privacy_page_id: null }, integrations: {} }))
+  return siteSettingsMemo
+}
+
+/** The `cookie_consent` global component (GET /api/components/cookie_consent) — the banner's
+ *  translatable copy, resolved per-locale with default-locale fallback. `null` when no active
+ *  record exists (404); the renderer then falls back to built-in default copy. */
+export interface CookieConsentData {
+  message?: string
+  accept_label?: string
+  reject_label?: string
+  manage_label?: string
+  component_type?: string
+}
+
+export async function getCookieConsent(locale = 'en'): Promise<CookieConsentData | null> {
+  if (MOCK_MODE) return getMockCookieConsent(locale)
+  return apiFetch(`/api/components/cookie_consent?locale=${locale}`)
+    .then((json) => json.data as CookieConsentData)
+    .catch(() => null) // 404 (copy not authored) / offline → built-in defaults in the renderer
 }

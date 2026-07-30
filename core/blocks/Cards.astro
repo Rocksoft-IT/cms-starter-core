@@ -1,0 +1,115 @@
+---
+// Core cards block. One repeater of icon+text items; `layout` chooses how they are presented.
+// Replaces NavTiles, MainFeatures and InfoCards (context/changes/unify-cards-block/) — those
+// three rendered the same content three ways, so an editor had to pick a BLOCK to pick a LOOK.
+//
+//   tiles — compact, link-led: the anchor-nav strip and the services menu
+//   cards — icon chip, small label, multi-line value: the fact strip a page opens with
+//   steps — a numbered sequence: marker, title, body
+//
+// A field a layout does not use simply does not render. `highlighted` means something to `tiles`
+// and nothing to `steps`; `value` is the point of `cards` and noise on a tile. That is the whole
+// reason the three merged: the DATA was always the same shape.
+//
+// An `image` beats an `icon`: the two coexist because the merged blocks had two ways to mark an
+// item (an uploaded picture, a glyph from a fixed set) and dropping either would have forced a
+// re-upload or a redraw on every existing instance.
+import type { CardsBlock } from '../../types/blocks'
+import { sectionAnchorId } from '../../lib/anchor'
+import { href as hrefOf } from '../../lib/href'
+import { iconPath } from '../../lib/icons'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
+import SectionHeader from '../SectionHeader.astro'
+
+interface Props {
+  block: CardsBlock
+}
+
+const { block } = Astro.props
+const { anchor_id, eyebrow, heading, intro, layout } = block.data
+
+// Also reads the retired `tiles` shape, because this component is registered as the transitional
+// renderer for `nav_tiles` too: content still carries that type until the data migration runs.
+// `link` was `mainfeatures`' spelling of `href`. Both fall away with the alias, next release.
+const legacyTiles = (block.data as { tiles?: unknown }).tiles
+const raw = (block.data.items ?? legacyTiles ?? []) as Array<Record<string, unknown> & { link?: string; href?: string }>
+const items = raw.map((i) => (i?.link && !i?.href ? { ...i, href: i.link } : i)) as NonNullable<
+  CardsBlock['data']['items']
+>
+
+const sectionId = sectionAnchorId(anchor_id)
+// A converted block names its layout. Un-migrated content does not — and it is recognisable by
+// carrying `tiles`, which is exactly what it used to render. Anything else (including a
+// half-authored block) falls back to `cards` so it still renders something coherent.
+const mode = layout === 'tiles' || layout === 'steps' ? layout : Array.isArray(legacyTiles) ? 'tiles' : 'cards'
+
+// An item earns a slot as long as it carries something to show; a lone icon is not content.
+const entries = items.filter((i) => i?.label || i?.value || i?.marker)
+---
+
+{
+  entries.length > 0 && (
+    <section
+      class:list={[
+        'section-cards',
+        // Whole literal strings, never a name assembled from the mode at runtime: UnoCSS extracts
+        // class names statically from source, so an assembled one generates no CSS at all and the
+        // layout silently loses every rule. The styling-contract check catches exactly this.
+        mode === 'tiles' && 'is-tiles',
+        mode === 'cards' && 'is-cards',
+        mode === 'steps' && 'is-steps',
+      ]}
+      id={sectionId}
+    >
+      <div class="cards-inner">
+        <SectionHeader {eyebrow} {heading} {intro} />
+
+        <ul class="cards-grid">
+          {entries.map((item) => {
+            const link = hrefOf(item.href)
+            const Tag = link ? 'a' : 'div'
+            const glyph = item.image ? undefined : iconPath(item.icon)
+
+            return (
+              <li>
+                <Tag
+                  class:list={['card', item.highlighted && mode === 'tiles' && 'is-highlighted']}
+                  {...(link ? { href: link } : {})}
+                >
+                  {item.image ? (
+                    <span class="card-media" aria-hidden="true">
+                      <img
+                        src={item.image}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                        {...responsiveImageAttrs(item.image_meta, IMAGE_SIZES.gridTile)}
+                      />
+                    </span>
+                  ) : glyph ? (
+                    <span class="card-media" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+                        <path d={glyph} stroke-linecap="round" stroke-linejoin="round" />
+                      </svg>
+                    </span>
+                  ) : (
+                    item.marker && (
+                      <span class="card-marker" aria-hidden="true">
+                        {item.marker}
+                      </span>
+                    )
+                  )}
+
+                  <div>
+                    {item.label && <div class="card-label">{item.label}</div>}
+                    {item.value && <div class="card-value">{item.value}</div>}
+                  </div>
+                </Tag>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </section>
+  )
+}

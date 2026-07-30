@@ -12,6 +12,7 @@
 import type { QuoteBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import { href as hrefOf } from '../../lib/href'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 
 interface Props {
   block: QuoteBlock
@@ -27,6 +28,7 @@ const {
   source_link_label,
   source_link_href,
   image,
+  image_meta,
   alt = '',
 } = block.data
 
@@ -40,7 +42,13 @@ const sourceLinkText = source_link_label || source_link_href
     {
       image && (
         <figure class="quote-figure">
-          <img src={image} alt={alt} class="quote-image" loading="lazy" />
+          <img
+            src={image}
+            alt={alt}
+            class="quote-image"
+            loading="lazy"
+            {...responsiveImageAttrs(image_meta, IMAGE_SIZES.halfPanel)}
+          />
         </figure>
       )
     }

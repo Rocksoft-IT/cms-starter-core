@@ -1,0 +1,61 @@
+---
+// Core gallery block. A grid of photos under an optional eyebrow/heading, with an optional note
+// sitting beside the heading (a caption for the set — "wybrane chwile z zajęć", not per-image).
+//
+// Every field degrades: an entry with no image is dropped rather than rendered as a broken
+// <img>, and a missing `alt` yields an empty one — correct for a decorative tile, and far better
+// than inventing alt text from a filename. `anchor_id` becomes the section id so a gallery can be
+// a scroll target, the same contract Team and PricingTable already offer.
+//
+// The note rides SectionHeader's `action` slot rather than a wrapper of this block's own. That
+// slot exists precisely because a block once re-implemented the eyebrow/heading markup to put
+// something beside the heading — doing it again here would re-open the drift it closed.
+//
+// Every tile is lazy, like every other image-bearing block in core. Eagerly loading the first one
+// would assume the gallery sits at the top of the page — which a page-builder block cannot know,
+// and when it is wrong the hint competes for bandwidth with whatever the real LCP image is.
+import type { GalleryBlock } from '../../types/blocks'
+import { sectionAnchorId } from '../../lib/anchor'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
+import SectionHeader from '../SectionHeader.astro'
+
+interface Props {
+  block: GalleryBlock
+}
+
+const { block } = Astro.props
+const { anchor_id, eyebrow, heading, note, images = [] } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
+const tiles = images.filter((i) => i?.image)
+---
+
+{
+  tiles.length > 0 && (
+    <section class="section-gallery" id={sectionId}>
+      <div class="gallery-inner">
+        <SectionHeader {eyebrow} {heading}>
+          {note && (
+            <p class="gallery-note" slot="action">
+              {note}
+            </p>
+          )}
+        </SectionHeader>
+
+        <ul class="gallery-grid">
+          {tiles.map((tile) => (
+            <li class="gallery-tile">
+              <img
+                src={tile.image}
+                alt={tile.alt ?? ''}
+                loading="lazy"
+                decoding="async"
+                {...responsiveImageAttrs(tile.image_meta, IMAGE_SIZES.gridTile)}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}

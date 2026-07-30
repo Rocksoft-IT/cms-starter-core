@@ -12,6 +12,7 @@
 // a full-width figure has no room to move in. It only becomes visible once `maxWidth`
 // (or a max-height + aspect-ratio pair) makes the figure narrower than its container.
 import type { ImageBlock } from '../../types/blocks'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sanitizeCssValue } from '../../lib/sanitize'
 
 interface Props {
@@ -24,6 +25,7 @@ const DESKTOP_BREAKPOINT = 768
 const { block } = Astro.props
 const {
   src,
+  src_meta,
   alt = '',
   caption,
   aspectRatio,
@@ -100,7 +102,21 @@ if (desktopStyles.length > 0) {
   src && (
     <figure class="section-image" style={figureStyle}>
       {mediaQuery && <style is:global set:html={mediaQuery} />}
-      <img id={imgId} src={src} alt={alt} class="w-full h-auto block mx-auto" style={baseStyle || undefined} />
+      {/*
+        Intrinsic width/height ride along with the srcset. They do not fight this block's own
+        sizing: when the editor sets an `aspect-ratio`, the CSS wins over the ratio the attributes
+        imply, and when they set none, the attributes are what reserves the right box before the
+        bytes arrive. `sizes` assumes the figure spans the content measure — which is the default;
+        a `maxWidth` narrower than that only makes the browser fetch one rung larger than needed.
+      */}
+      <img
+        id={imgId}
+        src={src}
+        alt={alt}
+        class="w-full h-auto block mx-auto"
+        style={baseStyle || undefined}
+        {...responsiveImageAttrs(src_meta, IMAGE_SIZES.contentWidth)}
+      />
       {caption && <figcaption class="text-[14px] text-muted text-center mt-3">{caption}</figcaption>}
     </figure>
   )

@@ -6,7 +6,8 @@
 //   - `list`:  a notice-board row list with a date badge, an optional status pill and an
 //              attachment count — the H4 "tablica / przetargi" look.
 // Pure renderer: ordering + limiting happened server-side, so this never sorts or slices.
-import type { SectionTeaserBlock } from '../../types/blocks'
+import type { ResponsiveImageMeta, SectionTeaserBlock } from '../../types/blocks'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
 import SectionHeader from '../SectionHeader.astro'
@@ -62,6 +63,16 @@ function thumbUrl(t: unknown): string | null {
   }
   return null
 }
+
+// The same MediaUrls.for() object also carries the responsive triple, so a teaser thumbnail gets a
+// srcset from the conversion ladder without the resolver having to do anything extra. A bare-string
+// fixture has none — hence the null, which makes responsiveImageAttrs emit nothing.
+function thumbMeta(t: unknown): ResponsiveImageMeta | null {
+  // No need to normalize the individual keys: responsiveImageAttrs already treats a missing key,
+  // null and undefined identically, and MediaUrls' object is a structural superset — the extra keys
+  // (url, original, conversions, …) are simply never read.
+  return t && typeof t === 'object' ? (t as ResponsiveImageMeta) : null
+}
 ---
 
 {
@@ -82,7 +93,13 @@ function thumbUrl(t: unknown): string | null {
                 <article class="flex flex-col overflow-hidden rounded-[16px] border border-gray-200 bg-section-bg">
                   {img && (
                     <a href={href} class="block aspect-[16/9] overflow-hidden" tabindex="-1" aria-hidden="true">
-                      <img src={img} alt={item.name ?? ''} class="h-full w-full object-cover" loading="lazy" />
+                      <img
+                        src={img}
+                        alt={item.name ?? ''}
+                        class="h-full w-full object-cover"
+                        loading="lazy"
+                        {...responsiveImageAttrs(thumbMeta(item.thumbnail), IMAGE_SIZES.teaserCard)}
+                      />
                     </a>
                   )}
                   <div class="flex flex-1 flex-col gap-2 p-6">

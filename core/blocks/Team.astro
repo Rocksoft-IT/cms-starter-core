@@ -7,6 +7,7 @@
 //    is collapsed to hyphens so the value is a usable URL fragment; Astro escapes the attribute.
 import type { TeamBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
@@ -37,7 +38,12 @@ function initial(name?: string) {
             <li class="team-card">
               <div class="team-photo">
                 {member.photo ? (
-                  <img src={member.photo} alt={member.name || ''} loading="lazy" />
+                  <img
+                    src={member.photo}
+                    alt={member.name || ''}
+                    loading="lazy"
+                    {...responsiveImageAttrs(member.photo_meta, IMAGE_SIZES.gridTile)}
+                  />
                 ) : (
                   <span class="team-photo-placeholder" aria-hidden="true">
                     {initial(member.name)}
