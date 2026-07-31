@@ -404,9 +404,13 @@ export const coreShortcuts: Record<string, string> = {
   // Fills the viewport rather than shrinking to the photo, so the area AROUND the photo belongs
   // to the dialog — that is what makes "click outside to dismiss" a real target instead of a few
   // stray pixels. `max-w`/`max-h` override the UA's own dialog clamp.
+  // `hidden` first, `grid` only while [open]: a bare `display: grid` here OVERRIDES the UA's
+  // `dialog:not([open]) { display: none }`, so the closed dialog stays laid out at 100vw × 100dvh
+  // and swallows every click on the page behind it. Invisible, and it breaks the whole page —
+  // smbp's pricing-tab test caught it as a click that timed out on an element it could see.
   'gallery-dialog':
-    'w-[100vw] h-[100dvh] max-w-[100vw] max-h-[100dvh] p-0 border-0 bg-transparent ' +
-    'grid place-items-center [&::backdrop]:bg-black/80',
+    'hidden [&[open]]:grid w-[100vw] h-[100dvh] max-w-[100vw] max-h-[100dvh] p-0 border-0 ' +
+    'bg-transparent place-items-center [&::backdrop]:bg-black/80',
   'gallery-dialog-figure': 'block w-auto h-auto max-w-[92vw] max-h-[92dvh]',
   // 44px: the smallest target comfortably hittable on a phone.
   'gallery-dialog-button':
