@@ -397,6 +397,20 @@ export const coreShortcuts: Record<string, string> = {
   'gallery-inner': 'container-global',
   'gallery-note': 'text-[14px] text-muted m-0',
   'gallery-grid': 'grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 list-reset mt-5',
+  // Enlarge-on-click (Gallery.astro). Shortcuts, not scoped CSS, for the same reason every other
+  // class in this block is one — and because a viewport clamp written in a component's <style>
+  // trips the styling contract, which reads any `max-width` there as a content measure.
+  'gallery-zoom': 'block w-full h-full p-0 border-0 bg-transparent cursor-zoom-in',
+  // Fills the viewport rather than shrinking to the photo, so the area AROUND the photo belongs
+  // to the dialog — that is what makes "click outside to dismiss" a real target instead of a few
+  // stray pixels. `max-w`/`max-h` override the UA's own dialog clamp.
+  'gallery-dialog':
+    'w-[100vw] h-[100dvh] max-w-[100vw] max-h-[100dvh] p-0 border-0 bg-transparent ' +
+    'grid place-items-center [&::backdrop]:bg-black/80',
+  'gallery-dialog-figure': 'block w-auto h-auto max-w-[92vw] max-h-[92dvh]',
+  // 44px: the smallest target comfortably hittable on a phone.
+  'gallery-dialog-button':
+    'fixed flex items-center justify-center w-11 h-11 border-0 rounded-full bg-black/55 text-white cursor-pointer',
   'gallery-tile':
     'relative h-[200px] rounded-[14px] overflow-hidden border border-solid border-border ' +
     '[&>img]:w-full [&>img]:h-full [&>img]:object-cover',

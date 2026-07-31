@@ -14,6 +14,22 @@
 // Every tile is lazy, like every other image-bearing block in core. Eagerly loading the first one
 // would assume the gallery sits at the top of the page — which a page-builder block cannot know,
 // and when it is wrong the hint competes for bandwidth with whatever the real LCP image is.
+//
+// ── Enlarging a tile ──────────────────────────────────────────────────────────────────────────
+// A native <dialog> opened with showModal(), which is why this is only a few lines: the platform
+// supplies the focus trap, the Escape handling and the focus return to whatever opened it. Every
+// hand-rolled lightbox is a re-implementation of those three, and each one gets a different
+// subset of them wrong.
+//
+// It lives in core rather than in a site because it is BEHAVIOUR, not a visual value — the same
+// reason Tabs and the FAQ accordion are here. Written per client, the a11y surface (focus trap,
+// Escape, focus restore, keyboard paging) would be five separate chances to get it wrong. The
+// look stays with the site: this emits classes and no colours.
+//
+// The tile is a <button>, not an <img> with a click handler, so it is reachable and operable from
+// the keyboard and announced as something you can activate. ONE dialog serves the whole gallery
+// and is filled on open — a dialog per tile would duplicate the markup N times for a surface only
+// one of them can occupy at a time.
 import type { GalleryBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
@@ -28,6 +44,18 @@ const { anchor_id, eyebrow, heading, note, images = [] } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 const tiles = images.filter((i) => i?.image)
+
+// Built-in, style-neutral copy, the same way CookieConsent carries its fallbacks: the gallery
+// block has no CMS fields for these, and a control announced as nothing at all is worse than one
+// announced in the wrong language. A site that needs them translated overrides the block.
+//
+// The tile's own alt is folded into its button label where there is one, so a screen-reader user
+// hears WHICH photo they are about to enlarge rather than six identical "Enlarge photo"s.
+const zoomLabel = (alt?: string) => (alt?.trim() ? `Enlarge: ${alt.trim()}` : 'Enlarge photo')
+const dialogLabel = heading?.trim() || 'Photo'
+const closeLabel = 'Close'
+const prevLabel = 'Previous photo'
+const nextLabel = 'Next photo'
 ---
 
 {
@@ -43,19 +71,120 @@ const tiles = images.filter((i) => i?.image)
         </SectionHeader>
 
         <ul class="gallery-grid">
-          {tiles.map((tile) => (
+          {tiles.map((tile, i) => (
             <li class="gallery-tile">
-              <img
-                src={tile.image}
-                alt={tile.alt ?? ''}
-                loading="lazy"
-                decoding="async"
-                {...responsiveImageAttrs(tile.image_meta, IMAGE_SIZES.gridTile)}
-              />
+              <button type="button" class="gallery-zoom" data-gallery-open={i} aria-label={zoomLabel(tile.alt)}>
+                <img
+                  src={tile.image}
+                  alt={tile.alt ?? ''}
+                  loading="lazy"
+                  decoding="async"
+                  {...responsiveImageAttrs(tile.image_meta, IMAGE_SIZES.gridTile)}
+                />
+              </button>
             </li>
           ))}
         </ul>
       </div>
+
+      {/* The full-size sources travel as data, not as N hidden <img>s: a hidden image is still an
+          image the browser may fetch, and this surface shows exactly one at a time. */}
+      <script
+        type="application/json"
+        data-gallery-sources
+        set:html={JSON.stringify(tiles.map((t) => ({ src: t.image, alt: t.alt ?? '' })))}
+      />
+
+      <dialog class="gallery-dialog" data-gallery-dialog aria-label={dialogLabel}>
+        <img class="gallery-dialog-figure" data-gallery-figure alt="" />
+        <button
+          type="button"
+          class="gallery-dialog-button top-4 right-4"
+          data-gallery-close
+          aria-label={closeLabel}
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+          </svg>
+        </button>
+        {tiles.length > 1 && (
+          <>
+            <button
+              type="button"
+              class="gallery-dialog-button left-4 top-1/2 -translate-y-1/2"
+              data-gallery-step="-1"
+              aria-label={prevLabel}
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="gallery-dialog-button right-4 top-1/2 -translate-y-1/2"
+              data-gallery-step="1"
+              aria-label={nextLabel}
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+            </button>
+          </>
+        )}
+      </dialog>
     </section>
   )
 }
+
+<script>
+  // Scoped per gallery, so two on one page never drive each other's dialog.
+  document.querySelectorAll<HTMLElement>('.section-gallery').forEach((gallery) => {
+    const dialog = gallery.querySelector<HTMLDialogElement>('[data-gallery-dialog]')
+    const figure = gallery.querySelector<HTMLImageElement>('[data-gallery-figure]')
+    const raw = gallery.querySelector('[data-gallery-sources]')?.textContent
+    if (!dialog || !figure || !raw) return
+
+    // A <dialog> the browser cannot open modally would trap nothing and swallow Escape, so the
+    // tiles stay plain images instead of pretending to be buttons.
+    if (typeof dialog.showModal !== 'function') {
+      gallery.querySelectorAll('[data-gallery-open]').forEach((b) => b.setAttribute('disabled', ''))
+      return
+    }
+
+    const sources: { src: string; alt: string }[] = JSON.parse(raw)
+    let current = 0
+
+    const show = (index: number) => {
+      current = (index + sources.length) % sources.length
+      figure.src = sources[current].src
+      figure.alt = sources[current].alt
+      // Which photo is showing, as data. A site can render "3 / 6" from it, and it is the only
+      // honest way to observe paging when a gallery repeats one file across its tiles.
+      dialog.dataset.galleryIndex = String(current)
+    }
+
+    gallery.querySelectorAll<HTMLButtonElement>('[data-gallery-open]').forEach((button) => {
+      button.addEventListener('click', () => {
+        show(Number(button.dataset.galleryOpen))
+        dialog.showModal()
+      })
+    })
+
+    gallery.querySelector('[data-gallery-close]')?.addEventListener('click', () => dialog.close())
+    gallery.querySelectorAll<HTMLButtonElement>('[data-gallery-step]').forEach((button) => {
+      button.addEventListener('click', () => show(current + Number(button.dataset.galleryStep)))
+    })
+
+    // Click the backdrop to dismiss. The dialog IS the backdrop as far as events go, so this
+    // fires for the padding around the photo and not for the photo, the arrows or the close
+    // button — all of which are descendants.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close()
+    })
+
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowRight') show(current + 1)
+      if (event.key === 'ArrowLeft') show(current - 1)
+    })
+  })
+</script>
