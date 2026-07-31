@@ -400,7 +400,10 @@ export const coreShortcuts: Record<string, string> = {
   // Enlarge-on-click (Gallery.astro). Shortcuts, not scoped CSS, for the same reason every other
   // class in this block is one — and because a viewport clamp written in a component's <style>
   // trips the styling contract, which reads any `max-width` there as a content measure.
-  'gallery-zoom': 'block w-full h-full p-0 border-0 bg-transparent cursor-zoom-in',
+  // `select-none`: dragging across a photo would otherwise select it and paint the selection
+  // highlight over the image — visible as a tinted block behind it, and easy to trigger because
+  // the tile and the enlarged view are both things people click and drag on.
+  'gallery-zoom': 'block w-full h-full p-0 border-0 bg-transparent cursor-zoom-in select-none',
   // Fills the viewport rather than shrinking to the photo, so the area AROUND the photo belongs
   // to the dialog — that is what makes "click outside to dismiss" a real target instead of a few
   // stray pixels. `max-w`/`max-h` override the UA's own dialog clamp.
@@ -411,13 +414,16 @@ export const coreShortcuts: Record<string, string> = {
   'gallery-dialog':
     'hidden [&[open]]:grid w-[100vw] h-[100dvh] max-w-[100vw] max-h-[100dvh] p-0 border-0 ' +
     'bg-transparent place-items-center [&::backdrop]:bg-black/80',
-  'gallery-dialog-figure': 'block w-auto h-auto max-w-[92vw] max-h-[92dvh]',
+  'gallery-dialog-figure': 'block w-auto h-auto max-w-[92vw] max-h-[92dvh] select-none',
   // 44px: the smallest target comfortably hittable on a phone.
   'gallery-dialog-button':
     'fixed flex items-center justify-center w-11 h-11 border-0 rounded-full bg-black/55 text-white cursor-pointer',
+  // `[&_img]`, a DESCENDANT selector, not `[&>img]`: the tile's photo is wrapped in the zoom
+  // button, so a direct-child rule stopped matching the moment the lightbox landed and the tiles
+  // silently lost `object-fit: cover` — photos stretched to the tile instead of filling it.
   'gallery-tile':
     'relative h-[200px] rounded-[14px] overflow-hidden border border-solid border-border ' +
-    '[&>img]:w-full [&>img]:h-full [&>img]:object-cover',
+    '[&_img]:w-full [&_img]:h-full [&_img]:object-cover',
   // ── CTA banner block ──────────────────────────────────────────────────────
   'section-cta': 'bg-black text-white py-20',
   'cta-content': 'flex flex-col gap-4 text-center',
