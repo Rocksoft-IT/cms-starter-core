@@ -136,11 +136,14 @@ export interface PricingTableBlock {
 export interface ComponentRefBlock {
   type: 'component_ref'
   data: {
-    // The referenced Component's own type (footer | cta_default | mainfeatures_global),
+    // The referenced Component's own type (footer | cta_default | mainfeatures_global | block),
     // stamped by the API so the renderer can dispatch; its resolved per-locale fields are
     // merged in flat alongside it (shape varies by component_type).
     component_id: number
     component_type?: string
+    // A `block` component embeds its own page-builder block array, resolved inline by the API
+    // (same {type,id,data} shape as a page's blocks) and rendered through BlockRenderer.
+    blocks?: Block[]
     [key: string]: unknown
   }
 }
@@ -207,6 +210,26 @@ export interface DocumentFile {
   url: string | null
   /** Document size in bytes, or null when unknown. Always present. */
   size: number | null
+}
+
+// One resolved entry in a `documents` block's `document_entries` list. The API resolves each stored
+// row (a library-file reference or an external link) into this unified shape (packages/cms-core
+// BlockResolver::resolveDocumentEntries), so the generated DocumentsBlock (below the marker) refers
+// to it by name. Hand-maintained because the resolved element shape is not derivable from the flat
+// block schema alone (same pattern as DocumentFile and the `items` ref types).
+export interface DocumentEntry {
+  /** Whether this entry is a library file (a download) or an external link. */
+  source: 'file' | 'link'
+  /** Display name: the row's own, else the library file's; null when neither is set. */
+  name: string | null
+  /** Optional description, or null. */
+  description: string | null
+  /** Absolute URL: the library file's document URL (file), or the external URL (link). Null drops the entry. */
+  url: string | null
+  /** Document size in bytes for a file entry, or null (always null for a link). */
+  size: number | null
+  /** Optional ISO publish date for this entry, or null. */
+  published_at: string | null
 }
 
 // What a renderer needs to make one `<img>` responsive. The API attaches this to every resolved
@@ -326,7 +349,7 @@ export interface PricingTeaserBlock {
 
 export interface DocumentsBlock {
   type: 'documents'
-  data: { heading?: string; icon?: 'document' | 'folder' | 'download' | 'info' | 'book'; files?: DocumentFile[] }
+  data: { heading?: string; icon?: 'document' | 'folder' | 'download' | 'info' | 'book'; files?: DocumentEntry[] }
 }
 
 export interface CardsBlock {

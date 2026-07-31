@@ -62,9 +62,35 @@ Two things worth knowing:
   Docs → Responsive images** in the panel. Until then a page renders exactly as it does today, just
   without a `srcset`.
 
-### New — cookie consent
+### New — cookie consent, and two exports your fixtures module must add
 
-A CMS-toggled consent banner, off unless the client enables it.
+A CMS-toggled consent banner, off unless the client enables it. Nothing to do for the live site.
+
+**But the OFFLINE build breaks until you add two exports.** Core's `lib/api.ts` now imports
+`getMockSiteSettings` and `getMockCookieConsent` from `~site/fixtures`, so `pnpm build:mock` fails
+at bundle time with `"getMockSiteSettings" is not exported by "src/fixtures/index.ts"` — before any
+page renders. Add both to `src/fixtures/index.ts`, mirroring the shipped default (consent off, no
+authored copy):
+
+```ts
+import type { SiteSettingsData, CookieConsentData } from '@rocksoft/cms-starter-core/lib/api'
+
+export async function getMockSiteSettings(): Promise<SiteSettingsData> {
+  return { cookie_consent: { enabled: false, privacy_page_id: null }, integrations: {} }
+}
+
+export async function getMockCookieConsent(_locale: string): Promise<CookieConsentData | null> {
+  return null
+}
+```
+
+### One more thing a client may have to change
+
+The upgrade notes above cover registering and rendering blocks. If your site also **reads** a block
+— pulls one out of `page.blocks` by type to compose it by hand, rather than letting the renderer
+handle it — then a retired type is a compile error in your own code, not just a registry entry.
+smbp hit exactly this: its home composes the quick panel from what used to be `nav_tiles`. Grep your
+`src/` for the three retired type names before bumping.
 
 ## v0.5.0 — documents block, CMS-managed footer, href normalization
 

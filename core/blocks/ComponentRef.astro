@@ -8,6 +8,7 @@
 // `footer` and any unrecognised type render nothing HERE: the site footer is global chrome the
 // layout composes once via core/Footer.astro (self-fetching), not something to embed mid-page.
 import type { ComponentRefBlock, CardsBlock, CtaBannerBlock } from '../../types/blocks'
+import BlockRenderer from '../BlockRenderer.astro'
 import CtaBanner from './CtaBanner.astro'
 import Cards from './Cards.astro'
 
@@ -51,3 +52,4 @@ const cardsData: CardsBlock['data'] | null =
 
 {ctaData && <CtaBanner block={{ type: 'cta_banner', data: ctaData }} />}
 {cardsData && <Cards block={{ type: 'cards', data: cardsData }} />}
+{type === 'block' && <BlockRenderer blocks={data.blocks ?? []} />}

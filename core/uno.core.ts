@@ -368,9 +368,16 @@ export const coreShortcuts: Record<string, string> = {
   'team-role': 'mt-1 text-[16px] leading-[1.5] text-text-secondary',
 
   // ── Cards block ──────────────────────────────────────────────────────────
-  // One block, three layouts (context/changes/unify-cards-block/). The shared shortcuts carry
-  // what every layout agrees on; the `is-*` modifiers carry only the differences, so a site can
-  // retune one layout without touching the others.
+  // One block, three layouts (context/changes/unify-cards-block/). Core carries what every layout
+  // agrees on — the grid, the media/marker slots, the label/value typography. The DIFFERENCES
+  // between layouts are the site layer's: the renderer emits `is-cards` / `is-tiles` / `is-steps`
+  // on the section purely as a hook to style against.
+  //
+  // Core deliberately ships no per-variant look (#1035). Eight shortcuts used to sit here written
+  // as descendant selectors (`'.is-cards .card'`), which a shortcut key cannot be — the key IS a
+  // class name — so they generated nothing while reading in the source like working style. Anything
+  // needing a real descendant selector is not a shortcut; it belongs in a site stylesheet.
+  // `verify:core-styles` now fails on a selector-shaped key so the same silence cannot return.
   'section-cards': 'section-y',
   'cards-inner': 'container-global',
   'cards-grid': 'grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] list-reset mt-6',
@@ -382,24 +389,6 @@ export const coreShortcuts: Record<string, string> = {
     'shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-[15px]',
   'card-label': 'font-semibold text-text-primary',
   'card-value': 'mt-1 leading-[1.5] text-text-secondary whitespace-pre-line',
-
-  // Fact strip: a bordered card, small uppercase label over a larger value.
-  '.is-cards .card':
-    'bg-surface border border-solid border-border rounded-[16px] px-[22px] py-5 ' +
-    'transition-colors hover:border-primary',
-  '.is-cards .card-label': 'text-[12.5px] uppercase tracking-[0.04em] text-muted',
-  '.is-cards .card-value': 'text-[15.5px] font-semibold leading-[1.4] text-text-primary',
-
-  // Anchor-nav / services strip: compact, link-led, one tile optionally highlighted.
-  '.is-tiles .card':
-    'items-center bg-surface border border-solid border-border rounded-[14px] px-5 py-4 ' +
-    'transition-colors hover:border-primary',
-  '.is-tiles .card-label': 'text-[15px]',
-  '.is-tiles .is-highlighted': 'border-primary bg-section-bg',
-
-  // Numbered sequence: no card chrome, the marker carries the emphasis.
-  '.is-steps .card-label': 'text-[18px]',
-  '.is-steps .card-value': 'text-[16px]',
 
   // ── Gallery block ────────────────────────────────────────────────────────
   // Square-ish tiles on an auto-fill grid, so the column count follows the measure instead of

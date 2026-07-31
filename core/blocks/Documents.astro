@@ -1,15 +1,19 @@
 ---
-// Documents block (`documents`): a titled list of downloadable files from the CMS Files library.
-// The API resolves each stored file id into `data.files` = [{ id, name, description, url, size }]
-// in the editor-chosen order (packages/cms-core PagePayload::resolveFileRecord). Pure renderer:
-// a section header (an optional glyph beside the title) over a list of rows, each a link to the
-// document — document icon on the left, name in the middle, download icon on the right.
+// Documents block (`documents`): a titled list mixing downloadable library files and external
+// links. The API resolves each stored row into `data.files` = [{ source, name, description, url,
+// size, published_at }] in the editor-chosen order (packages/cms-core BlockResolver::
+// resolveDocumentEntries). Pure renderer: a section header (an optional glyph beside the title)
+// over a list of rows, each a link showing name, an optional description and an optional publish
+// date, with a document icon on the left and an action icon on the right that marks the type - a
+// download arrow for a library file, an external-link arrow for a link.
 //
-// A row with no `url` is dropped (a stale/empty file reference can't link anywhere); if that
-// leaves no linkable file, the whole block renders nothing — a heading with no downloads is
+// A row with no `url` is dropped (a stale file or an empty link can't point anywhere); if that
+// leaves no linkable entry, the whole block renders nothing - a heading with no items is
 // pointless, so it is gated on rows, not on the heading (contract: empty list -> nothing).
 import type { DocumentsBlock } from '../../types/blocks'
 import { ICON_PATHS, iconPath } from '../../lib/icons'
+import { defaultLocale } from '../i18n'
+import { formatDate } from '../format'
 
 interface Props {
   block: DocumentsBlock
@@ -18,16 +22,28 @@ interface Props {
 const { block } = Astro.props
 const { heading, icon, files = [] } = block.data
 
-// Only files that resolved to a real URL can render as a link.
-const rows = files.filter((f) => typeof f.url === 'string' && f.url !== '')
+const locale = Astro.currentLocale ?? defaultLocale
+
+// A safe href for an entry: an absolute http(s) URL (external links, resolved file URLs) or a
+// site-relative path (`/files/…`), but never a protocol-relative `//host` or a dangerous scheme
+// (`javascript:`, `data:`). The write seam already restricts link URLs, but a value from any other
+// path (a legacy row, a direct DB write) lands in `href` here, so this is the last line of defence.
+function isSafeHref(url: unknown): url is string {
+  return typeof url === 'string' && (/^https?:\/\//i.test(url) || (url.startsWith('/') && !url.startsWith('//')))
+}
+
+// Only entries with a safe, linkable URL render.
+const rows = files.filter((f) => isSafeHref(f.url))
 const hasHeading = typeof heading === 'string' && heading.trim() !== ''
 
-// The fixed heading-glyph set (matches the block's `icon` select options). Each is an outline
+// The fixed heading-glyph set (matches the block's `icon` select options).
 const headingIcon = iconPath(icon)
 
-// The document glyph shown on the left of every row, and the download glyph on the right.
+// Row glyphs: a document on the left of every row; a download arrow (library file) or an
+// external-link arrow (link) on the right, so the type is visible at a glance.
 const DOC_ICON = ICON_PATHS.document
 const DOWNLOAD_ICON = ICON_PATHS.download
+const EXTERNAL_ICON = ICON_PATHS.external
 ---
 
 {
@@ -54,51 +70,64 @@ const DOWNLOAD_ICON = ICON_PATHS.download
           </div>
         )}
 
-        {rows.length > 0 && (
-          <ul class="m-0 flex list-none flex-col gap-3 p-0">
-            {rows.map((file) => {
-              const label = typeof file.name === 'string' && file.name.trim() !== '' ? file.name : 'Document'
-              return (
-                <li>
-                  <a
-                    href={file.url!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download
-                    class="flex items-center gap-4 rounded-[12px] border border-gray-200 bg-section-bg p-4 transition-colors hover:border-primary"
-                    aria-label={label}
+        <ul class="m-0 flex list-none flex-col gap-3 p-0">
+          {rows.map((row) => {
+            const label = typeof row.name === 'string' && row.name.trim() !== '' ? row.name : 'Document'
+            const description = typeof row.description === 'string' && row.description.trim() !== '' ? row.description : null
+            const date = formatDate(row.published_at, locale)
+            const isFile = row.source !== 'link'
+            const actionIcon = isFile ? DOWNLOAD_ICON : EXTERNAL_ICON
+
+            return (
+              <li>
+                <a
+                  href={row.url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  {...(isFile ? { download: '' } : {})}
+                  class="flex items-center gap-4 rounded-[12px] border border-gray-200 bg-section-bg p-4 transition-colors hover:border-primary"
+                  aria-label={label}
+                >
+                  <svg
+                    class="h-6 w-6 shrink-0 text-text-secondary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
                   >
-                    <svg
-                      class="h-6 w-6 shrink-0 text-text-secondary"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d={DOC_ICON} />
-                    </svg>
-                    <span class="min-w-0 flex-1 truncate font-semibold text-text-primary">{label}</span>
-                    <svg
-                      class="h-5 w-5 shrink-0 text-primary"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d={DOWNLOAD_ICON} />
-                    </svg>
-                  </a>
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                    <path d={DOC_ICON} />
+                  </svg>
+
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate font-semibold text-text-primary">{label}</span>
+                    {description && <span class="mt-0.5 block text-[14px] text-text-secondary leading-[1.5]">{description}</span>}
+                    {date && (
+                      <time datetime={row.published_at ?? undefined} class="mt-1 block text-[13px] text-text-secondary">
+                        {date}
+                      </time>
+                    )}
+                  </span>
+
+                  <svg
+                    class="h-5 w-5 shrink-0 text-primary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d={actionIcon} />
+                  </svg>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
       </div>
     </section>
   )
