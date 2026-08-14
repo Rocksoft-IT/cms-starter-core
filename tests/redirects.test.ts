@@ -45,21 +45,28 @@ describe('toAstroRedirects()', () => {
 })
 
 describe('cmsRedirects()', () => {
-  const setup = cmsRedirects().hooks['astro:config:setup']
+  const setup = cmsRedirects().hooks['astro:config:setup']!
+  type SetupArgs = Parameters<typeof setup>[0]
 
   function hookArgs(command = 'build') {
     const updates: Record<string, unknown>[] = []
-    return {
-      updates,
-      args: {
-        command,
-        // A real Astro root, i.e. an absolute file URL — and one with no .env or fixtures in
-        // it, so the hook's own inputs are the only thing under test.
-        config: { root: pathToFileURL(join(tmpdir(), 'cms-redirects-test/')) },
-        updateConfig: (config: Record<string, unknown>) => updates.push(config),
-        logger: { info: vi.fn(), warn: vi.fn() },
-      },
-    }
+    const logger = { info: vi.fn(), warn: vi.fn() }
+
+    // Only the four members the hook actually touches. Cast because the real payload carries a
+    // full AstroConfig plus a dozen inject*/add* callbacks, none of which this integration reads
+    // — building them would be a fixture about Astro rather than about this hook. The `logger`
+    // mock is returned separately: through the cast it reads as AstroIntegrationLogger, which
+    // has no assertion surface.
+    const args = {
+      command,
+      // A real Astro root, i.e. an absolute file URL — and one with no .env or fixtures in it,
+      // so the hook's own inputs are the only thing under test.
+      config: { root: pathToFileURL(join(tmpdir(), 'cms-redirects-test/')) },
+      updateConfig: (config: Record<string, unknown>) => updates.push(config),
+      logger,
+    } as unknown as SetupArgs
+
+    return { updates, logger, args }
   }
 
   afterEach(() => {
@@ -95,11 +102,11 @@ describe('cmsRedirects()', () => {
       vi.fn(async () => new Response('', { status: 404 })),
     )
 
-    const { updates, args } = hookArgs()
+    const { updates, logger, args } = hookArgs()
     await setup(args)
 
     expect(updates).toEqual([])
-    expect(args.logger.warn).not.toHaveBeenCalled()
+    expect(logger.warn).not.toHaveBeenCalled()
   })
 
   it('warns and continues when the fetch fails', async () => {
@@ -111,11 +118,11 @@ describe('cmsRedirects()', () => {
       vi.fn(async () => new Response('', { status: 500, statusText: 'Server Error' })),
     )
 
-    const { updates, args } = hookArgs()
+    const { updates, logger, args } = hookArgs()
     await setup(args)
 
     expect(updates).toEqual([])
-    expect(args.logger.warn).toHaveBeenCalledOnce()
+    expect(logger.warn).toHaveBeenCalledOnce()
   })
 
   it('does not call the CMS for a command that emits no routes', async () => {
@@ -139,11 +146,11 @@ describe('cmsRedirects()', () => {
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
 
-    const { updates, args } = hookArgs()
+    const { updates, logger, args } = hookArgs()
     await setup(args)
 
     expect(fetchMock).not.toHaveBeenCalled()
     expect(updates).toEqual([])
-    expect(args.logger.warn).toHaveBeenCalledOnce()
+    expect(logger.warn).toHaveBeenCalledOnce()
   })
 })

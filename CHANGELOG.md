@@ -4,6 +4,16 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.8.1 — `astro check` accepts the redirects integration
+
+`v0.8.0`'s `cmsRedirects()` is a `.mjs` module with no type declarations, which this tree never
+noticed: here core is a workspace link, so `astro check` reads the source and infers everything. In
+a CLIENT repo it is an installed git dependency, where TypeScript refuses a declaration-less JS
+module — `astro.config.mjs` failed with `ts(7016)` and took `pnpm check` down with it.
+
+Fixed by shipping `core/redirects.d.mts` beside it. **If you already pinned `v0.8.0`, move to
+`v0.8.1`**; nothing else changes, and no code in your repo has to.
+
 ## v0.8.0 — a renamed page's old URL stops 404ing
 
 > `v0.7.0`–`v0.7.3` shipped without entries here. This file resumes at `v0.8.0`; for what those
