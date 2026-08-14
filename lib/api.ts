@@ -139,8 +139,9 @@ export type PageResult = { page: PageApiItem } | { redirect: string }
 /**
  * Resolve a single page by its URL path, honouring the CMS redirect contract.
  *
- * The default static build never calls this — it renders every live page from getPages().
- * It's the seam for per-path / SSR / hybrid consumers: `GET /api/pages/{path}` answers a
+ * The default static build never calls this — it renders every live page from getPages(), and
+ * gets its redirects from the whole-map endpoint instead (core/redirects.mjs, dashboard #1084).
+ * This is the seam for per-path / SSR / hybrid consumers: `GET /api/pages/{path}` answers a
  * stale URL (a section slug renamed or re-parented, #327) with a **301 `{ redirect }`**
  * payload instead of a 404, so a migrated Webflow link keeps working. Discriminate the
  * result and, in SSR, forward it:

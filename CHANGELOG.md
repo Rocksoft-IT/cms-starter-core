@@ -4,6 +4,51 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.8.0 — a renamed page's old URL stops 404ing
+
+> `v0.7.0`–`v0.7.3` shipped without entries here. This file resumes at `v0.8.0`; for what those
+> carried, `gh api repos/Rocksoft-IT/cms-starter-core/compare/v0.6.0...v0.7.3` is the record.
+
+### New — `cmsRedirects()`, and one line your `astro.config.mjs` must add
+
+Renaming or moving a page in the CMS has always recorded the old address, and on a statically built
+site that record did nothing: the redirect contract was request-time only (`GET /api/pages/{path}`
+answers a vacated path with a 301), and a static build never asks — it renders every page from
+`getPages()`, which lists only pages that exist. So the old URL was a route the build never emitted,
+i.e. a hard 404, with the correct row sitting in the CMS the whole time (dashboard #1084).
+
+Core now ships an Astro integration that fetches the whole map (`GET /api/redirects`, new in the
+same change) at config time and merges it into `redirects`, so the build emits one redirect page per
+entry — `<meta http-equiv="refresh">` plus `noindex` and a canonical at the destination, which is
+what a static host can serve. An adapter that understands redirects (Netlify, Vercel, Cloudflare)
+turns the same config into real 301s with no change here.
+
+**What you must do:** add it to `integrations` in `astro.config.mjs`. Nothing else changes.
+
+```js
+import { cmsRedirects } from '@rocksoft/cms-starter-core/core/redirects.mjs'
+
+export default defineConfig({
+  integrations: [UnoCSS(), cmsRedirects()],
+})
+```
+
+Safe to bump before the CMS side is deployed: a backend without the endpoint answers 404 and the
+build carries on. Any other failure warns in the build log and carries on too — no redirects is the
+state the site is in today, and that is not worth failing a content deploy over. The call is
+bounded by a 15s timeout (an unresponsive CMS must not hang a build), and it is skipped entirely
+for commands that emit no routes — so `astro check` gains no dependency on a reachable CMS.
+
+**`test:smoke` skips redirect stubs.** A redirect page is deliberately minimal — a meta refresh,
+`noindex` and a canonical, no `<html>` wrapper, no description, no share image — so the SEO smoke
+check would fail three of its assertions on every one of them. It now recognises them by the
+refresh tag and reports the count it skipped instead of checking them.
+
+**Offline builds:** in `ASTRO_API_MOCK=1` the map is read from `src/fixtures/data/redirects.json`,
+the fixture the `getPage()` contract already uses. Keys and values are normalized on the way in, so
+an existing fixture written as `{"old-path": "/new-path"}` keeps working; new ones should use the
+public shape the API emits, `{"/old-path/": "/new-path/"}`.
+
 ## v0.6.0 — one `cards` block, a `gallery`, and images sized to their slot
 
 Four changes since v0.5.0. **One of them needs a look before you bump**: three block types are gone,

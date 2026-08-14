@@ -143,5 +143,46 @@ export async function buildStaticPaths(
     })
   })
 
-  return [...mainPaths, ...extraPaths]
+  const all = [...mainPaths, ...extraPaths]
+  warnOnDuplicateUris(all, locale)
+
+  return all
+}
+
+/**
+ * Two routes claiming one `uri` is not an error Astro reports: it emits one output file and the
+ * other route is silently dropped, so a page vanishes from a build that still says `completed`.
+ *
+ * That is how the CMS's split slug-uniqueness checks surfaced (#1066) — a `page` and a `section`
+ * landing both holding `fundusze-kpo`, one of them gone from the built site with no signal
+ * anywhere. The CMS now rejects the collision at write time, but the build stays the last line of
+ * defence: pre-existing duplicates are deliberately still saveable there, and a derived route
+ * (`extraRoutes`) can land on a page's address without the CMS ever seeing it.
+ *
+ * Same treatment as the unregistered-type warning above (#821): report, do not throw. A build that
+ * fails outright over stale content an editor has not fixed yet is worse than one that says which
+ * page it dropped.
+ */
+function warnOnDuplicateUris(paths: Array<{ params: { uri?: string }; props: Record<string, unknown> }>, locale: string): void {
+  const seen = new Map<string, string[]>()
+
+  for (const { params, props } of paths) {
+    // Normalized, because the two sources spell the same route differently: a page's uri comes
+    // from the API's `path` (`/kontakt/` → `kontakt/`) and a derived route's from a rule's bare
+    // `uri` (`kontakt`). The starter ships `trailingSlash: 'always'`, so both are one route and a
+    // raw key would miss exactly the collision that is hardest to spot by reading the config.
+    // The home route's uri is `undefined` — a legitimate single route, keyed as '' so it is still
+    // reported if something else also claims the site root.
+    const key = (params.uri ?? '').replace(/^\/+|\/+$/g, '')
+    seen.set(key, [...(seen.get(key) ?? []), String(props.pageType ?? 'unknown')])
+  }
+
+  for (const [uri, types] of seen) {
+    if (types.length < 2) continue
+    console.warn(
+      `[cms] ${types.length} routes resolve to "/${uri}" (locale "${locale}") from page types ` +
+        `${types.map((t) => `"${t}"`).join(', ')} — only one will be built, the rest are dropped ` +
+        `and will 404. Give each page its own slug in the CMS (\`php artisan cms:audit-duplicate-paths\`).`,
+    )
+  }
 }
