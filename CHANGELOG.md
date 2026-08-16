@@ -4,6 +4,60 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.8.2 — your site's origin actually reaches Astro
+
+`astro.config.mjs` sets `site` from `ASTRO_SITE_URL`, and it never worked on a real build. Astro
+populates `process.env` from `.env` inside a Vite plugin's `buildStart`, long after the config module
+has been evaluated — so the variable was invisible there, and `site` was `undefined` whenever the
+value lived in `.env`, which is where the deploy script puts it (dashboard #1090).
+
+Worse for most sites: `site` had no fallback to `cmsConfig.seo.siteUrl`, and the generated deploy
+`.env` contains only `ASTRO_API_URL` and `ASTRO_API_TOKEN` — so unless you set `ASTRO_SITE_URL`
+yourself, your config value was your site's **only** origin, and `site` never saw it. Meanwhile
+`<Seo>`'s canonical resolved it fine through `import.meta.env`. One build, two answers.
+
+Today the visible symptom is small: `Astro.site` is read only by the redirect pages `cmsRedirects()`
+emits (v0.8.0), whose canonical came out relative — valid, and it resolves to the right address. The
+reason to take the bump is that the config claimed an origin it did not have, so the next thing to
+rely on `site` (`@astrojs/sitemap`, an `Astro.site` read, an adapter) would have broken silently and
+looked like a CMS problem.
+
+### New — `resolveSiteOrigin()`, one rule for both surfaces
+
+`core/siteOrigin.mjs` is now the single definition of the site's public origin: first non-empty
+candidate wins, trailing slashes stripped, whitespace trimmed, `null` when there is nothing to use.
+`siteUrl()` already delegates to it; your `astro.config.mjs` should too, so the two cannot drift
+apart again.
+
+**What you must do:** in `astro.config.mjs`, add the two imports and replace the `site` line.
+
+```diff
++import { loadEnv } from 'vite'
+ import { cmsRedirects } from '@rocksoft/cms-starter-core/core/redirects.mjs'
++import { resolveSiteOrigin } from '@rocksoft/cms-starter-core/core/siteOrigin.mjs'
++import { cmsConfig } from './src/cms.config.ts'
++
++const configDir = fileURLToPath(new URL('.', import.meta.url))
++const env = loadEnv(process.env.NODE_ENV ?? 'production', configDir, 'ASTRO_SITE_URL')
+
+ export default defineConfig({
+-  site: process.env.ASTRO_SITE_URL || undefined,
++  site: resolveSiteOrigin(env.ASTRO_SITE_URL, cmsConfig.seo?.siteUrl) ?? undefined,
+```
+
+`fileURLToPath` is already imported in the stock config (it resolves the `~site` alias). Use the
+config's own directory, not `process.cwd()`, which is wherever the build was invoked from. The
+third `loadEnv` argument is a prefix filter — naming the variable in full keeps the returned object
+to that one key, rather than the documented `''`, which hands the module every secret in the file.
+
+`loadEnv` merges matching `process.env` values after the file's, so a variable set in the real
+environment still wins. Nothing else changes, and no content or component in your repo has to.
+
+> **One constraint this adds:** `src/cms.config.ts` is now loaded at config-evaluation time, before
+> the Vite pipeline exists. Keep its module scope free of eager `.astro`/CSS imports and of
+> `import.meta.env` reads — the stock block and page-type registries are lazy `() => import(…)`
+> loaders, so this holds unless you added a static component import.
+
 ## v0.8.1 — `astro check` accepts the redirects integration
 
 `v0.8.0`'s `cmsRedirects()` is a `.mjs` module with no type declarations, which this tree never
