@@ -12,9 +12,10 @@ describe('precedence', () => {
   })
 
   test('falls through to the next candidate when the first is unset', () => {
-    // The production case: no deploy this project generates sets ASTRO_SITE_URL, so a real client
-    // site resolves its origin from cmsConfig.seo.siteUrl alone. `site` had no such fallback at
-    // all, which is why the loadEnv fix on its own would not have changed a single real build.
+    // The offline case, and any client with no default domain yet: the deploy omits
+    // ASTRO_SITE_URL rather than writing it empty (dashboard #1107), so the site resolves its
+    // origin from cmsConfig.seo.siteUrl alone. `site` had no such fallback at all, which is why the
+    // loadEnv fix on its own would not have changed a single real build.
     expect(resolveSiteOrigin(undefined, 'https://config.test')).toBe('https://config.test')
   })
 

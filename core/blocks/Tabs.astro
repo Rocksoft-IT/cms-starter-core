@@ -12,9 +12,12 @@ import BlockRenderer from '../BlockRenderer.astro'
 
 interface Props {
   block: TabsBlock
+  /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
+   *  way down (core/BlockRenderer.astro). */
+  locale?: string
 }
 
-const { block } = Astro.props
+const { block, locale } = Astro.props
 
 // Keep only real tabs (a named tab, or one with content). `anchor` is server-derived; fall back
 // to the index so ids stay unique even on a hand-authored payload that omitted it.
@@ -57,7 +60,7 @@ const gid =
             aria-labelledby={`tab-${gid}-${t.anchor}`}
             hidden={i !== 0}
           >
-            <BlockRenderer blocks={t.blocks} />
+            <BlockRenderer blocks={t.blocks} {locale} />
           </div>
         ))}
       </div>

@@ -8,6 +8,9 @@
 
 import type { PageTypeConfig, ExtraRouteRule } from './routing'
 import type { Block } from '../types/blocks'
+// Type-only, and it has to be: ui-strings.ts reads `cmsConfig`, which is typed by this file. A
+// value import would be a real cycle; a type import is erased before any module ever runs.
+import type { CoreStrings } from './ui-strings'
 
 export interface BrandTokens {
   /**
@@ -62,6 +65,12 @@ export interface CmsConfig {
   pageTypes?: Record<string, PageTypeConfig>
   /** Extra route builders for derived routes (e.g. a blog's category pages). */
   extraRoutes?: ExtraRouteRule[]
+  /** Per-locale overrides for the few strings CORE says on its own behalf — the lightbox's close
+   *  button, the carousel's arrows, the gallery zoom control's accessible name. Core ships `en` and
+   *  `pl` and falls back to `en` for anything else (see core/ui-strings.ts), so this is here for a
+   *  site whose locale core does not carry, or one that disagrees with a wording. Everything else a
+   *  block renders is CMS content and is translated there, not here. */
+  coreStrings?: Record<string, Partial<CoreStrings>>
   // No `layout` key: geometry is not CMS configuration. Widths and rhythm live in the frontend —
   // `--layout-*` tokens in core/styles/tokens.css and the container shortcuts in core/uno.core.ts,
   // both overridable from the site layer. This config carries only what the CMS owns.
@@ -71,8 +80,12 @@ export interface CmsConfig {
   seo?: {
     /** og:site_name fallback when the API doesn't resolve one. */
     siteName?: string
-    /** Absolute production origin (e.g. 'https://example.com'), used to build a canonical
-     *  URL from `page.path` when `page.seo.url` is absent. No trailing slash. */
+    /** Absolute origin (e.g. 'https://example.com'), no trailing slash. Feeds Astro's `site`,
+     *  the canonical/og:url built from `page.path` when `page.seo.url` is absent, hreflang, and
+     *  robots.txt's `Sitemap:` line. FALLBACK only: `ASTRO_SITE_URL` wins, and on a
+     *  CMS-provisioned client site the deploy writes that from the client's domain
+     *  (diligently-dashboard #1107) — so this covers offline/mock builds, `pnpm dev`, and a
+     *  client with no domain yet. */
     siteUrl?: string
     /** Last-resort share image (absolute URL) when no page/section/client image resolves.
      *  Platforms require an absolute URL for og:image. */

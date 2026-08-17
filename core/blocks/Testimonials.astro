@@ -7,12 +7,15 @@
 import type { TestimonialsBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
+import { coreString } from '../ui-strings'
 
 interface Props {
   block: TestimonialsBlock
+  /** The locale this page is being built for, from core/BlockRenderer.astro. */
+  locale?: string
 }
 
-const { block } = Astro.props
+const { block, locale } = Astro.props
 const { eyebrow, heading, layout = 'slider', items = [] } = block.data
 
 const hasHeader = Boolean(eyebrow || heading)
@@ -22,11 +25,12 @@ const hasHeader = Boolean(eyebrow || heading)
 const isSlider = layout === 'slider' && items.length > 1
 
 // Arrow buttons and their click handlers are driven from one direction table; the inline
-// script reads `data-dir`. Labels are screen-reader-only — core has no i18n string seam
-// yet, so they stay literal (the visible UI renders CMS-supplied text only).
+// script reads `data-dir`. The labels are screen-reader-only and have no CMS field, so they come
+// from core's own per-locale table (core/ui-strings.ts) — the seam this comment used to say did
+// not exist yet.
 const arrows = [
-  { dir: -1, label: 'Previous testimonial', path: 'M15 18l-6-6 6-6' },
-  { dir: 1, label: 'Next testimonial', path: 'M9 18l6-6-6-6' },
+  { dir: -1, label: coreString(locale, 'previousTestimonial'), path: 'M15 18l-6-6 6-6' },
+  { dir: 1, label: coreString(locale, 'nextTestimonial'), path: 'M9 18l6-6-6-6' },
 ]
 
 // A card with no photo shows a neutral initial placeholder instead — same avatar

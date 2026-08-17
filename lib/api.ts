@@ -64,7 +64,10 @@ export interface PageApiItem {
   kind?: string
   slug: string
   name: string
-  path?: string | null // computed URL path, e.g. '/blog/my-post'; null for singletons
+  // The page's DEFAULT-locale address, slash-wrapped (e.g. '/blog/my-post/'); null when it has
+  // none there — including a page translated only into another locale. Never use it to decide
+  // whether a page is routable in THIS locale: that is `pathForLocale()`, off `translations[]`.
+  path?: string | null
   collection?: string | null // parent collection type, e.g. 'blog' for posts; null for others
   seo_description?: string | null
   // Derived social-share metadata (og:*, canonical). Present once the backend ships #469;

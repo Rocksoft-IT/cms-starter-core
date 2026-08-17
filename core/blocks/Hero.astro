@@ -7,9 +7,12 @@ import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: HeroBlock
+  /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
+   *  way down (core/BlockRenderer.astro). */
+  locale?: string
 }
 
-const { block } = Astro.props
+const { block, locale } = Astro.props
 const { heading, subheading, ctas = [], columns = [], columns_layout } = block.data
 
 // Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading
@@ -37,7 +40,7 @@ const textGrow = shareAt(undefined, layoutShares, 0)
           </div>
           {columns.map((column, i) => (
             <div class="hero-2col-right" style={`flex-grow:${shareAt(column.width, layoutShares, i + 1)}`}>
-              <BlockRenderer blocks={column.blocks} />
+              <BlockRenderer blocks={column.blocks} {locale} />
             </div>
           ))}
         </div>

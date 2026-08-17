@@ -269,7 +269,7 @@ export interface RichContentBlock {
 
 export interface ParagraphBlock {
   type: 'paragraph'
-  data: { body?: string }
+  data: { body?: string; variant?: 'default' | 'note' }
 }
 
 export interface ButtonBlock {

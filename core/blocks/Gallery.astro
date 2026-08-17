@@ -34,28 +34,35 @@ import type { GalleryBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
+import { coreString } from '../ui-strings'
 
 interface Props {
   block: GalleryBlock
+  /** The locale this page is being built for, from core/BlockRenderer.astro. */
+  locale?: string
 }
 
-const { block } = Astro.props
+const { block, locale } = Astro.props
 const { anchor_id, eyebrow, heading, note, images = [] } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 const tiles = images.filter((i) => i?.image)
 
-// Built-in, style-neutral copy, the same way CookieConsent carries its fallbacks: the gallery
-// block has no CMS fields for these, and a control announced as nothing at all is worse than one
-// announced in the wrong language. A site that needs them translated overrides the block.
+// The gallery block has no CMS fields for these — they are announced, never displayed — so they
+// come from core's own per-locale table (core/ui-strings.ts) rather than from an editor. They used
+// to be English literals here, with a comment offering "a site that needs them translated overrides
+// the block": that meant forking a focus trap to rename a button, so the strings moved instead.
 //
 // The tile's own alt is folded into its button label where there is one, so a screen-reader user
 // hears WHICH photo they are about to enlarge rather than six identical "Enlarge photo"s.
-const zoomLabel = (alt?: string) => (alt?.trim() ? `Enlarge: ${alt.trim()}` : 'Enlarge photo')
-const dialogLabel = heading?.trim() || 'Photo'
-const closeLabel = 'Close'
-const prevLabel = 'Previous photo'
-const nextLabel = 'Next photo'
+const t = (key: Parameters<typeof coreString>[1], vars?: Record<string, string>) => coreString(locale, key, vars)
+const zoomLabel = (alt?: string) => (alt?.trim() ? t('galleryZoomNamed', { name: alt.trim() }) : t('galleryZoom'))
+// The block's own heading names the lightbox when it has one — that is CMS content, so it is
+// already in the right language and beats anything core could say.
+const dialogLabel = heading?.trim() || t('galleryDialog')
+const closeLabel = t('close')
+const prevLabel = t('previousPhoto')
+const nextLabel = t('nextPhoto')
 ---
 
 {
@@ -97,13 +104,16 @@ const nextLabel = 'Next photo'
 
       <dialog class="gallery-dialog" data-gallery-dialog aria-label={dialogLabel}>
         <img class="gallery-dialog-figure" data-gallery-figure alt="" />
-        <button
-          type="button"
-          class="gallery-dialog-button top-4 right-4"
-          data-gallery-close
-          aria-label={closeLabel}
-        >
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <button type="button" class="gallery-dialog-button top-4 right-4" data-gallery-close aria-label={closeLabel}>
+          <svg
+            viewBox="0 0 24 24"
+            width="22"
+            height="22"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
             <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
           </svg>
         </button>
@@ -115,7 +125,15 @@ const nextLabel = 'Next photo'
               data-gallery-step="-1"
               aria-label={prevLabel}
             >
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
                 <path d="M15 6l-6 6 6 6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
@@ -125,7 +143,15 @@ const nextLabel = 'Next photo'
               data-gallery-step="1"
               aria-label={nextLabel}
             >
-              <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                width="24"
+                height="24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
                 <path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>

@@ -4,9 +4,11 @@
 // `core/site.ts`'s siteUrl() runs inside the Vite pipeline and reads `import.meta.env`.
 // `astro.config.mjs`'s `site` is evaluated by the config loader, before that pipeline exists, and
 // used to read `process.env` — which Astro does not populate from `.env` until a Vite plugin's
-// buildStart, i.e. long after. It also had no fallback to `cmsConfig.seo.siteUrl`, the source every
-// real client site actually uses (no deploy this project generates sets ASTRO_SITE_URL at all). So
+// buildStart, i.e. long after. It also had no fallback to `cmsConfig.seo.siteUrl`, which at the time
+// was the source every real client site actually used, since nothing populated ASTRO_SITE_URL. So
 // one surface could resolve an absolute origin while the other resolved nothing, in the same build.
+// (The panel's deploy now writes ASTRO_SITE_URL from the client's default domain — dashboard
+// #1107 — so the first candidate is real; the config one remains the fallback.)
 //
 // Plain .mjs, not .ts, for the same reason core/redirects.mjs is: astro.config.mjs loads it, and
 // anything reading `import.meta.env` or importing through the `~site` alias is unavailable there.

@@ -4,6 +4,64 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.9.0 — a block finally knows which language it is in
+
+Until now a block could not tell which locale tree it was being rendered into. `BlockRenderer`
+passed exactly one prop — `block` — and `Astro.currentLocale` is `undefined` on these sites,
+because core builds the locale trees itself (`buildStaticPaths`) and no site declares Astro's own
+`i18n` config. So every block silently assumed the default locale.
+
+Two things went wrong because of it, and the second one is the reason this is a release rather than
+a tidy-up:
+
+- a block formatting a date (`documents` and any client block doing the same) formatted it in the
+  default locale on **every** tree;
+- core's own controls — the lightbox close button, the gallery zoom control, the testimonials
+  arrows — were English literals with a comment admitting why (`Testimonials.astro`: "core has no
+  i18n string seam yet"). Those strings are `aria-label`s. They are announced and never displayed,
+  so a Polish site told exactly the users who cannot see the page `Close`, `Next photo`,
+  `Previous testimonial`, and nobody reviewing the site could notice.
+
+**`BlockRenderer` now takes a `locale` prop and hands it to every block it renders** — including
+through the four blocks that render blocks of their own (`columns`, `component_ref`, `hero`,
+`tabs`), so a gallery nested inside a tab does not lose it on the way down. The prop is optional and
+falls back to `cmsConfig.defaultLocale`, so a client site keeps building unchanged across this bump;
+passing `locale` at the `<BlockRenderer />` call site is what makes a non-default tree correct, and
+a site with one locale needs to do nothing at all.
+
+**Core's own strings now come from a per-locale table** (`core/ui-strings.ts`), shipped for `en` and
+`pl`. Its fallback rule is deliberately the opposite of what a client repo should do with its own
+chrome: an unknown locale falls back to English rather than failing the build. A client owns its
+dictionary and should fail loudly when a locale is missing; core is shared, cannot know which
+locales a client will enable, and must not take a build down over a word it never promised to
+translate. A control announced in the wrong language still has a name — one announced as nothing
+does not.
+
+A site that needs a locale core does not ship, or disagrees with a wording, supplies it through the
+new **`cmsConfig.coreStrings`** key:
+
+```ts
+coreStrings: {
+  de: { close: 'Schließen', nextPhoto: 'Nächstes Foto' },
+}
+```
+
+Per locale, per key, and partial — anything left out still resolves through core.
+
+### Upgrading
+
+Nothing is required. To make a multi-locale site correct, pass the locale you already have at each
+`<BlockRenderer />` call site:
+
+```diff
+- <BlockRenderer {blocks} />
++ <BlockRenderer {blocks} {locale} />
+```
+
+A site block registered in `cmsConfig.blocks` now receives `locale` too, and can declare it as an
+optional prop to use it. This is what closes the `Astro.currentLocale ?? defaultLocale` workaround
+those blocks were written around (smbp #166, #168).
+
 ## v0.8.2 — your site's origin actually reaches Astro
 
 `astro.config.mjs` sets `site` from `ASTRO_SITE_URL`, and it never worked on a real build. Astro
@@ -15,6 +73,12 @@ Worse for most sites: `site` had no fallback to `cmsConfig.seo.siteUrl`, and the
 `.env` contains only `ASTRO_API_URL` and `ASTRO_API_TOKEN` — so unless you set `ASTRO_SITE_URL`
 yourself, your config value was your site's **only** origin, and `site` never saw it. Meanwhile
 `<Seo>`'s canonical resolved it fine through `import.meta.env`. One build, two answers.
+
+> **Addendum, added after this release.** The paragraph above describes the world at v0.8.2. The
+> panel's deploy script now writes `ASTRO_SITE_URL` into that `.env` too, from the client's default
+> domain (dashboard #1107), so on a CMS-provisioned site the environment supplies the origin and
+> `cmsConfig.seo.siteUrl` is the fallback. No core change — that is the resolution order this
+> release introduced, finally with both candidates populated.
 
 Today the visible symptom is small: `Astro.site` is read only by the redirect pages `cmsRedirects()`
 emits (v0.8.0), whose canonical came out relative — valid, and it resolves to the right address. The
@@ -284,12 +348,12 @@ diligently-dashboard repo (which holds the backend and the starter dev tree). Th
 
 ### BREAKING — renamed or removed keys
 
-| Key | Change |
-| --- | --- |
-| `promo-split-inner` | **Now the container.** The tinted grid panel is `promo-split-panel`. A site overriding `promo-split-inner` for panel styling must move that override to `-panel`. |
+| Key                   | Change                                                                                                                                                                           |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `promo-split-inner`   | **Now the container.** The tinted grid panel is `promo-split-panel`. A site overriding `promo-split-inner` for panel styling must move that override to `-panel`.                |
 | `section-promo-split` | No longer carries the container (it is `section-y` now). A site overriding it purely for rhythm is unaffected; one relying on its 1180px width should remap a container instead. |
-| `section-content` | No longer carries the container; the measure moved to `content-inner`. |
-| `step-number` | Removed. It was unused and its values contradicted the component's markup. |
+| `section-content`     | No longer carries the container; the measure moved to `content-inner`.                                                                                                           |
+| `step-number`         | Removed. It was unused and its values contradicted the component's markup.                                                                                                       |
 
 ### Changed visual defaults
 

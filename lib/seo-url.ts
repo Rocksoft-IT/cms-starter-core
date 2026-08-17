@@ -6,11 +6,14 @@
  * The canonical / og:url for a page. The API-resolved absolute `seoUrl` wins; else it is built
  * from the configured `origin` + this page's `path`; else the current build URL (`currentHref`).
  *
- * The derived branch must resolve to the URL Astro actually serves. `page.path` from the API
- * carries no trailing slash (`/news/hello-world`), but Astro's default `build.format: 'directory'`
- * emits `…/index.html`, served at `/news/hello-world/` — so a bare `origin + path` would advertise
- * a canonical one redirect away from the page it sits on, disagreeing with `Astro.url.href` inside
- * that same page's <head> (#18). Rather than assume the build format, mirror the shape of the page's
+ * The derived branch must resolve to the URL Astro actually serves. `page.path` USED to arrive
+ * without a trailing slash (`/news/hello-world`) while Astro's default `build.format: 'directory'`
+ * emits `…/index.html`, served at `/news/hello-world/` — so a bare `origin + path` advertised a
+ * canonical one redirect away from the page it sits on, disagreeing with `Astro.url.href` inside
+ * that same page's <head> (#18). Dashboard #1133 made `path` slash-wrapped like every other
+ * address, so the fixup below is normally a no-op; it stays because a site on an older core pin
+ * still gets the old spelling, and because the build format is not this function's to assume.
+ * Rather than assume that format, mirror the shape of the page's
  * OWN served pathname (`currentPathname`, i.e. `Astro.url.pathname`): append a trailing slash to the
  * derived path only when the served pathname has one and the path doesn't. The root ('/') and a
  * no-slash build format already agree with `path`, so both are left untouched.

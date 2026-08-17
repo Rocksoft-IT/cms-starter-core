@@ -14,8 +14,12 @@ import Cards from './Cards.astro'
 
 interface Props {
   block: ComponentRefBlock
+  /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
+   *  way down (core/BlockRenderer.astro). */
+  locale?: string
 }
 
+const { locale } = Astro.props
 const { data } = Astro.props.block
 const type = data.component_type
 
@@ -52,4 +56,4 @@ const cardsData: CardsBlock['data'] | null =
 
 {ctaData && <CtaBanner block={{ type: 'cta_banner', data: ctaData }} />}
 {cardsData && <Cards block={{ type: 'cards', data: cardsData }} />}
-{type === 'block' && <BlockRenderer blocks={data.blocks ?? []} />}
+{type === 'block' && <BlockRenderer blocks={data.blocks ?? []} {locale} />}

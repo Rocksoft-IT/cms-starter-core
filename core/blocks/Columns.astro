@@ -12,9 +12,12 @@ import BlockRenderer from '../BlockRenderer.astro'
 
 interface Props {
   block: ColumnsBlock
+  /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
+   *  way down (core/BlockRenderer.astro). */
+  locale?: string
 }
 
-const { block } = Astro.props
+const { block, locale } = Astro.props
 
 // Track sizing: each column's `width` numerator, falling back to its slot's `layout` share (see
 // src/lib/layout-shares.ts for the width/layout contract). Falling back BEFORE dropping empties
@@ -38,7 +41,7 @@ const template = columns.map((col) => `${col.share}fr`).join(' ')
     {
       columns.map((col) => (
         <div class="columns-col">
-          <BlockRenderer blocks={col.blocks} />
+          <BlockRenderer blocks={col.blocks} {locale} />
         </div>
       ))
     }

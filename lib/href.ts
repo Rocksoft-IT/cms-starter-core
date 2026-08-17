@@ -3,9 +3,14 @@
  *
  * `astro.config.mjs` ships with `trailingSlash: 'always'` — in this tree and in every client
  * generated from the template — so the dev server answers 404 for `/blog/some-post` and serves
- * only `/blog/some-post/`. The API is not consistent about it: a `section_teaser` item's `path`
- * arrives WITHOUT the slash, while a page's `translations[].path` arrives WITH one. Links built
- * from item paths therefore 404 in dev and depend on the production host being forgiving about it.
+ * only `/blog/some-post/`.
+ *
+ * The API used to be inconsistent about it — a `section_teaser` item's `path` arrived WITHOUT the
+ * slash while a page's `translations[].path` arrived WITH one — so links built from item paths
+ * 404'd in dev and depended on the production host being forgiving. Dashboard #1133 gave every
+ * address one spelling (slash-wrapped), so this is now a defensive normalizer rather than a
+ * required fixup: keep it, because a site on an older core pin, a hand-written href or a future
+ * API field can still arrive without one.
  *
  * Left untouched:
  *  - absolute URLs and scheme-relative ones (`https:`, `mailto:`, `tel:`, `//cdn…`) — another

@@ -1,11 +1,27 @@
 ---
 import type { Block } from '../types/blocks'
 import { cmsConfig } from '~site/cms.config'
+import { defaultLocale } from './i18n'
 
 interface Props {
   blocks: Block[]
+  /**
+   * The locale this page is being built for, handed to every block.
+   *
+   * Until this existed a block could not know which tree it was in AT ALL: the only channel was
+   * `Astro.currentLocale`, which is `undefined` on these sites because core builds the locale trees
+   * itself (`buildStaticPaths`) and no site declares Astro's own `i18n` config. So every block
+   * silently assumed the default locale — dates formatted in the wrong language on a translated
+   * tree, and core's own controls announced in English everywhere (dashboard #1147).
+   *
+   * Optional, and defaulted, so a client repo keeps building unchanged across this bump; passing it
+   * at the call site is what makes a non-default tree correct. Blocks that do not care about the
+   * locale simply do not declare the prop.
+   */
+  locale?: string
 }
-const { blocks } = Astro.props
+const { blocks, locale } = Astro.props
+const loc = locale ?? defaultLocale
 
 const typesNeeded = new Set<string>(blocks.map((b) => b.type))
 const registry: Record<string, any> = Object.fromEntries(
@@ -21,6 +37,8 @@ const registry: Record<string, any> = Object.fromEntries(
   blocks.map((block) => {
     const Component = registry[block.type]
     if (!Component) return null
-    return <Component block={block} />
+    // Handed to EVERY block, not only the ones core knows need it: a site's own block override is
+    // registered through the same registry and has exactly the same problem to solve.
+    return <Component block={block} locale={loc} />
   })
 }
