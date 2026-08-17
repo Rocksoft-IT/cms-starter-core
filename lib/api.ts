@@ -105,15 +105,67 @@ export interface PageApiItem {
 const BASE = import.meta.env.ASTRO_API_URL
 const TOKEN = import.meta.env.ASTRO_API_TOKEN
 
-async function apiFetch(path: string): Promise<{ success: boolean; data: unknown }> {
-  const res = await fetch(`${BASE}${path}`, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: 'application/json',
-    },
-  })
+const AUTH_HEADERS = { Authorization: `Bearer ${TOKEN}`, Accept: 'application/json' } as const
+
+// The CMS now serves most image fields as a Spatie MediaLibrary object
+// ({ url, original, width, height, alt, conversions, focal_point, ... }) instead of a plain URL
+// string, while every block/template still consumes image fields as `string | null` (ImageBlock's
+// `src`, CaseStudy's `cover`, BrandingData's `logo`, ...) — that mismatch is why `<img src>` was
+// rendering "[object Object]" (e.g. diligently.pl's portfolio covers going missing).
+export function isMediaObject(value: unknown): value is { url: string } {
+  if (typeof value !== 'object' || value === null) return false
+  const obj = value as Record<string, unknown>
+  return typeof obj.url === 'string' && ('conversions' in obj || 'focal_point' in obj)
+}
+
+/** Unconditionally flatten every CMS media object found anywhere in `value` to its URL string. */
+export function flattenMedia(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(flattenMedia)
+  if (isMediaObject(value)) return value.url
+  if (typeof value !== 'object' || value === null) return value
+
+  const out: Record<string, unknown> = {}
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    out[key] = flattenMedia(child)
+  }
+  return out
+}
+
+/**
+ * Flatten every CMS media object in a fetched response to its URL string — except `keepRootKeys`,
+ * left exactly as the API sent them, for the rare caller that needs the object itself instead of
+ * just its URL: every apiFetch/getPage caller keeps a page/case-study's own `seo` raw (`<Seo>`
+ * needs `image.conversions.og`, the fixed 1200x630 JPG social crop, and its dimensions — not the
+ * WebP "best variant" a flattened URL would hand it); getFooter additionally keeps `logo` raw
+ * (Footer.astro reads both `.url` and `.alt` off it).
+ *
+ * `keepRootKeys` only ever matches a key at the ROOT of `data` (or of each item, when `data` is
+ * a list) — never deeper. A recursive by-name match would also catch an admin-defined
+ * `custom_fields` entry or a future block field that happens to be named `seo`/`logo`, silently
+ * un-flattening a field nobody meant to exempt.
+ */
+export function normalizeApiData(data: unknown, keepRootKeys: ReadonlySet<string> = new Set()): unknown {
+  const normalizeItem = (item: unknown): unknown => {
+    if (typeof item !== 'object' || item === null || isMediaObject(item)) return flattenMedia(item)
+    const out: Record<string, unknown> = {}
+    for (const [key, child] of Object.entries(item as Record<string, unknown>)) {
+      out[key] = keepRootKeys.has(key) ? child : flattenMedia(child)
+    }
+    return out
+  }
+  return Array.isArray(data) ? data.map(normalizeItem) : normalizeItem(data)
+}
+
+const SEO_ROOT_KEY = new Set(['seo'])
+
+async function apiFetch(
+  path: string,
+  keepRootKeys: ReadonlySet<string> = SEO_ROOT_KEY,
+): Promise<{ success: boolean; data: unknown }> {
+  const res = await fetch(`${BASE}${path}`, { headers: AUTH_HEADERS })
   if (!res.ok) throw new Error(`API ${res.status}: ${path}`)
-  return res.json() as Promise<{ success: boolean; data: unknown }>
+  const json = (await res.json()) as { success: boolean; data: unknown }
+  return { ...json, data: normalizeApiData(json.data, keepRootKeys) }
 }
 
 // Memoize the page tree per locale: every static route (and Navbar) needs it, so fetch it
@@ -158,12 +210,7 @@ export async function getPage(path: string, locale = 'en'): Promise<PageResult |
   const clean = path.replace(/^\/+/, '')
   if (MOCK_MODE) return getMockPage(clean, locale)
 
-  const res = await fetch(`${BASE}/api/pages/${clean}?locale=${encodeURIComponent(locale)}`, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: 'application/json',
-    },
-  })
+  const res = await fetch(`${BASE}/api/pages/${clean}?locale=${encodeURIComponent(locale)}`, { headers: AUTH_HEADERS })
   if (res.status === 404) return null
 
   // A moved path answers 301 with a JSON `{ redirect }` body and NO Location header — so
@@ -171,7 +218,8 @@ export async function getPage(path: string, locale = 'en'): Promise<PageResult |
   // than letting the non-2xx status surface as a build error / 404.
   const json = (await res.json()) as { success: boolean; data?: PageApiItem; redirect?: string }
   if (typeof json.redirect === 'string') return { redirect: json.redirect }
-  if (json.data) return { page: json.data }
+  // Normalize the same way apiFetch does — getPage bypasses it for the redirect contract above.
+  if (json.data) return { page: normalizeApiData(json.data, SEO_ROOT_KEY) as PageApiItem }
   return null
 }
 
@@ -241,12 +289,7 @@ export async function getMenu(key: string, locale?: string): Promise<MenuLink[] 
   // requested locale, prefix included (MenuApiController::pageHref). Omitting it renders the
   // default locale's URLs inside a translated page — links that leave the locale on click.
   const query = locale ? `?locale=${encodeURIComponent(locale)}` : ''
-  const res = await fetch(`${BASE}/api/menus/${key}${query}`, {
-    headers: {
-      Authorization: `Bearer ${TOKEN}`,
-      Accept: 'application/json',
-    },
-  })
+  const res = await fetch(`${BASE}/api/menus/${key}${query}`, { headers: AUTH_HEADERS })
   if (res.status === 404) return null
   if (!res.ok) throw new Error(`API ${res.status}: /api/menus/${key}`)
   const json = (await res.json()) as { success: boolean; data: MenuLink[] }
@@ -328,9 +371,12 @@ export interface FooterData {
   component_type?: string
 }
 
+const FOOTER_ROOT_KEYS = new Set([...SEO_ROOT_KEY, 'logo'])
+
 export async function getFooter(locale = 'en'): Promise<FooterData | null> {
   if (MOCK_MODE) return getMockFooter(locale)
-  return apiFetch(`/api/components/footer?locale=${locale}`)
+  // Keep `logo` raw: Footer.astro reads both `.url` and `.alt` off it (FooterData.logo: SeoImage).
+  return apiFetch(`/api/components/footer?locale=${locale}`, FOOTER_ROOT_KEYS)
     .then((json) => json.data as FooterData)
     .catch(() => null) // 404 (no active footer) / offline → no footer; the renderer self-gates
 }

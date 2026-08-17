@@ -4,6 +4,30 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.10.0 — image fields stop rendering "[object Object]"
+
+The CMS now serves most image fields — a case study's `cover`/`gallery`/`client_logo`, a block's
+`image`/`src`, `BrandingData.logo`/`favicon`, and more — as a Spatie MediaLibrary object
+(`{ url, original, width, height, alt, conversions, focal_point }`) instead of a plain URL string.
+Every block and site template still consumes these fields as `string | null` (`ImageBlock`'s `src`,
+`CaseStudy`'s `cover`, `Navbar`'s `logo`, ...), so an unflattened object landed in the DOM as
+`<img src="[object Object]">` — on diligently.pl this made every `/portfolio/` card lose its cover
+image.
+
+`apiFetch` and `getPage` now flatten any CMS media object to its `.url` string before handing the
+response to a client site, the single boundary every `lib/api.ts` fetcher already passes through.
+Two ROOT-level fields are kept as the full object on purpose, because their consumer reads more
+than the URL: a page/case-study's own `seo` (`<Seo>` needs `image.conversions.og`, the fixed
+1200x630 JPG social crop, plus its dimensions — not the WebP "best variant" a flattened URL would
+hand it) and, for `getFooter` only, its own `logo` (`Footer.astro` reads both `.url` and `.alt` off
+it). The exemption is deliberately root-only rather than a by-name match at any depth: a
+by-name match would also spare an admin-defined `custom_fields` entry or a future block field that
+happens to be called `seo`/`logo` from flattening, silently reintroducing this same bug somewhere
+else.
+
+No client-site change needed — every field a template already treated as a URL string now actually
+receives one.
+
 ## v0.9.0 — a block finally knows which language it is in
 
 Until now a block could not tell which locale tree it was being rendered into. `BlockRenderer`
