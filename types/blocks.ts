@@ -408,6 +408,7 @@ export interface FaqBlock {
     heading?: string
     intro?: string
     layout?: 'accordion' | 'list'
+    open_first?: boolean
     cta_label?: string
     cta_href?: string
     items?: Array<{ question?: string; answer?: string }>

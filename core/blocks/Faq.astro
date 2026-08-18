@@ -12,6 +12,10 @@
 // click. For a short FAQ that reads as page copy rather than a lookup table — and for the
 // reader/print/find-in-page views, where collapsed answers are simply absent.
 //
+// `open_first` (accordion only) ships the first item already expanded, so the page arrives
+// showing what an answer looks like instead of a row of closed bars. Because the group is
+// exclusive, opening any other item closes it again — no special handling needed.
+//
 // Every visual value lives in the `faq-*` shortcuts (core/uno.core.ts), which a site redefines in
 // its src/uno.ts — colors resolve as brand theme colors, so a client palette rethemes the whole
 // accordion at build time. What remains below is only what no utility can express: hiding the
@@ -23,7 +27,7 @@ interface Props {
   block: FaqBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, intro, layout, cta_label, cta_href, items = [] } = block.data
+const { eyebrow, heading, intro, layout, open_first, cta_label, cta_href, items = [] } = block.data
 
 // Anything but 'list' renders the accordion (see the header note on the default).
 const isList = layout === 'list'
@@ -88,7 +92,7 @@ const groupName = `faq-${slug || 'section'}`
     }
     <ul class="faq-list" role="list">
       {
-        items.map((item) =>
+        items.map((item, index) =>
           isList ? (
             <li class="faq-item faq-item-static">
               <h3 class="faq-question">{item.question}</h3>
@@ -96,7 +100,7 @@ const groupName = `faq-${slug || 'section'}`
             </li>
           ) : (
             <li>
-              <details name={groupName} class="faq-item">
+              <details name={groupName} class="faq-item" open={index === 0 && open_first}>
                 <summary class="faq-summary">
                   <span class="faq-question">{item.question}</span>
                   <span class="faq-chevron" aria-hidden="true">
