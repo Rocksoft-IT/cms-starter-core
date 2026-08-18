@@ -407,6 +407,7 @@ export interface FaqBlock {
     eyebrow?: string
     heading?: string
     intro?: string
+    layout?: 'accordion' | 'list'
     cta_label?: string
     cta_href?: string
     items?: Array<{ question?: string; answer?: string }>

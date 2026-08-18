@@ -1,9 +1,16 @@
 ---
-// Core FAQ block — an accessible, single-open accordion. Uses native <details name=…>, whose
-// shared `name` makes the items mutually exclusive (opening one closes the others) with NO
-// JavaScript; it stays keyboard-operable and announced by screen readers out of the box. A
-// browser without exclusive-<details> support degrades to allowing several open at once — the
-// content is always reachable either way.
+// Core FAQ block — two layouts over one content shape.
+//
+// `accordion` (the default, and what every block authored before the field gets) is an
+// accessible, single-open accordion. It uses native <details name=…>, whose shared `name` makes
+// the items mutually exclusive (opening one closes the others) with NO JavaScript; it stays
+// keyboard-operable and announced by screen readers out of the box. A browser without
+// exclusive-<details> support degrades to allowing several open at once — the content is always
+// reachable either way.
+//
+// `list` drops the disclosure entirely: question as a heading, answer under it, nothing to
+// click. For a short FAQ that reads as page copy rather than a lookup table — and for the
+// reader/print/find-in-page views, where collapsed answers are simply absent.
 //
 // Every visual value lives in the `faq-*` shortcuts (core/uno.core.ts), which a site redefines in
 // its src/uno.ts — colors resolve as brand theme colors, so a client palette rethemes the whole
@@ -16,7 +23,10 @@ interface Props {
   block: FaqBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, intro, cta_label, cta_href, items = [] } = block.data
+const { eyebrow, heading, intro, layout, cta_label, cta_href, items = [] } = block.data
+
+// Anything but 'list' renders the accordion (see the header note on the default).
+const isList = layout === 'list'
 
 // The optional inline CTA needs both halves — a label with nowhere to go, or a bare URL with no
 // label, renders nothing rather than a broken link.
@@ -25,9 +35,9 @@ const hasCta = Boolean(cta_label && cta_href)
 // A path stays in place, plain.
 const ctaExternal = hasCta && /^https?:\/\//.test(cta_href!)
 
-// Exclusive-accordion group name. Derived from the heading (deterministic — no build-to-build
-// churn) so two FAQ blocks with different headings on one page form independent groups; blocks
-// without a heading share one group, a benign edge case.
+// Exclusive-accordion group name (the list layout has no groups). Derived from the heading
+// (deterministic — no build-to-build churn) so two FAQ blocks with different headings on one page
+// form independent groups; blocks without a heading share one group, a benign edge case.
 const slug = (heading ?? 'section')
   .toLowerCase()
   .replace(/[^a-z0-9]+/g, '-')
@@ -78,23 +88,37 @@ const groupName = `faq-${slug || 'section'}`
     }
     <ul class="faq-list" role="list">
       {
-        items.map((item) => (
-          <li>
-            <details name={groupName} class="faq-item">
-              <summary class="faq-summary">
-                <span class="faq-question">{item.question}</span>
-                <span class="faq-chevron" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <path d="M6 9l6 6 6-6" />
-                  </svg>
-                </span>
-              </summary>
-              <div class="faq-answer-wrap">
-                <RichText class="faq-answer" html={item.answer} />
-              </div>
-            </details>
-          </li>
-        ))
+        items.map((item) =>
+          isList ? (
+            <li class="faq-item faq-item-static">
+              <h3 class="faq-question">{item.question}</h3>
+              <RichText class="faq-answer" html={item.answer} />
+            </li>
+          ) : (
+            <li>
+              <details name={groupName} class="faq-item">
+                <summary class="faq-summary">
+                  <span class="faq-question">{item.question}</span>
+                  <span class="faq-chevron" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2.2"
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </span>
+                </summary>
+                <div class="faq-answer-wrap">
+                  <RichText class="faq-answer" html={item.answer} />
+                </div>
+              </details>
+            </li>
+          ),
+        )
       }
     </ul>
   </div>

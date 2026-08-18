@@ -181,7 +181,8 @@ export const coreShortcuts: Record<string, string> = {
     'flex items-center justify-center shrink-0 w-14 h-14 bg-accent rounded-[8px]',
 
   // ── FAQ block ───────────────────────────────────────────────────────────────
-  // A single-open accordion. Full content width, like every other section: the smbp design pins
+  // A single-open accordion, or the same cards always open (`faq-item-static`, at the end of this
+  // group). Full content width, like every other section: the smbp design pins
   // FAQ at the same measure as its neighbours and the question list at `max-width: none`
   // (smbp-preview.dc.html:296/305). A site wanting a reading measure remaps `faq-inner` to
   // `container-prose`. Only the parts no utility can express (::marker, the <details> open state,
@@ -219,6 +220,12 @@ export const coreShortcuts: Record<string, string> = {
     'pt-1 px-6 pb-[22px] before:content-[""] before:block before:h-px before:mb-4 before:bg-border ' +
     'motion-reduce:animate-none',
   'faq-answer': 'text-[15.5px] leading-[1.7] max-w-[74ch] text-text-secondary',
+  // The `list` layout adds ONE key, worn alongside `faq-item` — it is the same card, minus the
+  // disclosure. Deliberately not a second card definition: a site that remaps `faq-item`,
+  // `faq-question` or `faq-answer` (most do) must not have to discover a parallel set of keys to
+  // keep the two layouts looking alike. All this adds is what the summary and answer-wrap were
+  // providing in the accordion — the padding, and the gap between question and answer.
+  'faq-item-static': 'flex flex-col gap-[0.6rem] px-6 py-5',
 
   // ── Columns block ───────────────────────────────────────────────────────────
   // The container sits on the grid (the inner element), not on the <section>. Tracks come from
