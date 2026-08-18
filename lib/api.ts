@@ -1,4 +1,4 @@
-import type { Block } from '../types/blocks'
+import type { Block, ResponsiveImageMeta } from '../types/blocks'
 import { MOCK_MODE } from '../core/mock'
 import {
   getMockPages,
@@ -112,21 +112,101 @@ const AUTH_HEADERS = { Authorization: `Bearer ${TOKEN}`, Accept: 'application/js
 // string, while every block/template still consumes image fields as `string | null` (ImageBlock's
 // `src`, CaseStudy's `cover`, BrandingData's `logo`, ...) — that mismatch is why `<img src>` was
 // rendering "[object Object]" (e.g. diligently.pl's portfolio covers going missing).
-export function isMediaObject(value: unknown): value is { url: string } {
+export function isMediaObject(value: unknown): value is { url: string } & Record<string, unknown> {
   if (typeof value !== 'object' || value === null) return false
   const obj = value as Record<string, unknown>
   return typeof obj.url === 'string' && ('conversions' in obj || 'focal_point' in obj)
 }
 
-/** Unconditionally flatten every CMS media object found anywhere in `value` to its URL string. */
+/**
+ * The three responsive attributes carried by a media object, in the shape `responsiveImageAttrs`
+ * (lib/image.ts) reads — the same shape an in-block `image` field's `<key>_meta` sibling has.
+ */
+function responsiveMetaOf(media: Record<string, unknown>): ResponsiveImageMeta | undefined {
+  // Checked, not cast: the payload is untyped JSON, and a cast would let a stringly-typed width
+  // through as a number — a wrong `<img width>` rather than an absent one.
+  const num = (v: unknown): number | null => (typeof v === 'number' ? v : null)
+  const meta = {
+    width: num(media.width),
+    height: num(media.height),
+    srcset: typeof media.srcset === 'string' ? media.srcset : null,
+  }
+
+  // All three null is what an unmeasured, unconverted image looks like — a sibling saying only
+  // "nothing is known" is noise on every payload, and `responsiveImageAttrs` emits nothing for it
+  // anyway. Absent and all-null mean the same thing to the renderer, so prefer absent.
+  return meta.width === null && meta.height === null && meta.srcset === null ? undefined : meta
+}
+
+/**
+ * The `<key>_meta` sibling for a media-bearing property, or undefined when the value is not media.
+ *
+ * A page-level media field (a case study's `cover`, a post's `thumbnail`) arrives as the WHOLE
+ * media object, `srcset`/`width`/`height` included, whereas a BLOCK's image arrives already flat
+ * with those three in an explicit `<key>_meta` sibling (the CMS's BlockResolver). Flattening the
+ * object to its URL therefore threw the responsive attributes away for page-level fields only —
+ * so an `<img>` built from `cover` had no `srcset` to choose from and always fetched the full-size
+ * variant, however many rungs the CMS had generated.
+ *
+ * Synthesising the sibling here rather than asking the API to send it as well: the payload already
+ * carries these values inside the object, so a backend-built sibling would put the same `srcset`
+ * string on the wire twice — and the object itself cannot be slimmed, because `keepRootKeys`
+ * consumers (`<Seo>`, `Footer`) need the whole thing. Deriving it costs no release the frontend
+ * was not already making, and covers payloads the CMS has already sent.
+ *
+ * Drift risk is low for a reason worth stating: the CMS's own `MediaUrls::responsiveMeta()` is
+ * `Arr::only(MediaUrls::for($media), ['width','height','srcset'])` — it reads the same three keys
+ * off the same serializer output this reads off the wire, so a change to how they are computed
+ * reaches both. It would only diverge if the backend started COMPUTING something that is not in
+ * the media object.
+ *
+ * Two deliberate divergences from the backend's block-side sibling:
+ *   - a block's `_meta` is always an object with all three keys; this one is ABSENT when nothing
+ *     was measured (see responsiveMetaOf);
+ *   - a multi-media field yields an ARRAY, a shape no backend producer emits — `media_upload`
+ *     takes ->first(), and a repeater recurses per row. A gallery has no other sensible shape,
+ *     but a call site must index it.
+ *
+ * An explicit sibling the API DOES send always wins (see flattenMedia).
+ */
+function metaSiblingFor(value: unknown): ResponsiveImageMeta | (ResponsiveImageMeta | null)[] | undefined {
+  if (isMediaObject(value)) return responsiveMetaOf(value)
+
+  // Aligned BY INDEX — an unmeasured entry holds its place as null rather than shifting every
+  // later image onto the wrong metadata. Mixed or media-free arrays get nothing at all.
+  if (Array.isArray(value) && value.length > 0 && value.every(isMediaObject)) {
+    const metas = value.map((m) => responsiveMetaOf(m) ?? null)
+    return metas.some((m) => m !== null) ? metas : undefined
+  }
+  return undefined
+}
+
+/**
+ * Unconditionally flatten every CMS media object found anywhere in `value` to its URL string,
+ * preserving each one's responsive attributes as a `<key>_meta` sibling (see metaSiblingFor).
+ */
 export function flattenMedia(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(flattenMedia)
   if (isMediaObject(value)) return value.url
   if (typeof value !== 'object' || value === null) return value
 
+  const source = value as Record<string, unknown>
   const out: Record<string, unknown> = {}
-  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+  for (const [key, child] of Object.entries(source)) {
     out[key] = flattenMedia(child)
+
+    // Never overwrite a sibling the API sent itself: a block's `<key>_meta` is authoritative
+    // (BlockResolver deliberately omits the media's own `alt` there, for one), and a key the CMS
+    // already occupies is not ours to redefine. No current payload hits this — the CMS only writes
+    // `_meta` beside a value it has ALREADY flattened to a URL — so it is here to make a future
+    // backend-built page-level sibling a silent no-op rather than a conflict.
+    //
+    // A field literally named `foo_meta` whose value is itself media therefore yields
+    // `foo_meta_meta`. Nothing reads it; it is dead weight, not a fault.
+    const metaKey = `${key}_meta`
+    if (metaKey in source) continue
+    const meta = metaSiblingFor(child)
+    if (meta !== undefined) out[metaKey] = meta
   }
   return out
 }
@@ -147,9 +227,14 @@ export function flattenMedia(value: unknown): unknown {
 export function normalizeApiData(data: unknown, keepRootKeys: ReadonlySet<string> = new Set()): unknown {
   const normalizeItem = (item: unknown): unknown => {
     if (typeof item !== 'object' || item === null || isMediaObject(item)) return flattenMedia(item)
-    const out: Record<string, unknown> = {}
-    for (const [key, child] of Object.entries(item as Record<string, unknown>)) {
-      out[key] = keepRootKeys.has(key) ? child : flattenMedia(child)
+
+    // Flatten the whole item through the ONE walk, then put the exempt keys back. Re-implementing
+    // the object loop here to branch per key is what made a root-level `cover` skip the `_meta`
+    // synthesis in flattenMedia's own loop — the two copies drifted the moment one gained a step.
+    const source = item as Record<string, unknown>
+    const out = flattenMedia(source) as Record<string, unknown>
+    for (const key of keepRootKeys) {
+      if (key in source) out[key] = source[key]
     }
     return out
   }

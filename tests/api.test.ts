@@ -47,6 +47,116 @@ describe('flattenMedia()', () => {
   })
 })
 
+// A page-level media field (a case study's `cover`) arrives as the whole media object with its
+// responsive attributes inside, unlike a block's image which arrives flat beside an explicit
+// `<key>_meta`. Flattening used to drop them, so `<img src={cover}>` had no srcset to choose from
+// and always fetched the full-size variant.
+describe('flattenMedia() — responsive `_meta` siblings', () => {
+  const measured = {
+    ...media,
+    width: 4000,
+    height: 3000,
+    srcset: 'https://cdn.example/a-640.webp 640w, https://cdn.example/a-1024.webp 1024w',
+  }
+
+  it('preserves a flattened media object’s responsive attributes as a `_meta` sibling', () => {
+    expect(flattenMedia({ cover: measured })).toEqual({
+      cover: 'https://cdn.example/a.webp',
+      cover_meta: { width: 4000, height: 3000, srcset: measured.srcset },
+    })
+  })
+
+  it('emits an index-aligned array for a multi-media field', () => {
+    expect(flattenMedia({ gallery: [measured, measured] })).toEqual({
+      gallery: ['https://cdn.example/a.webp', 'https://cdn.example/a.webp'],
+      gallery_meta: [
+        { width: 4000, height: 3000, srcset: measured.srcset },
+        { width: 4000, height: 3000, srcset: measured.srcset },
+      ],
+    })
+  })
+
+  it('holds an unmeasured entry’s place as null so later images keep their own metadata', () => {
+    const out = flattenMedia({ gallery: [media, measured] }) as { gallery_meta: unknown[] }
+    expect(out.gallery_meta).toEqual([null, { width: 4000, height: 3000, srcset: measured.srcset }])
+  })
+
+  it('emits nothing when the image carries no measurements at all', () => {
+    // Absent and all-null mean the same thing to responsiveImageAttrs, so prefer absent over
+    // stamping a useless triple onto every payload.
+    expect(flattenMedia({ cover: media })).toEqual({ cover: 'https://cdn.example/a.webp' })
+    expect(flattenMedia({ gallery: [media, media] })).toEqual({
+      gallery: ['https://cdn.example/a.webp', 'https://cdn.example/a.webp'],
+    })
+  })
+
+  it('never overwrites a `_meta` sibling the API sent itself', () => {
+    // A block's `<key>_meta` is authoritative — BlockResolver builds it deliberately (and omits
+    // the media's own alt), so a synthesised one must not replace it.
+    const authored = { width: 1, height: 2, srcset: 'authoritative 1w' }
+    expect(flattenMedia({ image: measured, image_meta: authored })).toEqual({
+      image: 'https://cdn.example/a.webp',
+      image_meta: authored,
+    })
+  })
+})
+
+// THE altitude that matters: nothing in production calls flattenMedia on a page item — apiFetch
+// and getPage both funnel through normalizeApiData, and `cover`/`gallery`/`thumbnail` are ROOT
+// keys of a page (PagePayload merges the media fields into the item root). An earlier version
+// synthesised siblings only inside flattenMedia's object loop, which normalizeApiData bypassed
+// for root keys, so the headline case — a case study's cover — silently got nothing.
+describe('normalizeApiData() — responsive `_meta` on ROOT media fields', () => {
+  const measured = {
+    url: 'https://cdn.example/a.webp',
+    conversions: {},
+    focal_point: null,
+    width: 4000,
+    height: 3000,
+    srcset: 'https://cdn.example/a-640.webp 640w, https://cdn.example/a-1024.webp 1024w',
+  }
+  const meta = { width: 4000, height: 3000, srcset: measured.srcset }
+
+  it('emits the sibling for a root-level media field', () => {
+    expect(normalizeApiData({ cover: measured }, new Set(['seo']))).toEqual({
+      cover: 'https://cdn.example/a.webp',
+      cover_meta: meta,
+    })
+  })
+
+  it('emits it for a root-level multi-media field', () => {
+    expect(normalizeApiData({ gallery: [measured] }, new Set(['seo']))).toEqual({
+      gallery: ['https://cdn.example/a.webp'],
+      gallery_meta: [meta],
+    })
+  })
+
+  it('emits it per item when data is a list — the shape getPages returns', () => {
+    expect(normalizeApiData([{ cover: measured }], new Set(['seo']))).toEqual([
+      { cover: 'https://cdn.example/a.webp', cover_meta: meta },
+    ])
+  })
+
+  it('leaves a keepRootKeys subtree raw, siblings and all', () => {
+    const out = normalizeApiData({ seo: { image: measured }, cover: measured }, new Set(['seo'])) as Record<
+      string,
+      unknown
+    >
+    expect(out.seo).toEqual({ image: measured })
+    expect(out).not.toHaveProperty('seo_meta')
+    expect(out.cover_meta).toEqual(meta)
+  })
+
+  it('keeps a block’s own `src_meta` untouched through the real path', () => {
+    const authored = { width: 1, height: 2, srcset: 'authoritative 1w' }
+    const out = normalizeApiData(
+      { blocks: [{ type: 'image_block', data: { src: 'https://cdn.example/flat.webp', src_meta: authored } }] },
+      new Set(['seo']),
+    ) as { blocks: { data: Record<string, unknown> }[] }
+    expect(out.blocks[0].data).toEqual({ src: 'https://cdn.example/flat.webp', src_meta: authored })
+  })
+})
+
 describe('normalizeApiData()', () => {
   it('keeps a keepRootKeys-listed key as the full object at the root, flattens everything else', () => {
     const input = { seo: { image: media }, cover: media }

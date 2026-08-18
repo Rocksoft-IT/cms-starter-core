@@ -4,6 +4,45 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.11.0 — flattening an image no longer throws its `srcset` away
+
+v0.10.0 flattened every CMS media object to its URL string so templates that expect
+`string | null` would stop rendering `[object Object]`. That fixed the visible bug and quietly
+created an invisible one: a media object carries `srcset`, `width` and `height` **inside it**, and
+flattening dropped all three.
+
+The split that made this easy to miss: a **block's** image already arrives flat, with its
+responsive attributes in an explicit `<key>_meta` sibling (the CMS's `BlockResolver`), so blocks
+were never affected. A **page-level** field — a case study's `cover` or `gallery`, a post's
+`thumbnail` — arrives as the whole object instead, so only those lost their attributes. The result
+was an `<img>` with no `srcset` to choose from, fetching the full-size variant however many rungs
+the CMS had generated: on diligently.pl, a 4000x3000 cover into a 572x360 tile.
+
+Flattening now synthesises the same `<key>_meta` sibling, so a page-level field feeds
+`responsiveImageAttrs` the way a block's image already did. A multi-media field gets an
+index-aligned array, with `null` holding the place of an unmeasured entry. A sibling the API sent
+itself is never overwritten — a block's `<key>_meta` stays authoritative.
+
+Two deliberate divergences from the block-side sibling, worth knowing at a call site: this one is
+**absent** when nothing was measured (a block's is always an object with all three keys), and the
+**array** form for a multi-media field is a shape no backend producer emits, so it must be indexed.
+
+Done in the adapter rather than by having the API send it too: the payload already carries these
+values _inside_ the object, and the object cannot be slimmed in exchange — `<Seo>` and `Footer`
+consumers need the whole thing — so a backend sibling would put the same `srcset` string on the
+wire twice. To be clear about what this saves: a frontend release was needed either way, so the
+gain is avoiding an _additional_ backend release, not avoiding one altogether.
+
+**What this does NOT restore:** `alt`. Flattening drops four attributes and this brings back three.
+For a block that is fine — it carries its own authored `alt` — but for a page-level field the
+media's `alt` is the only answer there is, and it is still lost. `keepRootKeys` remains the escape
+hatch (it is why `getFooter` keeps `logo` raw). Revisit if a template needs page-level alt text.
+
+**Nothing renders differently until a template asks for it** — pass the sibling to
+`responsiveImageAttrs(meta, sizes)` (lib/image.ts) at the call site. And `srcset` is only as good
+as the generated conversions: an image whose width ladder was never built still has `srcset: null`,
+which is a CMS-side backfill, not this.
+
 ## v0.10.0 — image fields stop rendering "[object Object]"
 
 The CMS now serves most image fields — a case study's `cover`/`gallery`/`client_logo`, a block's

@@ -94,6 +94,10 @@ export interface TestimonialsBlock {
     heading?: string
     layout?: 'slider' | 'single'
     items?: TestimonialsItem[]
+    // Shared section fields ($sectionBackground / $sectionAlign in config/cms.php). Copied by
+    // hand because `pnpm cms:types` skips ref blocks — keep them in step with the config.
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
   }
 }
 
@@ -125,7 +129,12 @@ export interface PricingTableBlock {
     eyebrow?: string
     heading?: string
     body?: string
-    background?: 'light' | 'dark'
+    // Same shared pair as TestimonialsBlock above, and hand-copied for the same reason.
+    // `background` widened from the block's original two-value select to the full
+    // $sectionBackground set, which the config has carried since #1152 — the type was left
+    // behind there, so `muted`/`brand` failed to type-check while the API accepted them.
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
     billing_toggle?: boolean
     plans?: PricingPlan[]
     tabs?: PricingTab[]
@@ -264,6 +273,8 @@ export interface RichContentBlock {
     image_meta?: ResponsiveImageMeta
     alt?: string
     animation_url?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
   }
 }
 
@@ -299,6 +310,8 @@ export interface FeaturesBlock {
     heading?: string
     intro?: string
     steps?: Array<{ number?: string; title?: string; description?: string }>
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
   }
 }
 
@@ -344,6 +357,8 @@ export interface PricingTeaserBlock {
     }>
     footer_label?: string
     footer_href?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
   }
 }
 
@@ -360,6 +375,8 @@ export interface CardsBlock {
     heading?: string
     intro?: string
     layout?: 'tiles' | 'cards' | 'steps'
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
     items?: Array<{
       icon?: 'location' | 'clock' | 'phone' | 'mail' | 'calendar' | 'info' | 'document' | 'folder' | 'download' | 'book'
       image?: string | null
