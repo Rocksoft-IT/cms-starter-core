@@ -35,6 +35,9 @@
   /* Section measures. `container-global` is the shared content width every well-behaved block
      opts into; narrow/prose exist for blocks whose readability depends on a shorter line. */
   --layout-container: 1200px;
+  /* One step past the page container, for a set that does not fit it — four pricing cards
+     rather than three. Not a second page width: only a block that asks for it reaches here. */
+  --layout-container-wide: 1400px;
   --layout-container-narrow: 900px;
   --layout-container-prose: 760px;
 

@@ -52,6 +52,7 @@ export const coreShortcuts: Record<string, string> = {
   // The only place in core allowed to set a max-width. A section is full-bleed (background +
   // vertical rhythm) and delegates its measure to an inner element carrying one of these.
   'container-global': 'w-[90%] max-w-[var(--layout-container)] mx-auto',
+  'container-wide': 'w-[90%] max-w-[var(--layout-container-wide)] mx-auto',
   'container-narrow': 'w-[90%] max-w-[var(--layout-container-narrow)] mx-auto',
   'container-prose': 'w-[90%] max-w-[var(--layout-container-prose)] mx-auto',
   // Vertical rhythm between sections.
@@ -318,6 +319,9 @@ export const coreShortcuts: Record<string, string> = {
     'font-bold text-[14px] px-6 py-2 rounded-full border-2 border-current bg-transparent ' +
     'transition-colors duration-200 cursor-pointer flex items-center gap-2 ' +
     '[&.is-active]:bg-button-primary [&.is-active]:text-button-primary-text [&.is-active]:border-button-primary',
+  // Tier illustration. Full card width, its own aspect kept — these are drawings sized by the
+  // designer, so no crop and no fixed height; the margin below matches the card's own gap.
+  'pricing-plan-image': 'block w-full h-auto mb-2',
   'pricing-card': 'bg-white text-text-primary rounded-[16px] p-7 flex flex-col gap-4 border border-gray-200',
   'pricing-chip':
     'self-start text-[11px] font-bold tracking-[0.12em] uppercase text-text-secondary border border-gray-200 rounded-full px-3 py-1',

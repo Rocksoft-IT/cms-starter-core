@@ -3,8 +3,11 @@
 // `plans`, or — when `billing_toggle` is set — folds them into `tabs` grouped by each plan's
 // `billing_type` (the backend group_by resolver). One tab renders at a time; the buttons
 // switch panels with a few lines of script scoped to this section. Plan cards render
-// size_label chip → name → description → badge → price → fine print → CTA → collapsible
-// feature list, every field optional.
+// size_label chip → tier illustration → name → description → badge → price → fine print → CTA
+// → collapsible feature list, every field optional.
+//
+// `width: 'wide'` swaps the page container for the one step past it — a four-card set does not
+// fit the page measure without squeezing all four.
 import type { PricingTableBlock } from '../../types/blocks'
 import { sanitizeSvg } from '../../lib/sanitize'
 import { sectionAnchorId } from '../../lib/anchor'
@@ -17,7 +20,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, body, background, billing_toggle, tabs, plans, tab_icons } = block.data
+const { anchor_id, eyebrow, heading, body, background, width, billing_toggle, tabs, plans, tab_icons } = block.data
 
 // Human labels for the backend's billing_type enum (mirrors config/cms.php select options).
 const TAB_LABELS: Record<string, string> = {
@@ -36,10 +39,14 @@ const tabIcon = (billingType: string) => tab_icons?.find((icon) => icon.billing_
 // Prefix for the tab-button ↔ panel aria-controls wiring. Derived from the anchor when set;
 // two anchor-less pricing tables on one page would collide — give them anchors in the CMS.
 const idPrefix = sectionId ?? 'pricing-table'
+
+// A literal lookup, not an interpolated class: UnoCSS extracts class names from source text,
+// so `container-${width}` would generate no CSS at all (see docs/starter.md).
+const containerClass = width === 'wide' ? 'container-wide' : 'container-global'
 ---
 
 <section id={sectionId} class:list={['section-pricing-table py-20', background === 'dark' && 'is-dark']}>
-  <div class="container-global">
+  <div class={containerClass}>
     <SectionHeader {eyebrow} {heading} />
 
     {
@@ -71,7 +78,12 @@ const idPrefix = sectionId ?? 'pricing-table'
         <div
           id={showTabs ? `${idPrefix}-panel-${tab.billing_type}` : undefined}
           data-panel={tab.billing_type}
-          class:list={['pricing-panel grid grid-cols-1 md:grid-cols-3 gap-6 items-start', tabIndex > 0 && 'hidden']}
+          class:list={[
+            'pricing-panel grid grid-cols-1 gap-6 items-start',
+            // Literal branches, for the same extraction reason as `containerClass` above.
+            width === 'wide' ? 'md:grid-cols-2 xl:grid-cols-4' : 'md:grid-cols-3',
+            tabIndex > 0 && 'hidden',
+          ]}
         >
           {tab.plans.map((plan) => {
             const features = plan.features ?? []
@@ -80,6 +92,20 @@ const idPrefix = sectionId ?? 'pricing-table'
                 {plan.size_label && <span class="pricing-chip">{plan.size_label}</span>}
 
                 <h3 class="font-bold text-[24px] leading-[1.2]">{plan.name}</h3>
+
+                {/* Decorative: the tier is already named by the chip and the heading above, so
+                    an alt here would be read out twice. Hence the empty alt. */}
+                {plan.plan_image && (
+                  <img
+                    class="pricing-plan-image"
+                    src={plan.plan_image}
+                    srcset={plan.plan_image_meta?.srcset ?? undefined}
+                    width={plan.plan_image_meta?.width ?? undefined}
+                    height={plan.plan_image_meta?.height ?? undefined}
+                    alt=""
+                    loading="lazy"
+                  />
+                )}
 
                 {plan.description && (
                   <RichText class="text-[14px] leading-[1.6] text-text-secondary [&_p]:mb-0" html={plan.description} />

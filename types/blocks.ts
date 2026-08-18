@@ -114,6 +114,10 @@ export interface PricingPlan {
   cta_label?: string
   cta_href?: string
   fine_print?: string
+  /** Tier illustration for the head of the card. A single media field, so the API flattens it
+   *  to a URL; `plan_image_meta` carries the intrinsic size and srcset (absent for an SVG). */
+  plan_image?: string
+  plan_image_meta?: ResponsiveImageMeta
 }
 
 /** One billing-type tab: the resolver folds `plans` into `tabs` when billing_toggle is set. */
@@ -135,6 +139,8 @@ export interface PricingTableBlock {
     // behind there, so `muted`/`brand` failed to type-check while the API accepted them.
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    /** `wide` reaches past the page container, for a set of four cards. */
+    width?: 'default' | 'wide'
     billing_toggle?: boolean
     plans?: PricingPlan[]
     tabs?: PricingTab[]
