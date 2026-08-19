@@ -1,0 +1,173 @@
+---
+// Social-share / SEO head tags. Renders <title>, description, canonical, robots via astro-seo,
+// and a full Open Graph + Twitter Card cluster via its `extend.meta` escape hatch.
+//
+// Lives in core since dashboard #1195 step 8. It used to sit in each site's own
+// src/components/, which meant the CMS-resolved SEO that step 1 introduced reached NEWLY
+// GENERATED repos only — every already-provisioned client kept its own forked copy reading
+// cmsConfig directly, and no pin bump could change that. Nothing in here is a visual or per-brand
+// decision (the axis frontend-core-architecture.md draws): it turns the API's resolved metadata
+// into meta tags, which is the same job on every site. A site that genuinely needs different head
+// tags overrides at the call site in its own Layout.astro rather than forking this.
+//
+// The single source of truth is the API's resolved `page.seo` object (diligently-dashboard #469):
+// title, description, image (with the fixed 1200×630 `og` conversion), canonical url, type,
+// site_name — all resolved server-side. This component only *renders* it, with graceful
+// degradation for every field so it's safe to ship BEFORE the backend does:
+//   • no `seo` object at all        → falls back to page.name / page.seo_description
+//   • `seo` present but image null  → emits the OG text cluster, just no og:image
+//   • no canonical from API         → builds one from the resolved origin + path, else Astro.url.
+//                                     That origin is ASTRO_SITE_URL (written by the CMS deploy
+//                                     from the client's domain), else the CMS's own
+//                                     site_settings.frontend_url, else cmsConfig.seo.siteUrl
+//                                     (dashboard #1195, via core/effectiveConfig).
+//
+// OG tags are hand-built (not astro-seo's typed `openGraph` prop) on purpose: that prop requires
+// a non-empty image, which would emit an invalid empty <meta property="og:image"> whenever the
+// share image hasn't resolved. Building them via `extend.meta` keeps og:image strictly optional.
+//
+// `~site/cms.config` is imported directly, for one scalar (`seo.defaultType`) that is a per-site
+// editorial default and has no CMS field behind it — the same shape BlockRenderer uses for its
+// block registry, and sanctioned by the architecture doc's "~site seam" section. The other three
+// SEO values come from getEffectiveConfig(), which resolves the CMS over that same config.
+import { SEO } from 'astro-seo'
+import { ogConversionUrl, type PageSeo, type PageApiItem } from '../lib/api'
+import { canonicalUrl } from '../lib/seo-url'
+import { cmsConfig } from '~site/cms.config'
+import { getEffectiveConfig } from './effectiveConfig'
+import { hreflangLinks } from './i18n'
+
+interface Props {
+  /** Resolved metadata from the API. Absent until the backend ships #469. */
+  seo?: PageSeo | null
+  /** Fallback <title> when the API resolves none (typically the page's `name`). */
+  fallbackTitle: string
+  /** Fallback description when the API resolves none (typically `seo_description`). */
+  fallbackDescription?: string | null
+  /** The page's URL path (`page.path`), used to build a canonical URL when the API omits one. */
+  path?: string | null
+  /** Content locale, emitted as og:locale. */
+  locale?: string
+  /** The locale that routes unprefixed, as the CMS resolved it. Decides which alternate below is
+   *  announced as `x-default`; omitted, hreflangLinks falls back to this repo's declared value. */
+  defaultLocale?: string
+  /** Force noindex/nofollow regardless of what the API says (e.g. a preview-only route). */
+  noindex?: boolean
+  /** The page's address in every enabled locale (`page.translations`), rendered as
+   *  rel=alternate hreflang. Emitted here rather than per page type so no template can
+   *  forget it — a page missing from the set breaks reciprocity for every other locale. */
+  translations?: PageApiItem['translations']
+}
+
+const {
+  seo,
+  fallbackTitle,
+  fallbackDescription,
+  path,
+  locale,
+  defaultLocale,
+  noindex = false,
+  translations,
+} = Astro.props
+
+// Site name, share-image fallback and origin, resolved from the CMS with this repo's own
+// cmsConfig.seo values as the fallback (dashboard #1195). Memoized, so asking here costs no
+// extra fetch however many pages render.
+const effective = await getEffectiveConfig()
+
+// The CMS's per-page toggle (`seo.noindex`) is the normal source; the prop is an override for
+// routes the CMS knows nothing about. Either one alone is enough to exclude the page — a caller
+// that passes noindex can't be silently overruled by an API that says false, and vice versa.
+const robotsNoindex = noindex || seo?.noindex === true
+
+const title = seo?.title || fallbackTitle
+const description = seo?.description ?? fallbackDescription ?? undefined
+const type = seo?.type || cmsConfig.seo?.defaultType || 'website'
+const siteName = seo?.site_name || effective.seo.siteName || undefined
+
+// Prefer the fixed 1200×630 `og` crop the backend produces; fall back to the original media
+// url, then to the project-level default. Absolute URLs only (platforms reject relative).
+//
+// NOTE on wording: core files are raw-scanned by UnoCSS (`content.filesystem` in uno.config.ts
+// covers packages/cms-starter-core/**), comments included — unlike src/, which the Astro
+// integration scans for real class usage. So a bare utility word in prose HERE mints a dead CSS
+// rule. The previous wording of the line above tripped exactly that and added a positioning
+// utility nothing uses; keep utility-shaped words out of core prose, or quote them as `code`.
+//
+// `seo.image.url` is the CMS's "best variant" pick, which prefers WebP — a format Facebook,
+// LinkedIn and WhatsApp decode unreliably for og:image — so the JPG `og` conversion must win
+// whenever it exists; `url` is only the degraded fallback for media whose conversion hasn't
+// been generated yet.
+const ogCrop = ogConversionUrl(seo?.image)
+// The site-level `defaultImage` may be authored as a site-relative path; resolve it to the absolute
+// URL platforms require (an already-absolute value passes through). Keeps the raw value if there is
+// no origin yet to resolve a relative path against.
+let defaultImage = effective.seo.defaultImage
+if (defaultImage) {
+  try {
+    defaultImage = new URL(defaultImage, effective.seo.siteUrl ?? undefined).href
+  } catch {
+    /* no origin — a relative default can't be made absolute; keep it rather than dropping og:image */
+  }
+}
+const image = ogCrop || seo?.image?.url || defaultImage
+const imageAlt = seo?.image?.alt || title
+// The `og` crop is always exactly 1200×630; `image.width`/`height` describe the ORIGINAL
+// upload, so they may only be advertised when the emitted URL *is* that original.
+const imageWidth = ogCrop ? 1200 : seo?.image?.width
+const imageHeight = ogCrop ? 630 : seo?.image?.height
+
+// Canonical / og:url: API-resolved absolute URL wins; else the configured origin + this page's
+// path; else the current build URL. The origin comes from the shared seam robots.txt reads too,
+// so the canonical and the sitemap cannot advertise different hosts for the same page (#514).
+// The derived branch mirrors the trailing-slash shape Astro actually serves, so the canonical
+// never points one redirect away from the page it sits on — see canonicalUrl (#18).
+const origin = effective.seo.siteUrl
+const canonical = canonicalUrl({
+  seoUrl: seo?.url,
+  origin,
+  path,
+  currentPathname: Astro.url.pathname,
+  currentHref: Astro.url.href,
+})
+
+// Language alternates. Absolute URLs only, so the block is omitted entirely when none can be
+// resolved — see hreflangLinks.
+const alternates = hreflangLinks(translations, origin, defaultLocale ?? effective.defaultLocale)
+
+type MetaTag = { name?: string; property?: string; content: string }
+
+// Full OG + Twitter cluster. og:image (and its dimensions) only appear when an image resolved,
+// so an image-less page never emits a broken/empty share image.
+const meta: MetaTag[] = [
+  { property: 'og:title', content: title },
+  { property: 'og:type', content: String(type) },
+]
+if (canonical) meta.push({ property: 'og:url', content: canonical })
+if (description) meta.push({ property: 'og:description', content: description })
+if (siteName) meta.push({ property: 'og:site_name', content: siteName })
+if (locale) meta.push({ property: 'og:locale', content: locale })
+if (image) {
+  meta.push({ property: 'og:image', content: image })
+  if (imageWidth) meta.push({ property: 'og:image:width', content: String(imageWidth) })
+  if (imageHeight) meta.push({ property: 'og:image:height', content: String(imageHeight) })
+  meta.push({ property: 'og:image:alt', content: imageAlt })
+}
+meta.push({ name: 'twitter:card', content: image ? 'summary_large_image' : 'summary' })
+meta.push({ name: 'twitter:title', content: title })
+if (description) meta.push({ name: 'twitter:description', content: description })
+if (image) {
+  meta.push({ name: 'twitter:image', content: image })
+  meta.push({ name: 'twitter:image:alt', content: imageAlt })
+}
+---
+
+<SEO
+  title={title}
+  description={description}
+  canonical={canonical}
+  noindex={robotsNoindex}
+  nofollow={robotsNoindex}
+  extend={{ meta }}
+/>
+{alternates.map(({ hreflang, href }) => <link rel="alternate" {hreflang} {href} />)}

@@ -1,0 +1,29 @@
+---
+// Renders whichever page-type component the site registered for this route's `pageType`
+// (dashboard #1195 step 8) — the body a site's catch-all route used to spell out for itself.
+//
+// Same shape as BlockRenderer: a registry of lazy `() => import(...)` loaders keyed by a string
+// the API supplies, resolved at render time. Unlike BlockRenderer it takes the registry as a
+// PROP rather than importing `~site/cms.config` itself, because the catch-all route already holds
+// the config to build its paths from — passing it keeps this component callable from anywhere and
+// avoids a second `~site` import for a value the one call site already has.
+//
+// An unregistered `pageType` renders nothing rather than throwing: buildStaticPaths already warns
+// (loudly, per type, with a count) about pages it dropped for exactly that reason, so failing here
+// would replace a build that reports the problem with one that dies without saying which type.
+import type { PageTypeConfig } from './routing'
+
+interface Props {
+  /** The site's page-type registry — `cmsConfig.pageTypes`. */
+  pageTypes: Record<string, PageTypeConfig> | undefined
+  /** Everything buildStaticPaths put on the route, including `pageType` itself. */
+  props: Record<string, unknown>
+}
+
+const { pageTypes, props } = Astro.props
+const pageType = props.pageType as string | undefined
+const config = pageType ? pageTypes?.[pageType] : undefined
+const PageComponent = config ? (await config.component()).default : null
+---
+
+{PageComponent && <PageComponent {...props} />}

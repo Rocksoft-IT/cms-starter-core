@@ -10,6 +10,7 @@
     "./types/*": "./types/*"
   },
   "peerDependencies": {
-    "astro": "*"
+    "astro": "*",
+    "astro-seo": "*"
   }
 }
