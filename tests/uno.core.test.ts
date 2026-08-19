@@ -117,4 +117,12 @@ describe('coreShortcuts', () => {
   test('the cookie-consent banner actually hides when its hidden attribute is set', () => {
     expect(coreShortcuts['cookie-consent']).toMatch(/\[&\[hidden\]\]:hidden/)
   })
+
+  // Same bug class, second element: the granular category panel (#1226) toggles its OWN `hidden`
+  // attribute independently of the outer banner (customizeBtn reveals it) — a plain `flex` here
+  // would be exposed to the identical specificity tie, and the fix does not inherit from the
+  // parent's shortcut.
+  test('the granular category panel also actually hides when its hidden attribute is set', () => {
+    expect(coreShortcuts['cookie-consent__panel']).toMatch(/\[&\[hidden\]\]:hidden/)
+  })
 })

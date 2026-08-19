@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { classifyAnalyticsId, resolveAnalytics, warnAboutAnalytics } from '../core/analytics'
+import { CONSENT_SIGNALS_JS, classifyAnalyticsId, resolveAnalytics, warnAboutAnalytics } from '../core/analytics'
 import type { SiteSettingsData } from '../lib/api'
 
 // dashboard #1191 — a stored GA4/GTM id reached the API and then vanished: the loader accepted
@@ -8,8 +8,12 @@ import type { SiteSettingsData } from '../lib/api'
 // resolver both components now read, in isolation; the rendered-output half is
 // tests/e2e/consent-analytics.spec.ts.
 
-const settings = (integrations: Record<string, Record<string, string>>, consent = true): SiteSettingsData => ({
-  cookie_consent: { enabled: consent, privacy_page_id: null },
+const settings = (
+  integrations: Record<string, Record<string, string>>,
+  consent = true,
+  granular = false,
+): SiteSettingsData => ({
+  cookie_consent: { enabled: consent, privacy_page_id: null, granular },
   integrations,
 })
 
@@ -70,6 +74,54 @@ describe('resolveAnalytics', () => {
 
   test('a blank stored value is absence, not a malformed id', () => {
     expect(resolveAnalytics(settings({ ga4: { measurement_id: '  ' } })).ignored).toEqual([])
+  })
+
+  // --- granular mode (#1226) ---------------------------------------------------------------
+
+  test('granular defaults to false — every client gets the plain Accept/Reject banner', () => {
+    const resolved = resolveAnalytics(settings({ google_tag: { container_id: 'GTM-ABC1234' } }))
+
+    expect(resolved).toMatchObject({ active: true, granular: false })
+  })
+
+  test('granular is read straight through when the client opted in', () => {
+    const resolved = resolveAnalytics(settings({ google_tag: { container_id: 'GTM-ABC1234' } }, true, true))
+
+    expect(resolved).toMatchObject({ active: true, granular: true })
+  })
+
+  test('granular is irrelevant, not merely false, when consent is off', () => {
+    // Not asserting `granular: false` here on purpose — the field being technically false while
+    // the client's stored setting says true would be a MISLEADING pass. What matters is `active`,
+    // which every consumer already gates the whole banner on.
+    const resolved = resolveAnalytics(settings({ ga4: { measurement_id: 'G-XYZ1234567' } }, false, true))
+
+    expect(resolved.active).toBe(false)
+  })
+})
+
+// The raw JS interpolated into ConsentMode.astro's and CookieConsent.astro's own <script> tags —
+// see its own docblock in core/analytics.ts for why it is duplicated rather than shared via a
+// runtime import. Executing it needs a real browser (localStorage, window.gtag), which this
+// project's unit suite deliberately does not provide (browser-observable behavior lives in
+// tests/e2e/ or, for the interactive granular panel that a single fixed Playwright build cannot
+// reach, hands-on verification — see CookieConsent.astro's own docblock for exactly what was
+// checked). This test pins the SOURCE, not the behavior: a regression that silently drops one of
+// the three function names would still typecheck and build, and only show up as a runtime
+// `ReferenceError` in a real browser.
+describe('CONSENT_SIGNALS_JS', () => {
+  test('defines all three functions both components call by name', () => {
+    expect(CONSENT_SIGNALS_JS).toMatch(/function readCookieConsent\(\)/)
+    expect(CONSENT_SIGNALS_JS).toMatch(/function writeCookieConsent\(/)
+    expect(CONSENT_SIGNALS_JS).toMatch(/function applyCookieConsent\(/)
+  })
+
+  test('applyCookieConsent sets all four Consent Mode v2 signals — the ad_* bug this fixes', () => {
+    // dashboard #1226: the old inline script only ever updated analytics_storage; ad_storage,
+    // ad_user_data and ad_personalization stayed denied forever, even after Accept.
+    for (const signal of ['analytics_storage', 'ad_storage', 'ad_user_data', 'ad_personalization']) {
+      expect(CONSENT_SIGNALS_JS).toContain(signal)
+    }
   })
 })
 

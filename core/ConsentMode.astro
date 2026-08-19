@@ -15,7 +15,7 @@
 // The <noscript> half of the stock GTM snippet is ConsentModeNoscript.astro, mounted at the start
 // of <body> — no component can render into both places. Keep the two mounted together.
 import { getSiteSettings } from '../lib/api'
-import { resolveAnalytics, warnAboutAnalytics } from './analytics'
+import { CONSENT_SIGNALS_JS, resolveAnalytics, warnAboutAnalytics } from './analytics'
 
 const settings = await getSiteSettings()
 const analytics = resolveAnalytics(settings)
@@ -26,14 +26,18 @@ warnAboutAnalytics(analytics)
 
 const { active, gtmId, gtagId } = analytics
 
-const STORAGE_KEY = 'cookie-consent'
-
+// Default-deny bootstrap, then CONSENT_SIGNALS_JS's readCookieConsent()/applyCookieConsent()
+// replay a stored choice (either localStorage schema, #1226) BEFORE the tag loads below — so a
+// returning visitor's Statistics/Marketing grants are restored on every page, and the ad_* signals
+// are updated too, not just analytics_storage (the bug #1226 found: they used to stay denied
+// forever even after Accept).
 const bootstrap = `
 window.dataLayer = window.dataLayer || [];
 function gtag(){ dataLayer.push(arguments); }
 window.gtag = gtag;
 gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied'});
-try { if (localStorage.getItem('${STORAGE_KEY}') === 'accepted') gtag('consent','update',{analytics_storage:'granted'}); } catch(e){}
+${CONSENT_SIGNALS_JS}
+try { applyCookieConsent(readCookieConsent()); } catch(e){}
 gtag('js', new Date());
 `.trim()
 

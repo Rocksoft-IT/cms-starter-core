@@ -513,17 +513,29 @@ export const coreShortcuts: Record<string, string> = {
   // banner just never visually leaves the screen. Confirmed live on the Diligently client
   // (dashboard #1191): `computedDisplay` stayed `flex` with `hidden` already true. This
   // shortcut's own compound selector always wins regardless of load order.
+  // The outer box is a COLUMN now (#1226): granular mode stacks __top above __panel, so the
+  // row-split that used to live here directly moved onto __top, which is the only child in
+  // simple mode — same computed layout for every client that never turns granular on.
   'cookie-consent':
     'fixed inset-x-0 bottom-0 z-50 flex flex-col gap-4 ' +
     'border-t border-solid border-border bg-surface p-5 shadow-[0_-8px_24px_rgb(0_0_0_/_10%)] ' +
-    'sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6 ' +
+    'sm:p-6 ' +
     '[&[hidden]]:hidden',
+
+  'cookie-consent__top': 'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
 
   'cookie-consent__message': 'm-0 text-[14px] leading-relaxed text-text-primary sm:flex-1',
 
   'cookie-consent__link': 'text-primary underline underline-offset-2 hover:text-primary-soft',
 
-  'cookie-consent__actions': 'flex flex-row shrink-0 gap-3',
+  'cookie-consent__actions': 'flex flex-row flex-wrap shrink-0 items-center gap-3',
+
+  // The third, granular-only button in __actions (#1226) — deliberately the lightest-weight of
+  // the three: a bare text link, not a bordered button, so Reject/Accept stay the visually
+  // dominant choice and Customize reads as the slower, secondary path.
+  'cookie-consent__customize':
+    'cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold text-text-secondary underline ' +
+    'underline-offset-2 hover:text-text-primary',
 
   'cookie-consent__button':
     'inline-flex items-center justify-center gap-2 ' +
@@ -540,6 +552,39 @@ export const coreShortcuts: Record<string, string> = {
   'cookie-consent__button--reject':
     'bg-transparent text-button-primary border-button-primary ' +
     'hover:bg-button-primary hover:text-button-primary-text',
+
+  // ── Granular category panel (#1226, opt-in — settings.cookie_consent_granular) ─────────────
+  // Needs its own `[&[hidden]]:hidden` for the identical reason `.cookie-consent` itself does two
+  // shortcuts up: it is a second element on the SAME page independently toggling its own `hidden`
+  // attribute (customizeBtn reveals it), so it is just as exposed to the flex/[hidden] specificity
+  // tie — the fix does not inherit from the parent.
+  'cookie-consent__panel':
+    'flex flex-col gap-4 border-t border-solid border-border pt-4 ' +
+    '[&[hidden]]:hidden',
+
+  'cookie-consent__category': 'flex flex-col gap-1',
+
+  'cookie-consent__category-header': 'flex flex-row items-center justify-between gap-3',
+
+  'cookie-consent__category-label': 'text-[14px] font-semibold text-text-primary',
+
+  // Necessary has no toggle — this badge is what a visitor sees in its place, so the row still
+  // reads as "on" rather than looking broken or unfinished next to two real checkboxes.
+  'cookie-consent__category-badge':
+    'rounded-full bg-surface-alt px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted',
+
+  'cookie-consent__category-description': 'm-0 text-[13px] leading-relaxed text-text-secondary',
+
+  // A real, accessible native checkbox — not a hand-rolled switch graphic. `accent-primary` is
+  // the one-line way to put the client's own brand color on it without owning ::before/::after
+  // pseudo-element styling for a fake track+thumb.
+  'cookie-consent__toggle': 'h-[18px] w-[18px] shrink-0 cursor-pointer accent-primary',
+
+  // Stops the confirm button stretching to the panel's full width — .cookie-consent__panel is a
+  // column flex container, whose default cross-axis stretch would otherwise apply to every child
+  // including this one, and the category rows above DO want that stretch (so their own
+  // `justify-between` header has the full width to split across).
+  'cookie-consent__allow-selection': 'self-start',
 }
 
 /**

@@ -479,7 +479,9 @@ export async function getFooter(locale = 'en'): Promise<FooterData | null> {
  *  fallback, which is exactly the drift this change removes. Every one is null when the client
  *  has not set it (see SiteSettingsController::show). */
 export interface SiteSettingsData {
-  cookie_consent?: { enabled?: boolean; privacy_page_id?: number | null }
+  /** `granular` opts into the Statistics/Marketing category banner (#1226) — every client
+   *  defaults to a plain Accept/Reject choice; meaningless while `enabled` is false. */
+  cookie_consent?: { enabled?: boolean; privacy_page_id?: number | null; granular?: boolean }
   integrations?: Record<string, Record<string, string>>
   /** The client's name, as og:site_name. */
   site_name?: string | null
@@ -506,13 +508,24 @@ export function getSiteSettings(): Promise<SiteSettingsData> {
 
 /** The `cookie_consent` global component (GET /api/components/cookie_consent) — the banner's
  *  translatable copy, resolved per-locale with default-locale fallback. `null` when no active
- *  record exists (404); the renderer then falls back to built-in default copy. */
+ *  record exists (404); the renderer then falls back to built-in default copy.
+ *
+ *  The last eight fields are granular-mode-only (#1226): unused, and safe to leave unauthored,
+ *  on a client whose `cookie_consent.granular` is false. */
 export interface CookieConsentData {
   message?: string
   accept_label?: string
   reject_label?: string
   manage_label?: string
   component_type?: string
+  customize_label?: string
+  necessary_label?: string
+  always_on_label?: string
+  statistics_label?: string
+  statistics_description?: string
+  marketing_label?: string
+  marketing_description?: string
+  allow_selection_label?: string
 }
 
 export async function getCookieConsent(locale = 'en'): Promise<CookieConsentData | null> {

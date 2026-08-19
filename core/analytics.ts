@@ -50,6 +50,11 @@ export interface ResolvedAnalytics {
   active: boolean
   /** Whether the client switched cookie consent on (Settings → Privacy). */
   consentEnabled: boolean
+  /**
+   * Whether this client opted into the granular Statistics/Marketing banner layer (#1226) —
+   * meaningless when `active` is false. Every client defaults to the plain Accept/Reject banner.
+   */
+  granular: boolean
   /** Container for the GTM loader, when one was configured. */
   gtmId: string | null
   /** Id for gtag.js — used only when there is no GTM container (a container usually hosts GA4). */
@@ -96,6 +101,7 @@ export function resolveAnalytics(settings: SiteSettingsData): ResolvedAnalytics 
   return {
     active: consentEnabled && (gtmId !== null || gtagId !== null),
     consentEnabled,
+    granular: settings.cookie_consent?.granular === true,
     gtmId,
     gtagId,
     ignored,
@@ -127,3 +133,67 @@ export function warnAboutAnalytics(resolved: ResolvedAnalytics): void {
     )
   }
 }
+
+/**
+ * The per-category grant a visitor's choice resolves to. `marketing` covers all three `ad_*`
+ * Consent Mode v2 signals as ONE unit — nothing in this stack lets a visitor grant one
+ * independently of the other two (#1226's own scoping: that would need a per-cookie inventory
+ * this project has no mechanism to generate).
+ */
+export interface CookieConsentValue {
+  statistics: boolean
+  marketing: boolean
+}
+
+/**
+ * Raw JS, interpolated into an `is:inline` script by BOTH ConsentMode.astro (which replays a
+ * stored choice on every page load, before analytics can fire) and CookieConsent.astro (which
+ * writes a new choice on Accept/Reject/Allow-selection). Duplicated into each component's own
+ * script tag rather than defined once and referenced from the other — inline scripts share
+ * `window`, so that would work today (ConsentMode always mounts in `<head>`, before
+ * CookieConsent), but it would make correctness depend on mount ORDER with no type-level
+ * guarantee, silently breaking if that ever changed. One shared TEXT source instead: both copies
+ * can never drift, and neither component depends on when the other one runs.
+ *
+ * `writeCookieConsent()` always stores the JSON object `{"statistics":<bool>,"marketing":<bool>}`,
+ * in BOTH modes — Accept and Reject are just fixed values of the same split, so the write path
+ * never branches on mode.
+ *
+ * `readCookieConsent()` is the tolerant half, and accepts either shape:
+ *   - bare string `'accepted'` / `'rejected'` — stored before #1226, or by a site still on an
+ *     older core; read as both-true / both-false
+ *   - JSON `{"statistics":<bool>,"marketing":<bool>}` — everything written from here on
+ * That tolerance is what makes the toggle safe in both directions: a visitor who consented before
+ * this shipped is not re-prompted, and flipping a client between modes never invalidates a stored
+ * choice. Returns null when nothing usable is stored (not yet decided — show the banner).
+ *
+ * `applyCookieConsent()` is the `ad_*` bug fix (#1226): the old code only ever granted
+ * `analytics_storage` on accept, leaving the three `ad_*` signals bootstrapped `denied` forever.
+ * This always sets all four together, split by category.
+ */
+export const CONSENT_SIGNALS_JS = `
+function readCookieConsent(){
+  try {
+    var raw = localStorage.getItem('cookie-consent');
+    if (raw === 'accepted') return {statistics:true,marketing:true};
+    if (raw === 'rejected') return {statistics:false,marketing:false};
+    if (raw) {
+      var v = JSON.parse(raw);
+      if (typeof v.statistics === 'boolean' && typeof v.marketing === 'boolean') return v;
+    }
+  } catch(e) {}
+  return null;
+}
+function writeCookieConsent(v){
+  try { localStorage.setItem('cookie-consent', JSON.stringify(v)); } catch(e) {}
+}
+function applyCookieConsent(v){
+  if (!v || !window.gtag) return;
+  window.gtag('consent','update',{
+    analytics_storage: v.statistics ? 'granted' : 'denied',
+    ad_storage: v.marketing ? 'granted' : 'denied',
+    ad_user_data: v.marketing ? 'granted' : 'denied',
+    ad_personalization: v.marketing ? 'granted' : 'denied'
+  });
+}
+`.trim()
