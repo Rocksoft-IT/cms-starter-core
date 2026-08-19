@@ -1,10 +1,14 @@
 ---
-// Cookie-consent banner (#521) — a simple window at the foot of the page. Like Footer.astro this
-// core renderer emits SEMANTIC MARKUP AND BEHAVIOUR ONLY, no visual CSS: each client styles
-// `.cookie-consent*` (position, colours, layout) in its own stylesheet. It SELF-GATES — nothing
-// renders unless the client enabled consent AND has an analytics id (there is nothing to gate
-// otherwise). Copy comes from the translatable `cookie_consent` global component, with built-in
-// defaults so the banner works the moment consent is switched on, before any copy is authored.
+// Cookie-consent banner (#521) — a simple window at the foot of the page. The component itself
+// emits SEMANTIC MARKUP AND BEHAVIOUR ONLY, no inline styling: the look comes entirely from the
+// `cookie-consent*` UnoCSS shortcuts (core/uno.core.ts) — a themed default on the site's own brand
+// tokens, so a fresh client gets a real-looking banner immediately rather than a bare unstyled bar.
+// A site overrides the look by redefining any of those shortcut keys in its own src/uno.ts (site
+// keys win on collision, no !important) — the classnames on the markup below are the seam. It
+// SELF-GATES — nothing renders unless the client enabled consent AND has an analytics id (there is
+// nothing to gate otherwise). Copy comes from the translatable `cookie_consent` global component,
+// with built-in defaults so the banner works the moment consent is switched on, before any copy is
+// authored.
 //
 // Pairs with ConsentMode.astro in <head>: that denies analytics by default; the buttons here
 // flip the Consent Mode v2 signal to granted/denied and remember the choice in localStorage.

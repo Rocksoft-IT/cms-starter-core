@@ -496,6 +496,40 @@ export const coreShortcuts: Record<string, string> = {
     'no-underline cursor-pointer ' +
     'transition-colors duration-300 ' +
     'hover:bg-transparent hover:text-primary',
+
+  // ── Cookie consent banner (CookieConsent.astro, #521 / #1191) ──────────────
+  // The component itself ships no visual CSS by design (like Footer.astro); these are the theme's
+  // default look, on the site's own brand tokens, so a fresh client isn't stuck with a bare
+  // unstyled bar the moment consent is switched on. A site overrides by redefining any of these
+  // keys in its own src/uno.ts — site keys win on collision, no !important. `btn-primary`/
+  // `btn-outline` above are sized for hero CTAs (px-7 py-4, 20px type) and would dwarf a slim
+  // banner, so this is its own compact scale rather than a reuse.
+  'cookie-consent':
+    'fixed inset-x-0 bottom-0 z-50 flex flex-col gap-4 ' +
+    'border-t border-solid border-border bg-surface p-5 shadow-[0_-8px_24px_rgb(0_0_0_/_10%)] ' +
+    'sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6',
+
+  'cookie-consent__message': 'm-0 text-[14px] leading-relaxed text-text-primary sm:flex-1',
+
+  'cookie-consent__link': 'text-primary underline underline-offset-2 hover:text-primary-soft',
+
+  'cookie-consent__actions': 'flex flex-row shrink-0 gap-3',
+
+  'cookie-consent__button':
+    'inline-flex items-center justify-center gap-2 ' +
+    'rounded-[8px] border-[2px] border-solid px-4 py-2 ' +
+    'text-[14px] font-semibold leading-5 no-underline cursor-pointer select-none ' +
+    'transition-colors duration-200',
+
+  // Same footprint as --reject below (equal size and weight) — the "not a dark pattern" the
+  // component's own comment calls for; only fill vs outline differs, not prominence.
+  'cookie-consent__button--accept':
+    'bg-button-primary text-button-primary-text border-button-primary ' +
+    'hover:bg-transparent hover:text-button-primary',
+
+  'cookie-consent__button--reject':
+    'bg-transparent text-button-primary border-button-primary ' +
+    'hover:bg-button-primary hover:text-button-primary-text',
 }
 
 /**
