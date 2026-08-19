@@ -4,6 +4,84 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.20.0 — the client template stops carrying core's own machinery
+
+Four things a client repo used to own a copy of now live here, so a fix to any of them arrives with
+a pin bump instead of a per-repo edit (dashboard #1195 step 8, PR #1247).
+
+| new in core | what it is |
+| --- | --- |
+| `deploy.sh` (package root) | the build-onward half of the deploy: build, package the release, verify, the atomic go-live flip, prune, the history log |
+| `core/sitePaths.ts` | `getSitePaths(cmsConfig)` — the whole `getStaticPaths` body of the catch-all route |
+| `core/PageDispatch.astro` | the page-type lookup and render that route's template used to inline |
+| `core/robots.ts` | the `robots.txt` handler |
+| `core/Seo.astro` | moved here from the site layer; unchanged otherwise |
+
+### For an existing client: nothing breaks, and nothing changes on its own
+
+Your repo keeps its own `src/pages/[...uri].astro`, `robots.txt.ts`, `components/Seo.astro` and
+root `deploy.sh`, and they all keep working exactly as before — this release does not touch them.
+What it does is make the thinner versions available, so adopting them is a separate, deliberate
+edit. Newly generated repos are born with them.
+
+`Seo.astro` is the one worth adopting soonest: while it lives in your `src/`, the CMS-resolved
+`siteName` / `defaultImage` / `siteUrl` from v0.16.0 reach newly generated repos ONLY. Switching
+your `Layout.astro` to `import Seo from '@rocksoft/cms-starter-core/core/Seo.astro'` and deleting
+your copy is what puts a pin bump in charge of your head tags from then on.
+
+### `deploy.sh` is now two files, and the split is not where you would guess
+
+The repo-root wrapper keeps everything with a hard ordering or physical-location dependency —
+layout detection (it keys off `$script_dir/../artisan`, a signal destroyed once the logic runs from
+inside `node_modules`), the deploy lock, the #969 untracked-lockfile guard, `pnpm install`, and
+provenance logging — then `exec`s into this package's `deploy.sh` for the rest. A literal one-line
+wrapper is impossible: `node_modules/@rocksoft/cms-starter-core/deploy.sh` does not exist until the
+install has run, and the install is one of the steps being relocated.
+
+Consequence worth stating plainly: **this does NOT remove the need for the panel's deploy-script
+sync.** #969's fix is the lockfile guard plus the `--no-lockfile` install logic, both of which must
+precede install and therefore stay in the wrapper. A future bug of that class still needs the
+whole-file sync to reach the fleet.
+
+### Also
+
+`core/Faq.astro` gained a fallback on `var(--color-surface-alt)`, which it had been reading without
+one. `astro-seo` is now declared in this package's `peerDependencies` — it became a real dependency
+the moment `Seo.astro` moved here.
+
+## v0.19.0 — opt-in granular consent categories
+
+Statistics and Marketing become separate, independently-consentable categories rather than one
+all-or-nothing switch, opt-in per client. Touches `core/ConsentMode.astro`,
+`core/CookieConsent.astro`, `core/analytics.ts`, `core/uno.core.ts` and `lib/api.ts`. Source:
+diligently-dashboard #1246.
+
+No client action required: a client that has not opted in behaves exactly as before.
+
+## v0.18.0 — the cookie banner actually closes
+
+`.cookie-consent` set `display:flex` unconditionally while `CookieConsent.astro` hides itself with
+the `hidden` DOM attribute. Both are single-class/attribute specificity, so on a tie the
+later-loaded stylesheet wins — and this one loads after the UA sheet. Every click handler fired and
+consent really was recorded; the banner simply never left the screen. Confirmed live on the
+Diligently client (`computedDisplay` stayed `flex` with `hidden` already true). The shortcut now
+carries `[&[hidden]]:hidden`, whose compound selector wins regardless of load order — the same fix
+`tabpanel` already needed. Source: diligently-dashboard #1241.
+
+No client action required; a bump is the whole fix.
+
+## v0.17.0 — the cookie banner gets a real default look
+
+`CookieConsent.astro` shipped semantic markup and no visual CSS, so a client switching consent on
+got a bare unstyled bar. The theme's default look now lives in `coreShortcuts`
+(`cookie-consent`, `cookie-consent__message`, `cookie-consent__link` and friends), built on the
+site's own brand tokens and overridable by redefining any of those keys in `src/uno.ts` — site keys
+win on collision, no `!important`. Deliberately its own compact scale rather than reusing
+`btn-primary`/`btn-outline`, which are sized for hero CTAs and would dwarf a slim banner. Source:
+diligently-dashboard #1232.
+
+No client action required.
+
 ## v0.16.0 — the config seam reads the CMS, and `siteUrl()` becomes async
 
 Four values a site used to hand-write in `cms.config.ts` now come from the CMS, each keeping its

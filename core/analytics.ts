@@ -46,13 +46,35 @@ export interface IgnoredAnalyticsId {
 }
 
 export interface ResolvedAnalytics {
-  /** The single gate: consent is on AND at least one usable id exists. Both components read this. */
+  /**
+   * Should a Google tag load: consent is on AND at least one usable id exists. Read by
+   * ConsentMode.astro and ConsentModeNoscript.astro — the two components that emit a tag.
+   *
+   * NOT the banner's gate. It used to be, and that was wrong: the banner is about COOKIES, and
+   * analytics is only the thing that happens to set one today. See `showBanner`.
+   */
   active: boolean
   /** Whether the client switched cookie consent on (Settings → Privacy). */
   consentEnabled: boolean
   /**
+   * Should the consent banner render. Just `consentEnabled` — the client-admin flipping the
+   * toggle IS the decision, and nothing else gets a vote.
+   *
+   * Deliberately independent of whether a usable analytics id exists. Other cookie-setting
+   * integrations are coming, and gating the banner on one specific provider would need a fresh
+   * carve-out for each. It also let a real bug hide: the backend counted any non-empty string as
+   * "has analytics" while the frontend demanded a real id shape, so a client with a placeholder
+   * id (SMBP's `"AAA"`) got a panel that said analytics was configured and a site that silently
+   * rendered no banner at all.
+   *
+   * Safe on its own: with no tag loaded `window.gtag` never exists, and applyCookieConsent()
+   * null-guards on that — the choice is stored, the signal no-ops, and a later build that DOES
+   * load a tag replays the stored choice instead of re-asking.
+   */
+  showBanner: boolean
+  /**
    * Whether this client opted into the granular Statistics/Marketing banner layer (#1226) —
-   * meaningless when `active` is false. Every client defaults to the plain Accept/Reject banner.
+   * meaningless when `showBanner` is false. Every client defaults to plain Accept/Reject.
    */
   granular: boolean
   /** Container for the GTM loader, when one was configured. */
@@ -101,6 +123,7 @@ export function resolveAnalytics(settings: SiteSettingsData): ResolvedAnalytics 
   return {
     active: consentEnabled && (gtmId !== null || gtagId !== null),
     consentEnabled,
+    showBanner: consentEnabled,
     granular: settings.cookie_consent?.granular === true,
     gtmId,
     gtagId,

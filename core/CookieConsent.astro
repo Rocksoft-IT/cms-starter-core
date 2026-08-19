@@ -5,13 +5,15 @@
 // tokens, so a fresh client gets a real-looking banner immediately rather than a bare unstyled bar.
 // A site overrides the look by redefining any of those shortcut keys in its own src/uno.ts (site
 // keys win on collision, no !important) — the classnames on the markup below are the seam. It
-// SELF-GATES — nothing renders unless the client enabled consent AND has an analytics id (there is
-// nothing to gate otherwise). Copy comes from the translatable `cookie_consent` global component,
-// with built-in defaults so the banner works the moment consent is switched on, before any copy is
-// authored.
+// SELF-GATES on the client's consent switch alone (Settings → Privacy): an analytics id is NOT
+// required, because this banner is about cookies and analytics is only today's source of them.
+// Copy comes from the translatable `cookie_consent` global component, with built-in defaults so
+// the banner works the moment consent is switched on, before any copy is authored.
 //
 // Pairs with ConsentMode.astro in <head>: that denies analytics by default; the buttons here
 // flip the Consent Mode v2 signals to granted/denied and remember the choice in localStorage.
+// When no tag loaded, ConsentMode does not render and `window.gtag` never exists — the signal
+// call no-ops, the choice is still stored, and a later build that does load a tag replays it.
 //
 // GRANULAR MODE (#1226, opt-in per client via settings.cookie_consent_granular): every client
 // defaults to the plain two-button banner below, unchanged. A client that opts in gets a THIRD
@@ -30,12 +32,14 @@ const { locale = 'en' } = Astro.props
 
 const settings = await getSiteSettings()
 
-// The same gate ConsentMode.astro loads the tag behind — shared rather than re-derived, because
-// the two used to disagree: a malformed id (say a `GT-` one, refused by the old loader) counted
-// as "has analytics" here and produced a banner asking about tracking that was never installed.
-const { active, granular } = resolveAnalytics(settings)
+// The banner renders on the client's consent switch ALONE — not on whether a Google tag also
+// resolved. `active` (what ConsentMode.astro loads a tag behind) is deliberately not read here:
+// this banner is about COOKIES, and analytics is merely the only thing that sets one today. Both
+// values still come from resolveAnalytics(), so the two components cannot drift apart on what
+// "consent is on" means — only on what each of them does about it.
+const { showBanner, granular } = resolveAnalytics(settings)
 
-const copy = active ? await getCookieConsent(locale).catch(() => null) : null
+const copy = showBanner ? await getCookieConsent(locale).catch(() => null) : null
 
 // Built-in fallback copy (style-neutral, provider-agnostic) used until the CMS `cookie_consent`
 // component is authored. A client localises/overrides it by writing that component.
@@ -59,7 +63,7 @@ const allowSelectionLabel = copy?.allow_selection_label || 'Allow selection'
 // Resolve the picked privacy page to its localized path (or omit the link when unset/unresolved).
 let privacyHref: string | null = null
 const privacyId = settings.cookie_consent?.privacy_page_id
-if (active && typeof privacyId === 'number') {
+if (showBanner && typeof privacyId === 'number') {
   const pages = await getPages(locale).catch(() => [])
   privacyHref = pages.find((p) => p.id === privacyId)?.path ?? null
 }
@@ -112,7 +116,7 @@ ${CONSENT_SIGNALS_JS}
 ---
 
 {
-  active && (
+  showBanner && (
     <div class="cookie-consent" role="dialog" aria-live="polite" aria-label={manageLabel} data-cookie-consent hidden>
       <div class="cookie-consent__top">
         <p class="cookie-consent__message">
@@ -182,4 +186,4 @@ ${CONSENT_SIGNALS_JS}
   )
 }
 
-{active && <script is:inline set:html={consentScript} />}
+{showBanner && <script is:inline set:html={consentScript} />}

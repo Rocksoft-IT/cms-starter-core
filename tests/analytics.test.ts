@@ -92,11 +92,44 @@ describe('resolveAnalytics', () => {
 
   test('granular is irrelevant, not merely false, when consent is off', () => {
     // Not asserting `granular: false` here on purpose — the field being technically false while
-    // the client's stored setting says true would be a MISLEADING pass. What matters is `active`,
-    // which every consumer already gates the whole banner on.
+    // the client's stored setting says true would be a MISLEADING pass. What matters is
+    // `showBanner`, which the banner gates on.
     const resolved = resolveAnalytics(settings({ ga4: { measurement_id: 'G-XYZ1234567' } }, false, true))
 
-    expect(resolved.active).toBe(false)
+    expect(resolved.showBanner).toBe(false)
+  })
+
+  // --- the banner is about cookies, not about analytics -------------------------------------
+  //
+  // `active` (load a tag) and `showBanner` (render the banner) are separate answers. They used to
+  // be one boolean, which meant a client could not have a banner without Google Analytics — wrong
+  // in itself, and it hid a real bug: the panel counted ANY non-empty integration value as "has
+  // analytics" while these functions demand a real id shape, so a placeholder id produced a green
+  // panel and a silently bannerless site.
+
+  test('the banner shows with consent on and no analytics configured at all', () => {
+    const resolved = resolveAnalytics(settings({}))
+
+    expect(resolved).toMatchObject({ showBanner: true, active: false, gtmId: null, gtagId: null })
+  })
+
+  test('a placeholder id shows the banner but still loads no tag — the SMBP "AAA" case', () => {
+    const resolved = resolveAnalytics(settings({ google_tag: { container_id: 'AAA' } }))
+
+    expect(resolved).toMatchObject({ showBanner: true, active: false, gtmId: null, gtagId: null })
+    expect(resolved.ignored).toEqual([{ source: 'google_tag.container_id', reason: 'malformed' }])
+  })
+
+  test('consent off hides the banner even when analytics is perfectly configured', () => {
+    const resolved = resolveAnalytics(settings({ google_tag: { container_id: 'GTM-ABC1234' } }, false))
+
+    expect(resolved).toMatchObject({ showBanner: false, active: false })
+  })
+
+  test('the fully configured case still turns both on together', () => {
+    const resolved = resolveAnalytics(settings({ google_tag: { container_id: 'GTM-ABC1234' } }))
+
+    expect(resolved).toMatchObject({ showBanner: true, active: true })
   })
 })
 
