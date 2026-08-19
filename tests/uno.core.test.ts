@@ -103,3 +103,18 @@ describe('resolveThemeColors', () => {
     expect(unknown, 'core references palette colors missing from REQUIRED_PALETTE_KEYS').toEqual([])
   })
 })
+
+describe('coreShortcuts', () => {
+  // Regression for dashboard #1191: `.cookie-consent` sets `flex` unconditionally and
+  // CookieConsent.astro toggles visibility via the `hidden` DOM attribute (el.hidden = true/false).
+  // The browser's own `[hidden]{display:none}` and a plain `.cookie-consent{display:flex}` rule
+  // are BOTH single-class/attribute specificity, so on a tie the later-loaded stylesheet wins —
+  // and this one loads after the UA sheet, so `flex` silently won and the banner never visually
+  // closed even though every click handler fired and consent was genuinely recorded. Confirmed
+  // live on the Diligently client: `hidden` was `true` on the element, `getComputedStyle().display`
+  // stayed `flex`. `[&[hidden]]:hidden` raises this one rule's specificity so it always wins
+  // regardless of load order — the same fix `tabpanel` already needed for the same reason.
+  test('the cookie-consent banner actually hides when its hidden attribute is set', () => {
+    expect(coreShortcuts['cookie-consent']).toMatch(/\[&\[hidden\]\]:hidden/)
+  })
+})

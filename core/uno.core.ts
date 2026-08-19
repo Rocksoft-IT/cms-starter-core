@@ -504,10 +504,20 @@ export const coreShortcuts: Record<string, string> = {
   // keys in its own src/uno.ts — site keys win on collision, no !important. `btn-primary`/
   // `btn-outline` above are sized for hero CTAs (px-7 py-4, 20px type) and would dwarf a slim
   // banner, so this is its own compact scale rather than a reuse.
+  //
+  // `[&[hidden]]:hidden` (the same fix `tabpanel` already needed, above) is load-bearing, not
+  // decorative: `flex` and the browser's own `[hidden]{display:none}` are BOTH single-class/
+  // attribute specificity, so on a tie the later-loaded stylesheet wins — and this one loads
+  // after the UA sheet. Without it, CookieConsent.astro's open()/close() (el.hidden = …) sets
+  // the DOM attribute correctly, every click handler fires, consent really is recorded — the
+  // banner just never visually leaves the screen. Confirmed live on the Diligently client
+  // (dashboard #1191): `computedDisplay` stayed `flex` with `hidden` already true. This
+  // shortcut's own compound selector always wins regardless of load order.
   'cookie-consent':
     'fixed inset-x-0 bottom-0 z-50 flex flex-col gap-4 ' +
     'border-t border-solid border-border bg-surface p-5 shadow-[0_-8px_24px_rgb(0_0_0_/_10%)] ' +
-    'sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6',
+    'sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6 ' +
+    '[&[hidden]]:hidden',
 
   'cookie-consent__message': 'm-0 text-[14px] leading-relaxed text-text-primary sm:flex-1',
 

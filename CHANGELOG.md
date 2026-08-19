@@ -4,6 +4,102 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.16.0 — the config seam reads the CMS, and `siteUrl()` becomes async
+
+Four values a site used to hand-write in `cms.config.ts` now come from the CMS, each keeping its
+local value as a fallback. `core/effectiveConfig.ts` is the single place that precedence lives.
+
+| value | CMS source |
+| --- | --- |
+| `defaultLocale` | `GET /api/locales`, the entry flagged `is_default` |
+| `seo.siteName` | `GET /api/site-settings`, `site_name` |
+| `seo.defaultImage` | `GET /api/site-settings`, `default_og_image` |
+| `seo.siteUrl` | `frontend_url`, ranked under `ASTRO_SITE_URL` |
+
+### BREAKING — `siteUrl()` is now async
+
+`core/site.ts`'s `siteUrl()` returns `Promise<string | null>`. It gained the CMS's `frontend_url`
+as a middle candidate (`ASTRO_SITE_URL` -> `frontend_url` -> `cmsConfig.seo.siteUrl`), because a
+test or staging domain is attached in the panel routinely and previously the only way one could
+reach a build was a hand-edited repo value that then outlived it.
+
+A client repo owns the two call sites, so **both need `await` at bump time**:
+
+| file | un-awaited symptom | caught by `astro check`? |
+| --- | --- | --- |
+| `src/components/Seo.astro` | `canonicalUrl({ origin: Promise })` | **yes** |
+| `src/pages/robots.txt.ts` | `Sitemap: [object Promise]` | **NO** — a Promise is truthy |
+
+The second is the trap: it ships silently on a green build. After bumping, grep the built
+`dist/robots.txt` for a real URL. `src/pages/robots.txt.ts` also has to become
+`export const GET: APIRoute = async () => {`.
+
+`astro.config.mjs` keeps its own two-candidate `resolveSiteOrigin()` call and does NOT gain
+`frontend_url`: it is evaluated before Vite exists, so it can neither await nor fetch. Both
+surfaces still share `resolveSiteOrigin()`, so only the candidate list differs.
+
+### New — a site declares only the palette keys it wants to differ
+
+`NEUTRAL_PALETTE_DEFAULTS` covers all 19 `REQUIRED_PALETTE_KEYS`, and `resolveThemeColors()` merges
+a site's palette over it instead of throwing on a missing key. `brand: { colors: {} }` is now legal.
+The required-key LIST is unchanged since v0.9.0, so an existing palette keeps working untouched.
+
+Two consequences worth knowing:
+
+- `Layout.astro` in the template merges the same defaults when emitting `:root`. A client keeping
+  its own `Layout.astro` and a FULL palette is unaffected; one that trims its palette without that
+  merge would emit `--color-button-primary-border: undefined`, which overrides the stylesheet's
+  own `var(--x, fallback)` rather than falling through to it.
+- A palette with a MISSPELLED key name no longer fails the build — the real key silently takes its
+  neutral default and the typo becomes an unused extra colour. `astro check` cannot see it either.
+
+### New — `pathForLocale()` takes the resolved root locale
+
+`pathForLocale(page, locale, fallbackLocale?)`. A two-argument call still compiles and keeps the
+old behaviour, so it is not a bump blocker — but it then answers "is this the locale that routes
+unprefixed?" from `cms.config.ts` instead of from the CMS, which is wrong whenever the two
+disagree. `buildStaticPaths` now puts `defaultLocale` on every route's props next to `locale`, so a
+page-type component can forward it; its own signature is unchanged.
+
+### Also
+
+`menus` is optional in `CmsConfig` (core defaults `header` / `footer`), and the template's
+`Navbar.astro` reads `cmsConfig.menus.header` instead of a hardcoded literal. `Faq.astro` gained a
+fallback on `var(--color-surface-alt)`, which it had been reading without one.
+
+## v0.15.0 — a stored Google Tag / GA4 id actually reaches the browser
+
+Consent Mode v2 was wired but the configured analytics id never made it into the shipped page, so
+a client that had filled in its GTM container or GA4 measurement id still loaded no analytics.
+Touches `core/ConsentMode.astro`, `core/ConsentModeNoscript.astro`, `core/CookieConsent.astro`,
+`core/analytics.ts` and `lib/smoke.mjs`. Source: diligently-dashboard #1197.
+
+No client action required — the components self-gate exactly as before (nothing is emitted unless
+the client enabled cookie consent AND configured an id). If your repo mounts `<ConsentMode/>` in
+its own `Layout.astro`, this is the release that makes that mount do something.
+
+## v0.14.0 — a pricing plan card can carry a tier illustration
+
+`PricingPlan` gained `plan_image` (plus the `plan_image_meta` sibling carrying intrinsic size and
+srcset, absent for an SVG), rendered at the head of the card through the new `pricing-plan-image`
+shortcut. A four-card set now has room: the new `container-wide` shortcut and its
+`--layout-container-wide` token (1400px) sit one step past the page container, and only a block
+that asks for it reaches there. Source: diligently-dashboard #1172.
+
+Additive — no client action. A site may override `--layout-container-wide` or the
+`pricing-plan-image` shortcut like any other.
+
+## v0.13.0 — a FAQ accordion can arrive with its first answer open
+
+`FaqBlock.data.open_first?: boolean`. Source: diligently-dashboard #1166. Additive, editor-driven,
+no client action.
+
+## v0.12.0 — a FAQ block can render as a plain list
+
+`FaqBlock.data.layout?: 'accordion' | 'list'` — the list variant drops the disclosure behaviour for
+content that reads better fully expanded. Source: diligently-dashboard #1164. Additive; the default
+stays `accordion`, so an existing block renders unchanged.
+
 ## v0.11.0 — flattening an image no longer throws its `srcset` away
 
 v0.10.0 flattened every CMS media object to its URL string so templates that expect
