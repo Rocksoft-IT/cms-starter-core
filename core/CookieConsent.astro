@@ -9,6 +9,7 @@
 // Pairs with ConsentMode.astro in <head>: that denies analytics by default; the buttons here
 // flip the Consent Mode v2 signal to granted/denied and remember the choice in localStorage.
 import { getSiteSettings, getCookieConsent, getPages } from '../lib/api'
+import { resolveAnalytics } from './analytics'
 
 interface Props {
   /** Locale of the page — drives the per-locale copy fetch and privacy-link resolution. */
@@ -18,10 +19,11 @@ interface Props {
 const { locale = 'en' } = Astro.props
 
 const settings = await getSiteSettings()
-const hasAnalytics = Boolean(
-  settings.integrations?.google_tag?.container_id || settings.integrations?.ga4?.measurement_id,
-)
-const active = settings.cookie_consent?.enabled === true && hasAnalytics
+
+// The same gate ConsentMode.astro loads the tag behind — shared rather than re-derived, because
+// the two used to disagree: a malformed id (say a `GT-` one, refused by the old loader) counted
+// as "has analytics" here and produced a banner asking about tracking that was never installed.
+const { active } = resolveAnalytics(settings)
 
 const copy = active ? await getCookieConsent(locale).catch(() => null) : null
 

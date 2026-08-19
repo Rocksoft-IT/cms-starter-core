@@ -1,0 +1,34 @@
+---
+// The second half of Google's standard GTM install: the <noscript> iframe, which belongs at the
+// START of <body> while ConsentMode.astro's loader sits in <head>. Two components rather than one
+// because no component can render into both places.
+//
+// Self-gates on exactly the same resolution as ConsentMode — consent enabled AND a GTM container
+// configured — so a build either carries the whole stock snippet or none of it. A gtag-only site
+// (G-/GT-/AW-/DC-) gets nothing here: ns.html is GTM-specific.
+//
+// On consent: this iframe is a separate document, so it does not inherit the page's Consent Mode
+// signal — blocking for a non-consenting visitor happens inside the container (consent
+// initialization + per-tag consent requirements), which is where every CMP vendor's guide and
+// Google's own reference install put it. That is the deliberate choice here: stay on the
+// reference install and keep the consent rules in one place, rather than diverging from the
+// snippet every auditor recognizes (#1191).
+import { getSiteSettings } from '../lib/api'
+import { resolveAnalytics } from './analytics'
+
+const { active, gtmId } = resolveAnalytics(await getSiteSettings())
+---
+
+{
+  active && gtmId && (
+    <noscript>
+      <iframe
+        src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+        height="0"
+        width="0"
+        style="display:none;visibility:hidden"
+        title="Google Tag Manager"
+      />
+    </noscript>
+  )
+}
