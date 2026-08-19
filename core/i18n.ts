@@ -1,7 +1,20 @@
 import { cmsConfig } from '~site/cms.config'
 import type { PageApiItem } from '../lib/api'
 
-/** The default locale from project config, used for API calls and html[lang]. */
+/**
+ * The default locale as this REPO declares it - the offline/local value only.
+ *
+ * Prefer the resolved one wherever it is available: the CMS decides which locale routes at the
+ * root (`is_default` on GET /api/locales), and core/effectiveConfig.ts is where the two are
+ * reconciled. This constant is what that resolution falls back to, and it stays a plain
+ * synchronous export on purpose - it is read by modules that cannot await (and by every caller
+ * that has no resolved value to hand), so making it async would push a network dependency into
+ * module evaluation across the package.
+ *
+ * The three functions below therefore take the resolved locale as an optional parameter,
+ * defaulting to this value: a caller that knows better says so, and one that does not keeps
+ * today's behaviour.
+ */
 export const defaultLocale: string = cmsConfig.defaultLocale
 
 /**
@@ -20,12 +33,18 @@ export const defaultLocale: string = cmsConfig.defaultLocale
  *
  * The fallback to `path`/`slug` covers the single-locale case and mock fixtures written before
  * `translations[]` existed — in the default locale those are the same string.
+ *
+ * `fallbackLocale` is the locale that routes unprefixed, and it must be the CMS-resolved one
+ * wherever the caller has it (see core/effectiveConfig.ts). It is a parameter rather than a read
+ * of the module constant because `buildStaticPaths` already knows the resolved value and had no
+ * way to say so: with a panel whose default locale disagreed with `cms.config.ts`, this decided
+ * "has no address here" against the wrong locale and dropped pages from the build.
  */
-export function pathForLocale(page: PageApiItem, locale: string): string | null {
+export function pathForLocale(page: PageApiItem, locale: string, fallbackLocale: string = defaultLocale): string | null {
   const entry = page.translations?.find((t) => t.locale === locale)
   if (entry) return entry.path ?? null
 
-  if (locale !== defaultLocale) return null
+  if (locale !== fallbackLocale) return null
 
   return (page.path as string | null) ?? (page.slug ? `/${page.slug}/` : null)
 }

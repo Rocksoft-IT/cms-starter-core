@@ -103,16 +103,20 @@ export async function buildStaticPaths(
       // The locale's own address for this page, already carrying its locale prefix and any
       // section prefix. A page with no address in this locale (a singleton with no segment)
       // yields null and is skipped rather than colliding with another route at the root.
-      const path = pathForLocale(p, locale)
+      const path = pathForLocale(p, locale, defaultLocale)
       if (path === null && locale !== defaultLocale) return null
 
       // The home singleton has `path: null` in the default locale and routes at the site
       // root; Astro rest routes ([...uri]) match "/" only when uri is undefined, never "".
       const uri = uriFromPath(path ?? (p.slug ? `/${p.slug}` : null))
       const shapeProps = config.props ?? ((page, c) => ({ page, branding: c.branding, cta: c.cta, locale: c.locale }))
+      // `defaultLocale` rides along with `locale` on every route, unconditionally: a component
+      // deciding URL shape (a locale-aware home link, a section's default-locale key) needs both,
+      // and threading it through each pageTypes[...].props shaper instead would mean every site
+      // remembering to add it to its own config.
       return {
         params: { uri },
-        props: { pageType: p.type, locale, path, ...shapeProps(p, ctx) },
+        props: { pageType: p.type, locale, defaultLocale, path, ...shapeProps(p, ctx) },
       }
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -138,7 +142,7 @@ export async function buildStaticPaths(
       // uri — a canonical pointing at another locale's page. A rule may still override it.
       return {
         params: { uri: uriFromPath(path) },
-        props: { pageType, locale, path, ...props },
+        props: { pageType, locale, defaultLocale, path, ...props },
       }
     })
   })

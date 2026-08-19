@@ -51,9 +51,13 @@ export interface CmsConfig {
     preconnect?: Array<{ href: string; crossorigin?: boolean }>
     stylesheets?: string[]
   }
-  /** API menu keys consumed via GET /api/menus/{key}. */
-  menus: {
-    header: string
+  /** API menu keys consumed via GET /api/menus/{key}.
+   *
+   *  Optional since dashboard #1195: core defaults them to 'header' / 'footer' (see
+   *  core/effectiveConfig.ts), which is what every site was writing out by hand. Declare a key
+   *  only to point this site at a differently-named menu in the CMS. */
+  menus?: {
+    header?: string
     footer?: string
   }
   /** Block type → component loader. Keyed by the generated `Block['type']` union — a

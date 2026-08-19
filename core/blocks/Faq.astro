@@ -143,7 +143,9 @@ const groupName = `faq-${slug || 'section'}`
 
     /* Open state. Parent-state selectors on <details>, so they cannot live on the child's class. */
     details[open] > .faq-summary {
-      background: var(--color-surface-alt);
+      /* Fallback like every other core block: the var is defined at :root by Layout, but a
+         consumer that renders this block outside that layout would otherwise get no background. */
+      background: var(--color-surface-alt, #f5f6f8);
     }
     details[open] .faq-chevron {
       transform: rotate(180deg);

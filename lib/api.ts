@@ -469,11 +469,24 @@ export async function getFooter(locale = 'en'): Promise<FooterData | null> {
 /** Site-wide settings (GET /api/site-settings). Only the fields the frontend consumes are typed
  *  here; `integrations` is provider => key => value of the build-embeddable third-party ids
  *  (e.g. `google_tag.container_id`, `ga4.measurement_id`), `cookie_consent` is the per-client
- *  consent switch (#521). `[key: string]` keeps the other server fields (contact, og image)
- *  accessible without retyping them. */
+ *  consent switch (#521). `[key: string]` keeps the other server fields (contact details)
+ *  accessible without retyping them.
+ *
+ *  `site_name`, `default_og_image` and `frontend_url` are the three the CMS owns and the repo
+ *  used to repeat in `cmsConfig.seo` (dashboard #1195). They are typed rather than left to the
+ *  index signature because core/effectiveConfig.ts resolves them: an index-signature read is
+ *  `unknown` and a misspelled key would be a silent `undefined` falling through to the local
+ *  fallback, which is exactly the drift this change removes. Every one is null when the client
+ *  has not set it (see SiteSettingsController::show). */
 export interface SiteSettingsData {
   cookie_consent?: { enabled?: boolean; privacy_page_id?: number | null }
   integrations?: Record<string, Record<string, string>>
+  /** The client's name, as og:site_name. */
+  site_name?: string | null
+  /** Site-wide Open Graph fallback image, already flattened to its URL by normalizeApiData. */
+  default_og_image?: string | null
+  /** The client's public site origin, as configured in the panel. */
+  frontend_url?: string | null
   [key: string]: unknown
 }
 

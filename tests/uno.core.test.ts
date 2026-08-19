@@ -2,7 +2,7 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, test } from 'vitest'
-import { REQUIRED_PALETTE_KEYS, coreShortcuts, resolveThemeColors } from '../core/uno.core'
+import { NEUTRAL_PALETTE_DEFAULTS, REQUIRED_PALETTE_KEYS, coreShortcuts, resolveThemeColors } from '../core/uno.core'
 import { cmsConfig } from '~site/cms.config'
 
 const BLOCKS_DIR = join(dirname(fileURLToPath(import.meta.url)), '../core/blocks')
@@ -40,13 +40,37 @@ describe('resolveThemeColors', () => {
     expect(resolved.primary).toBe('var(--color-primary, #123456)')
   })
 
-  test('names every missing key when the palette is incomplete', () => {
-    const { surface, border, ...incomplete } = cmsConfig.brand.colors
-    expect(surface && border, 'fixture guard: both keys must exist to be removable').toBeTruthy()
+  test('fills an incomplete palette from core’s neutral defaults instead of throwing', () => {
+    // Reversed since dashboard #1195: a site declares only what it wants to differ, so a palette
+    // missing keys is the NORMAL case, not a build error. What must still hold is that every
+    // required key ends up with a value - an unset one renders an unstyled block.
+    const resolved = resolveThemeColors({ primary: '#123456' })
 
-    // One error listing everything that is missing, not a failure per key — a client migrating an
-    // older palette should learn the full set from one build.
-    expect(() => resolveThemeColors(incomplete)).toThrow(/missing core palette keys: surface, border/)
+    expect(() => resolveThemeColors({ primary: '#123456' })).not.toThrow()
+    expect(resolved.primary).toBe('var(--color-primary, #123456)')
+    expect(resolved.surface).toBe(`var(--color-surface, ${NEUTRAL_PALETTE_DEFAULTS.surface})`)
+    for (const key of REQUIRED_PALETTE_KEYS) {
+      expect(resolved[key], `${key} must resolve to a value`).toBeTruthy()
+    }
+  })
+
+  test('an empty palette is legal and yields the full neutral set', () => {
+    // The end state this change unlocks: `brand: { colors: {} }` in a freshly generated repo.
+    const resolved = resolveThemeColors({})
+    expect(Object.keys(resolved)).toEqual(expect.arrayContaining([...REQUIRED_PALETTE_KEYS]))
+    expect(resolved.heading).toBe(`var(--color-heading, ${NEUTRAL_PALETTE_DEFAULTS.heading})`)
+  })
+
+  test('every required key has a neutral default, so the throw can never fire on a site', () => {
+    // The two lists are hand-maintained and this is what keeps them in sync: adding a key to
+    // REQUIRED_PALETTE_KEYS without a default would re-introduce the build error for every site.
+    const missing = REQUIRED_PALETTE_KEYS.filter((key) => !(key in NEUTRAL_PALETTE_DEFAULTS))
+    expect(missing).toEqual([])
+  })
+
+  test('a site key outside the required set still passes through', () => {
+    const resolved = resolveThemeColors({ 'brand-x': '#abcdef' })
+    expect(resolved['brand-x']).toBe('var(--color-brand-x, #abcdef)')
   })
 
   test('every color core references is a required key', () => {

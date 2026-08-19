@@ -15,10 +15,13 @@
 // shortcut key in its src/uno.ts (site keys win on collision) — no !important, ever.
 
 /**
- * Palette keys the core shortcuts resolve as theme colors. A site's `brand.colors` must define
- * every one of them (with its own brand values) — UnoCSS emits NOTHING for an unknown color name,
- * so a missing key means a silently unstyled block rather than an error. coreUnoLayer therefore
- * checks the palette at build time and fails loudly instead.
+ * Palette keys the core shortcuts resolve as theme colors. UnoCSS emits NOTHING for an unknown
+ * color name, so a key that reaches a shortcut without a value is a silently unstyled block
+ * rather than an error - which is why this list exists and why resolveThemeColors checks against
+ * it at build time.
+ *
+ * A site no longer has to DECLARE all of them: core ships a neutral value for every key (see
+ * NEUTRAL_PALETTE_DEFAULTS), so `brand.colors` carries only what this brand wants to differ.
  */
 export const REQUIRED_PALETTE_KEYS = [
   'primary',
@@ -41,6 +44,40 @@ export const REQUIRED_PALETTE_KEYS = [
   'button-secondary',
   'button-secondary-text',
 ] as const
+
+/**
+ * A complete, deliberately neutral value for every REQUIRED_PALETTE_KEYS entry.
+ *
+ * These are the values the reference site used to spell out in its own cms.config.ts, moved here
+ * unchanged (dashboard #1195): they were already chosen to carry no brand - "a client's brand must
+ * never leak in here", as that file put it - so they are exactly what a site with no opinion
+ * should get. Nothing renders differently because of the move.
+ *
+ * A site overrides any subset in `brand.colors`, and the CMS overrides nine of them per client at
+ * build time (Layout.astro emits `--color-*` from /api/branding, which wins over the theme value).
+ * So this is the bottom rung of three, not a design decision imposed on anyone.
+ */
+export const NEUTRAL_PALETTE_DEFAULTS: Record<(typeof REQUIRED_PALETTE_KEYS)[number], string> = {
+  primary: '#3b5aff',
+  'primary-soft': '#8296ff',
+  accent: '#ff5c21',
+  secondary: '#101841',
+  body: '#ffffff',
+  'section-bg': '#f3f7fb',
+  surface: '#ffffff',
+  'surface-alt': '#f5f6f8',
+  'surface-tint': '#eceff5',
+  border: '#e3e5ea',
+  heading: '#151516',
+  eyebrow: '#3b5aff',
+  muted: '#757575',
+  'text-primary': '#151516',
+  'text-secondary': '#4a4a57',
+  'button-primary': '#3b5aff',
+  'button-primary-text': '#ffffff',
+  'button-secondary': '#101841',
+  'button-secondary-text': '#ffffff',
+}
 
 /**
  * Shortcuts covering exactly the blocks shipped in core/blocks/. A site adding its own block types
@@ -473,22 +510,31 @@ export const coreShortcuts: Record<string, string> = {
  *
  * Each color resolves to a CSS custom property with the site value as fallback, so a build-time
  * palette injected from the CMS API (see Layout.astro) rethemes everything without touching
- * components. Throws when a REQUIRED_PALETTE_KEYS entry is absent — UnoCSS emits nothing for an
- * unknown color name, so the alternative is a silently unstyled block.
+ * components.
+ *
+ * A site's palette is merged OVER core's neutral defaults, so it declares only the keys it wants
+ * to differ (dashboard #1195) and a partial palette can no longer render an unstyled block. Keys
+ * the site adds beyond the required set pass through untouched, as they always did.
+ *
+ * The throw is kept, but it can now only fire on a key added to REQUIRED_PALETTE_KEYS without a
+ * matching NEUTRAL_PALETTE_DEFAULTS entry - i.e. a core authoring mistake, not a site's problem.
+ * tests/uno.core.test.ts pins the two lists in sync so that stays theoretical.
  *
  * Keep `theme` an inline object literal at the call site: assigning a pre-typed one makes
  * TypeScript infer UnoCSS's Theme generic from it, which then rejects `presetUno()`.
  */
 export function resolveThemeColors(colors: Record<string, string>): Record<string, string> {
-  const missing = REQUIRED_PALETTE_KEYS.filter((key) => !(key in colors))
+  const merged: Record<string, string> = { ...NEUTRAL_PALETTE_DEFAULTS, ...colors }
+
+  const missing = REQUIRED_PALETTE_KEYS.filter((key) => !(key in merged))
   if (missing.length > 0) {
     throw new Error(
-      `cms.config.ts brand.colors is missing core palette keys: ${missing.join(', ')}. ` +
-        'Core blocks reference these as theme colors and UnoCSS emits nothing for an unknown ' +
-        'color name, so the affected blocks would render unstyled. Add them with this brand’s ' +
-        'own values (see REQUIRED_PALETTE_KEYS in core/uno.core.ts).',
+      `Core palette keys have no value: ${missing.join(', ')}. Core blocks reference these as ` +
+        'theme colors and UnoCSS emits nothing for an unknown color name, so the affected blocks ' +
+        'would render unstyled. Every REQUIRED_PALETTE_KEYS entry needs a NEUTRAL_PALETTE_DEFAULTS ' +
+        'value in core/uno.core.ts; a site may then override any subset in cms.config.ts.',
     )
   }
 
-  return Object.fromEntries(Object.entries(colors).map(([key, value]) => [key, `var(--color-${key}, ${value})`]))
+  return Object.fromEntries(Object.entries(merged).map(([key, value]) => [key, `var(--color-${key}, ${value})`]))
 }
