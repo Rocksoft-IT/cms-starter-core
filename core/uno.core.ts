@@ -558,13 +558,26 @@ export const coreShortcuts: Record<string, string> = {
   // shortcuts up: it is a second element on the SAME page independently toggling its own `hidden`
   // attribute (customizeBtn reveals it), so it is just as exposed to the flex/[hidden] specificity
   // tie — the fix does not inherit from the parent.
+  //
+  // No divider rule of its own: the banner already draws a border-top against the page, and a
+  // second hairline 4px below it read as a stray line rather than as structure. The panel is a
+  // tinted, rounded tray instead — a filled block groups the three category rows as one settings
+  // surface and gives the confirm button a floor to sit on, which the bare rule never did.
   'cookie-consent__panel':
-    'flex flex-col gap-4 border-t border-solid border-border pt-4 ' +
+    'flex flex-col gap-3 rounded-[12px] bg-surface-alt p-4 ' +
     '[&[hidden]]:hidden',
 
-  'cookie-consent__category': 'flex flex-col gap-1',
+  // Each category is a card ON that tray (surface over surface-alt, the inverse of the nesting
+  // one level up), so a row reads as one unit — label, toggle and description belong together
+  // and the checkbox has an obvious region to sit in instead of floating on shared background.
+  'cookie-consent__category': 'flex flex-col gap-1 rounded-[8px] bg-surface px-4 py-3',
 
-  'cookie-consent__category-header': 'flex flex-row items-center justify-between gap-3',
+  // `min-h` keeps the necessary row (badge, no checkbox) the same height as the two toggle rows,
+  // so the tray reads as three even bands. `:has(input)` narrows the pointer cursor to the rows
+  // that really are <label>s — the necessary row carries this same class on a plain <div> with
+  // nothing to toggle, and a pointer there would promise an interaction that does not exist.
+  'cookie-consent__category-header':
+    'flex flex-row items-center justify-between gap-3 min-h-[24px] [&:has(input)]:cursor-pointer',
 
   'cookie-consent__category-label': 'text-[14px] font-semibold text-text-primary',
 
@@ -578,7 +591,7 @@ export const coreShortcuts: Record<string, string> = {
   // A real, accessible native checkbox — not a hand-rolled switch graphic. `accent-primary` is
   // the one-line way to put the client's own brand color on it without owning ::before/::after
   // pseudo-element styling for a fake track+thumb.
-  'cookie-consent__toggle': 'h-[18px] w-[18px] shrink-0 cursor-pointer accent-primary',
+  'cookie-consent__toggle': 'h-[20px] w-[20px] shrink-0 cursor-pointer accent-primary',
 
   // Stops the confirm button stretching to the panel's full width — .cookie-consent__panel is a
   // column flex container, whose default cross-axis stretch would otherwise apply to every child

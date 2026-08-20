@@ -118,7 +118,19 @@ export interface PricingPlan {
    *  to a URL; `plan_image_meta` carries the intrinsic size and srcset (absent for an SVG). */
   plan_image?: string
   plan_image_meta?: ResponsiveImageMeta
+  /** Plans this plan bundles — the cards a card contains, in the order the editor arranged them.
+   *  Always resolved records, never ids: one that no longer resolves is dropped by the API
+   *  rather than left as a number, so a renderer never has to tell the two apart. */
+  sub_plans?: NestedPricingPlan[]
 }
+
+/**
+ * A plan as it appears INSIDE another plan. Identical to a top-level one except that its own
+ * `sub_plans` stays the stored id list — the API caps inlining at one level, so a bundle inside a
+ * bundle is not something a renderer can reach for (and an uncapped walk over editor-supplied ids
+ * is one cycle away from not terminating).
+ */
+export type NestedPricingPlan = Omit<PricingPlan, 'sub_plans'> & { sub_plans?: number[] }
 
 /** One billing-type tab: the resolver folds `plans` into `tabs` when billing_toggle is set. */
 export interface PricingTab {

@@ -22,6 +22,7 @@
 // BOTH modes — granular mode adds a path to a split choice, it does not remove the fast path.
 import { getSiteSettings, getCookieConsent, getPages } from '../lib/api'
 import { CONSENT_SIGNALS_JS, resolveAnalytics } from './analytics'
+import { consentCopyDefaults } from './consentCopy'
 
 interface Props {
   /** Locale of the page — drives the per-locale copy fetch and privacy-link resolution. */
@@ -42,23 +43,27 @@ const { showBanner, granular } = resolveAnalytics(settings)
 const copy = showBanner ? await getCookieConsent(locale).catch(() => null) : null
 
 // Built-in fallback copy (style-neutral, provider-agnostic) used until the CMS `cookie_consent`
-// component is authored. A client localises/overrides it by writing that component.
-const message =
-  copy?.message || 'We use cookies to measure traffic. Accept to allow analytics, or reject to keep them off.'
-const acceptLabel = copy?.accept_label || 'Accept'
-const rejectLabel = copy?.reject_label || 'Reject'
-const manageLabel = copy?.manage_label || 'Privacy policy'
+// component is authored. A client localises/overrides it by writing that component — but the
+// fallback is itself PER LOCALE now (consent-copy.json), because falling back to English on a
+// Polish or Norwegian site meant the one piece of chrome that exists for legal reasons was the one
+// piece a visitor could not read. A key that locale does not carry still comes from English.
+const fallback = consentCopyDefaults(locale)
+
+const message = copy?.message || fallback.message
+const acceptLabel = copy?.accept_label || fallback.accept_label
+const rejectLabel = copy?.reject_label || fallback.reject_label
+const manageLabel = copy?.manage_label || fallback.manage_label
 
 // Granular-mode-only copy — resolved even when `granular` is false (cheap; unused in that case)
 // rather than threading a second condition through every line below.
-const customizeLabel = copy?.customize_label || 'Customize'
-const necessaryLabel = copy?.necessary_label || 'Necessary'
-const alwaysOnLabel = copy?.always_on_label || 'Always on'
-const statisticsLabel = copy?.statistics_label || 'Statistics'
-const statisticsDescription = copy?.statistics_description || 'Helps us understand how visitors use this site.'
-const marketingLabel = copy?.marketing_label || 'Marketing'
-const marketingDescription = copy?.marketing_description || 'Used to measure and improve ad performance.'
-const allowSelectionLabel = copy?.allow_selection_label || 'Allow selection'
+const customizeLabel = copy?.customize_label || fallback.customize_label
+const necessaryLabel = copy?.necessary_label || fallback.necessary_label
+const alwaysOnLabel = copy?.always_on_label || fallback.always_on_label
+const statisticsLabel = copy?.statistics_label || fallback.statistics_label
+const statisticsDescription = copy?.statistics_description || fallback.statistics_description
+const marketingLabel = copy?.marketing_label || fallback.marketing_label
+const marketingDescription = copy?.marketing_description || fallback.marketing_description
+const allowSelectionLabel = copy?.allow_selection_label || fallback.allow_selection_label
 
 // Resolve the picked privacy page to its localized path (or omit the link when unset/unresolved).
 let privacyHref: string | null = null

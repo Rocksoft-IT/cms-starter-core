@@ -1,0 +1,44 @@
+{
+  "en": {
+    "message": "We use cookies to measure traffic. Accept to allow analytics, or reject to keep them off.",
+    "accept_label": "Accept",
+    "reject_label": "Reject",
+    "manage_label": "Privacy policy",
+    "customize_label": "Customize",
+    "necessary_label": "Necessary",
+    "always_on_label": "Always on",
+    "statistics_label": "Statistics",
+    "statistics_description": "Helps us understand how visitors use this site.",
+    "marketing_label": "Marketing",
+    "marketing_description": "Used to measure and improve ad performance.",
+    "allow_selection_label": "Allow selection"
+  },
+  "pl": {
+    "message": "Używamy plików cookie do pomiaru ruchu. Zaakceptuj, aby włączyć analitykę, lub odrzuć, aby pozostała wyłączona.",
+    "accept_label": "Akceptuję",
+    "reject_label": "Odrzucam",
+    "manage_label": "Polityka prywatności",
+    "customize_label": "Dostosuj",
+    "necessary_label": "Niezbędne",
+    "always_on_label": "Zawsze włączone",
+    "statistics_label": "Statystyki",
+    "statistics_description": "Pomagają nam zrozumieć, jak odwiedzający korzystają z tej strony.",
+    "marketing_label": "Marketing",
+    "marketing_description": "Służą do mierzenia i poprawy skuteczności reklam.",
+    "allow_selection_label": "Zezwól na wybrane"
+  },
+  "no": {
+    "message": "Vi bruker informasjonskapsler for å måle trafikk. Godta for å tillate analyse, eller avvis for å holde den av.",
+    "accept_label": "Godta",
+    "reject_label": "Avvis",
+    "manage_label": "Personvernerklæring",
+    "customize_label": "Tilpass",
+    "necessary_label": "Nødvendige",
+    "always_on_label": "Alltid på",
+    "statistics_label": "Statistikk",
+    "statistics_description": "Hjelper oss å forstå hvordan besøkende bruker dette nettstedet.",
+    "marketing_label": "Markedsføring",
+    "marketing_description": "Brukes til å måle og forbedre annonseytelse.",
+    "allow_selection_label": "Tillat utvalg"
+  }
+}
