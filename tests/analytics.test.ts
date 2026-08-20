@@ -179,3 +179,50 @@ describe('warnAboutAnalytics', () => {
     expect(spy).toHaveBeenCalledTimes(timesAfterFirstBuild)
   })
 })
+
+// Cookiebot is a CMP, so it REPLACES the built-in banner rather than joining it — a page carrying
+// both dialogs is not a state anyone wants, and it was reached for real: smbp hand-rolled the
+// Cookiebot loader into its layout and deleted the CMS components to get out of it. Configuring a
+// CBID is now the whole switch, and these pin what that switch does.
+describe('resolveAnalytics with Cookiebot', () => {
+  const CBID = '8e5d80e6-4a20-45b7-8e8f-2053acc7a971'
+
+  test('a stored CBID suppresses the built-in banner', () => {
+    const resolved = resolveAnalytics(settings({ cookiebot: { cbid: CBID } }))
+
+    expect(resolved.cookiebotId).toBe(CBID)
+    expect(resolved.showBanner).toBe(false)
+  })
+
+  test('clearing the CBID hands the banner back', () => {
+    const resolved = resolveAnalytics(settings({ cookiebot: { cbid: '' } }))
+
+    expect(resolved.cookiebotId).toBeNull()
+    expect(resolved.showBanner).toBe(true)
+  })
+
+  // A client can hand consent to Cookiebot and never touch our own toggle; requiring it would mean
+  // their tag silently never loads because of a banner they do not render.
+  test('a tag still loads with our own consent toggle off', () => {
+    const resolved = resolveAnalytics(settings({ cookiebot: { cbid: CBID }, ga4: { measurement_id: 'G-XYZ1234567' } }, false))
+
+    expect(resolved).toMatchObject({ active: true, showBanner: false, gtagId: 'G-XYZ1234567' })
+  })
+
+  // Cookiebot with no analytics at all is a normal setup — the CBID alone still has to reach the
+  // page, which is why ConsentMode renders the loader off `cookiebotId`, not off `active`.
+  test('the CBID survives having no analytics id beside it', () => {
+    const resolved = resolveAnalytics(settings({ cookiebot: { cbid: CBID } }, false))
+
+    expect(resolved).toMatchObject({ cookiebotId: CBID, active: false })
+  })
+
+  // Same treatment a malformed GTM id gets: dropped and reported, never interpolated into <head>.
+  test('a malformed CBID is ignored and reported rather than emitted', () => {
+    const resolved = resolveAnalytics(settings({ cookiebot: { cbid: 'not-a-uuid' } }))
+
+    expect(resolved.cookiebotId).toBeNull()
+    expect(resolved.showBanner).toBe(true)
+    expect(resolved.ignored).toContainEqual({ source: 'cookiebot.cbid', reason: 'malformed' })
+  })
+})

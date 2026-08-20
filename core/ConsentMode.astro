@@ -24,7 +24,7 @@ const analytics = resolveAnalytics(settings)
 // silently from the outside.
 warnAboutAnalytics(analytics)
 
-const { active, gtmId, gtagId } = analytics
+const { active, gtmId, gtagId, cookiebotId } = analytics
 
 // Default-deny bootstrap, then CONSENT_SIGNALS_JS's readCookieConsent()/applyCookieConsent()
 // replay a stored choice (either localStorage schema, #1226) BEFORE the tag loads below — so a
@@ -41,6 +41,17 @@ try { applyCookieConsent(readCookieConsent()); } catch(e){}
 gtag('js', new Date());
 `.trim()
 
+// The Cookiebot path swaps our Consent Mode v2 bootstrap for the bare gtag stub: Cookiebot owns
+// the consent state there, and emitting `gtag('consent','default',…)` alongside it would mean two
+// sources of truth racing on the same signals. The tag still loads AFTER Cookiebot's script, which
+// is what lets `data-blockingmode="auto"` hold it until the visitor agrees.
+const cookiebotBootstrap = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){ dataLayer.push(arguments); }
+window.gtag = gtag;
+gtag('js', new Date());
+`.trim()
+
 // Prefer GTM when both are set (a GTM container usually already hosts the GA4 tag).
 const gtmLoader = gtmId
   ? `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`
@@ -50,9 +61,25 @@ const gtagOnly = !gtmId && gtagId ? gtagId : null
 ---
 
 {
+  /* First in <head>, before anything that could set a cookie — that ordering is the whole point of
+     `data-blockingmode="auto"`. Rendered on the CBID alone, independently of `active`: a client may
+     run Cookiebot with no analytics at all and still owe visitors the banner. */
+  cookiebotId && (
+    <script
+      is:inline
+      id="Cookiebot"
+      src="https://consent.cookiebot.com/uc.js"
+      data-cbid={cookiebotId}
+      data-blockingmode="auto"
+      type="text/javascript"
+    />
+  )
+}
+
+{
   active && (
     <>
-      <script is:inline set:html={bootstrap} />
+      <script is:inline set:html={cookiebotId ? cookiebotBootstrap : bootstrap} />
       {gtmLoader && <script is:inline set:html={gtmLoader} />}
       {gtagOnly && (
         <>

@@ -38,6 +38,10 @@ export function classifyAnalyticsId(raw: unknown): { kind: AnalyticsIdKind; id: 
   return null
 }
 
+/** Cookiebot's domain group id. Validated in the panel too; re-checked here because a value that
+ *  reaches the built <head> malformed produces a CMP that silently never loads. */
+const COOKIEBOT_CBID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 /** One CMS field that held an id the build could not use, and why. */
 export interface IgnoredAnalyticsId {
   /** Dotted path in `site-settings.integrations`, e.g. `google_tag.container_id`. */
@@ -57,8 +61,9 @@ export interface ResolvedAnalytics {
   /** Whether the client switched cookie consent on (Settings → Privacy). */
   consentEnabled: boolean
   /**
-   * Should the consent banner render. Just `consentEnabled` — the client-admin flipping the
-   * toggle IS the decision, and nothing else gets a vote.
+   * Should the BUILT-IN consent banner render: `consentEnabled`, unless this client runs Cookiebot
+   * (see `cookiebotId`) — the client-admin flipping the toggle IS the decision, and the only thing
+   * that overrides it is having handed consent to another CMP entirely.
    *
    * Deliberately independent of whether a usable analytics id exists. Other cookie-setting
    * integrations are coming, and gating the banner on one specific provider would need a fresh
@@ -81,6 +86,16 @@ export interface ResolvedAnalytics {
   gtmId: string | null
   /** Id for gtag.js — used only when there is no GTM container (a container usually hosts GA4). */
   gtagId: string | null
+  /**
+   * Cookiebot's domain group id, when this client uses Cookiebot as its CMP.
+   *
+   * Configuring one is the whole switch: Cookiebot REPLACES the built-in banner rather than
+   * joining it — two consent dialogs on one page is not a state anyone wants — so `showBanner`
+   * goes false and ConsentMode emits Cookiebot's loader first in <head>, letting its
+   * `data-blockingmode="auto"` gate everything that follows instead of our own Consent Mode v2
+   * signals. Clearing the field hands consent back to the built-in banner on the next build.
+   */
+  cookiebotId: string | null
   /** Configured ids the build refuses to emit; drives the build-log warning. */
   ignored: IgnoredAnalyticsId[]
 }
@@ -120,13 +135,27 @@ export function resolveAnalytics(settings: SiteSettingsData): ResolvedAnalytics 
 
   const consentEnabled = settings.cookie_consent?.enabled === true
 
+  const rawCbid = settings.integrations?.cookiebot?.cbid
+  let cookiebotId: string | null = null
+
+  if (rawCbid !== undefined && rawCbid !== null && String(rawCbid).trim() !== '') {
+    const trimmed = String(rawCbid).trim()
+
+    if (COOKIEBOT_CBID.test(trimmed)) cookiebotId = trimmed
+    else ignored.push({ source: 'cookiebot.cbid', reason: 'malformed' })
+  }
+
   return {
-    active: consentEnabled && (gtmId !== null || gtagId !== null),
+    // A tag may load either because our own banner will gate it, or because Cookiebot will.
+    // Requiring `consentEnabled` on the Cookiebot path would mean a client who handed consent to
+    // Cookiebot also has to flip a toggle governing a banner they no longer render.
+    active: (consentEnabled || cookiebotId !== null) && (gtmId !== null || gtagId !== null),
     consentEnabled,
-    showBanner: consentEnabled,
+    showBanner: consentEnabled && cookiebotId === null,
     granular: settings.cookie_consent?.granular === true,
     gtmId,
     gtagId,
+    cookiebotId,
     ignored,
   }
 }
