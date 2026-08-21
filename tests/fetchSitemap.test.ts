@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { isSearchVisible, parseSitemapIndex, fileNameFor } from '../scripts/fetch-sitemap.mjs'
+import { isSearchVisible, isSitemapArtifact, parseSitemapIndex, fileNameFor } from '../scripts/fetch-sitemap.mjs'
 
 /**
  * The build step that copies the CMS's sitemaps into public/ (dashboard #514), moved into core
@@ -41,5 +41,30 @@ describe('sitemap index parsing', () => {
   test('refuses to write a file from a suspicious loc', () => {
     expect(fileNameFor('https://x.test/sitemap-pl.xml')).toBe('sitemap-pl.xml')
     expect(() => fileNameFor('https://x.test/../../etc/passwd')).toThrow(/suspicious/)
+  })
+})
+
+/**
+ * `public/` survives between deploys, so writing nothing is not the same as publishing nothing:
+ * a client that was visible and is now hidden kept serving the sitemap it had been given, from a
+ * file no later build touched. Skipping the fetch was never enough on its own (dashboard #1324).
+ */
+describe('isSitemapArtifact', () => {
+  test('claims the files this script writes', () => {
+    expect(isSitemapArtifact('sitemap-index.xml')).toBe(true)
+    expect(isSitemapArtifact('sitemap-pl.xml')).toBe(true)
+    expect(isSitemapArtifact('sitemap-en-GB.xml')).toBe(true)
+  })
+
+  /**
+   * The load-bearing negative: this decides what gets DELETED from a directory the site also
+   * uses for hand-placed assets, so it must stay narrower than "anything sitemap-ish".
+   */
+  test('leaves anything it did not write alone', () => {
+    expect(isSitemapArtifact('sitemap.xml')).toBe(false)
+    expect(isSitemapArtifact('favicon.ico')).toBe(false)
+    expect(isSitemapArtifact('sitemap-pl.xml.bak')).toBe(false)
+    expect(isSitemapArtifact('my-sitemap-pl.xml')).toBe(false)
+    expect(isSitemapArtifact('sitemap-')).toBe(false)
   })
 })

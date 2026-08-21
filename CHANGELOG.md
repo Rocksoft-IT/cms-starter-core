@@ -4,6 +4,21 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.26.0 — a hidden client's old sitemap is removed, not merely left unwritten
+
+v0.24.0 made the build SKIP the sitemap fetch for a client that is not public yet. That is not
+the same as publishing no sitemap: `public/` is a build input that survives between deploys, so a
+client which had been visible kept serving the files it was given, from a path no later build
+touched. Observed on a live site — `noindex` and the `robots.txt` change had both landed, and
+`sitemap-index.xml` still answered 200 with a timestamp from before the change.
+
+The step now deletes its own previous outputs (`sitemap-<code>.xml`) when the client is hidden,
+and again before writing a fresh set — which closes the same leak for a locale that gets
+disabled, whose file would otherwise linger and stay reachable by anything that guessed the URL.
+
+Only names this script writes are removed; a `sitemap.xml` placed in `public/` by hand is left
+alone.
+
 ## v0.25.0 — the sitemap script ships its types
 
 `scripts/fetch-sitemap.mjs` became a core export in v0.24.0, but with no declaration beside it. A

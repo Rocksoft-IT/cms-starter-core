@@ -26,7 +26,7 @@
 // loadEnv instead; that variant is retired by the move, since core must not reach for a
 // bundler at build-script time.
 
-import { mkdir, writeFile } from 'node:fs/promises'
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 
 const API_URL = process.env.ASTRO_API_URL
@@ -83,6 +83,44 @@ async function searchVisible(base) {
   return isSearchVisible(JSON.parse(await fetchText(`${base}/api/site-settings`)))
 }
 
+/**
+ * Whether a name in `public/` is one of this script's own outputs — `sitemap-index.xml` and the
+ * per-locale `sitemap-<code>.xml` files.
+ *
+ * Narrow on purpose. This decides what gets DELETED from a directory the site also uses for
+ * hand-placed assets, so it matches the exact shape written below and nothing else: a
+ * `sitemap.xml` somebody put there deliberately is not ours to remove.
+ */
+export function isSitemapArtifact(name) {
+  return /^sitemap-[\w.-]+\.xml$/.test(name)
+}
+
+/**
+ * Delete this script's previous outputs from `public/`.
+ *
+ * `public/` is a build INPUT that survives between deploys, so writing nothing is not the same
+ * as publishing nothing: a client that was visible and is now hidden kept serving the sitemap it
+ * had been given, from a file no later build touched (dashboard #1324). Skipping the fetch was
+ * never going to be enough on its own.
+ *
+ * Also run before writing a fresh set, which fixes the same leak for a locale that gets
+ * disabled: its `sitemap-<code>.xml` would otherwise linger and stay advertised by nothing,
+ * reachable by anything that guessed the address.
+ */
+async function removeStaleSitemaps() {
+  let names
+  try {
+    names = await readdir(OUT_DIR)
+  } catch {
+    return 0 // no public/ yet - nothing was ever written
+  }
+
+  const stale = names.filter(isSitemapArtifact)
+  await Promise.all(stale.map((name) => rm(path.join(OUT_DIR, name), { force: true })))
+
+  return stale.length
+}
+
 async function main() {
   // A mock build has no backend by definition; it also publishes nothing, so there is no
   // sitemap to be stale. Every other build must produce real files or fail.
@@ -106,7 +144,12 @@ async function main() {
   // sitemap because one request came back odd. `fetchText` throws on a non-2xx, which stays
   // fatal — this reads the value, it does not soften the endpoint's failure.
   if (!(await searchVisible(base))) {
-    console.log('[sitemap] search_visible is false — this client is not public yet, writing no sitemap.')
+    const removed = await removeStaleSitemaps()
+    console.log(
+      `[sitemap] search_visible is false — this client is not public yet, writing no sitemap`
+      + (removed > 0 ? ` (removed ${removed} stale file(s) from a previous build).` : '.'),
+    )
+
     return
   }
 
@@ -118,6 +161,9 @@ async function main() {
   }
 
   await mkdir(OUT_DIR, { recursive: true })
+  // Clear the previous set before writing this one, so a locale that has since been disabled
+  // does not leave its file behind to be served forever.
+  await removeStaleSitemaps()
   await writeFile(path.join(OUT_DIR, INDEX_FILE), indexXml, 'utf8')
 
   // The index points at the FRONTEND's copies (that is where crawlers fetch them), so each

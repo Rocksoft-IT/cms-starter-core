@@ -20,3 +20,6 @@ export declare function isSearchVisible(settings: unknown): boolean
 
 /** Run the fetch as a build step, exiting non-zero on any failure. */
 export declare function run(): Promise<void>
+
+/** Whether a name in `public/` is one of this script's own outputs (`sitemap-<code>.xml`). */
+export declare function isSitemapArtifact(name: string): boolean
