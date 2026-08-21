@@ -4,6 +4,19 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.25.0 — the sitemap script ships its types
+
+`scripts/fetch-sitemap.mjs` became a core export in v0.24.0, but with no declaration beside it. A
+client repo importing its helpers in a test therefore failed its own `astro check` with
+`ts(7016)` — TypeScript infers a local `.mjs` under `allowJs`, but not one resolved from
+`node_modules`. The starter never hit it, because there the file is inside the repo.
+
+Fixed by shipping `scripts/fetch-sitemap.d.mts`. Nothing else changed; a client that does not
+import those helpers is unaffected either way.
+
+**If you are moving from v0.24.0**, this is the release to take — v0.24.0 cannot pass
+`astro check` in a repo whose sitemap spec imports from core.
+
 ## v0.24.0 — a client that is not public yet stays out of search
 
 The CMS gained a per-client `search_visible` flag (dashboard #1169/#1312); this is the half that
