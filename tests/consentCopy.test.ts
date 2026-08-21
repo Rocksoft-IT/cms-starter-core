@@ -34,8 +34,10 @@ describe('consentCopyDefaults', () => {
   })
 
   // An untranslated locale must still render a readable banner rather than blanks — the whole
-  // point of merging over English instead of returning the locale's entry outright.
-  test('an unknown locale falls back to English', () => {
-    expect(consentCopyDefaults('de')).toEqual(consentCopyDefaults('en'))
+  // point of merging over English instead of returning the locale's entry outright. `fr` is a real
+  // CMS locale (config/languages.php) that this table does not translate, which is exactly the case
+  // the fallback exists for. It used to be `de`, and this test is how adding German was noticed.
+  test('an untranslated locale falls back to English', () => {
+    expect(consentCopyDefaults('fr')).toEqual(consentCopyDefaults('en'))
   })
 })

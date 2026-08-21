@@ -176,6 +176,13 @@ export interface ComponentRefBlock {
 }
 
 /**
+ * A resolved teaser image: the WHOLE MediaUrls.for() object, so it carries the responsive triple
+ * ({@link ResponsiveImageMeta}) that the flat `*_meta` siblings carry elsewhere — it comes from the
+ * same serializer. A bare string is tolerated for hand-written fixtures.
+ */
+export type TeaserImage = ({ url?: string; alt?: string | null } & Partial<ResponsiveImageMeta>) | string
+
+/**
  * One resolved section item, as the `section_teaser` resolver embeds it. Unlike a plain
  * collection item, it carries a routable `path` and (when present) an `attachment_count`; any
  * other field the referenced section defines — e.g. a `status` the list layout shows as a pill —
@@ -190,12 +197,19 @@ export interface SectionTeaserItem {
   /** Raw ISO date from the item's `date` field, or null. */
   date?: string | null
   /**
-   * Resolved featured image (MediaUrls.for shape); a bare string is tolerated for fixtures.
-   * Carries the same `srcset` the `_meta` siblings do — it comes from the same serializer.
+   * The item's featured image, under the ROLE's name rather than the storage collection's — the
+   * API projects whichever collection the item type declares as featured (`thumbnail` on a post,
+   * `cover` on a case study, `image` on a term) into this one key. Absent when the type declares
+   * no featured image, or the bound section disabled that field: an image-less card, rendered
+   * without an `<img>`. Prefer this over `thumbnail` (#1278).
    */
-  thumbnail?:
-    | { url?: string; alt?: string | null; width?: number | null; height?: number | null; srcset?: string | null }
-    | string
+  featured_image?: TeaserImage
+  /**
+   * The raw `thumbnail` collection, still emitted alongside `featured_image` for the item types
+   * that declare it. Read only as the tail of the chain, so a site on a newer core still renders
+   * against a payload predating `featured_image`.
+   */
+  thumbnail?: TeaserImage
   /** Present only when the section defines a `status` field (list layout renders it as a pill). */
   status?: string
   /** Present only when the item has attachments (list layout shows the count). */

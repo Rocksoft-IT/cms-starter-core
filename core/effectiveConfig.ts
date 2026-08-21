@@ -41,6 +41,9 @@ export interface EffectiveConfig {
     header: string
     footer: string
   }
+  /** Whether search engines may index this site at all (dashboard #1169). False makes every page
+   *  emit `noindex`, robots.txt advertise no sitemap, and the build write no sitemap files. */
+  searchVisible: boolean
 }
 
 /** The subset of a site's config this seam reads. Exported so the tests assert against THIS
@@ -79,6 +82,14 @@ export function resolveEffectiveConfig(input: {
       header: config.menus?.header ?? 'header',
       footer: config.menus?.footer ?? 'footer',
     },
+    // Absent resolves to VISIBLE, which is the OPPOSITE of the column's default in the CMS - and
+    // deliberately so, because the two answer different questions. The backend default governs a
+    // newly CREATED client, where a person will decide; this governs MISSING DATA - an offline or
+    // mock build, a fetch that failed (getSiteSettings swallows errors), or a panel deployed
+    // before the field existed. Defaulting those to hidden would noindex every live site the
+    // moment the API hiccuped, which is far worse than the case it would guard. A site is hidden
+    // only when the CMS says so in as many words.
+    searchVisible: settings.search_visible ?? true,
   }
 }
 

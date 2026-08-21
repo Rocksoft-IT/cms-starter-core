@@ -119,3 +119,21 @@ describe('menus', () => {
     expect(resolve({ config }).menus).toEqual({ header: 'main-nav', footer: 'footer' })
   })
 })
+
+describe('searchVisible (dashboard #1169)', () => {
+  test('is false only when the CMS says so in as many words', () => {
+    expect(resolve({ settings: { search_visible: false } }).searchVisible).toBe(false)
+  })
+
+  test('is true when the CMS says so', () => {
+    expect(resolve({ settings: { search_visible: true } }).searchVisible).toBe(true)
+  })
+
+  test('defaults to VISIBLE when the field is absent', () => {
+    // The opposite of the column's default in the CMS, deliberately. That default governs a newly
+    // created client, where a person decides; this governs MISSING DATA - a mock build, a fetch
+    // that failed, or a panel older than the field. Defaulting those to hidden would noindex
+    // every live site the moment the API hiccuped.
+    expect(resolve({ settings: {} }).searchVisible).toBe(true)
+  })
+})

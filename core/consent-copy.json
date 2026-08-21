@@ -40,5 +40,19 @@
     "marketing_label": "Markedsføring",
     "marketing_description": "Brukes til å måle og forbedre annonseytelse.",
     "allow_selection_label": "Tillat utvalg"
+  },
+  "de": {
+    "message": "Wir verwenden Cookies, um den Traffic zu messen. Akzeptieren Sie, um Analysen zu erlauben, oder lehnen Sie ab, um sie deaktiviert zu lassen.",
+    "accept_label": "Akzeptieren",
+    "reject_label": "Ablehnen",
+    "manage_label": "Datenschutzerklärung",
+    "customize_label": "Anpassen",
+    "necessary_label": "Notwendig",
+    "always_on_label": "Immer aktiv",
+    "statistics_label": "Statistiken",
+    "statistics_description": "Hilft uns zu verstehen, wie Besucher diese Website nutzen.",
+    "marketing_label": "Marketing",
+    "marketing_description": "Wird verwendet, um die Werbeleistung zu messen und zu verbessern.",
+    "allow_selection_label": "Auswahl erlauben"
   }
 }

@@ -75,10 +75,18 @@ const {
 // extra fetch however many pages render.
 const effective = await getEffectiveConfig()
 
-// The CMS's per-page toggle (`seo.noindex`) is the normal source; the prop is an override for
-// routes the CMS knows nothing about. Either one alone is enough to exclude the page — a caller
-// that passes noindex can't be silently overruled by an API that says false, and vice versa.
-const robotsNoindex = noindex || seo?.noindex === true
+// Three independent reasons to withhold a page, any one of which is enough — a caller that
+// passes noindex can't be silently overruled by an API that says false, and vice versa.
+//
+//   noindex prop      a route the CMS knows nothing about (e.g. preview-only)
+//   seo.noindex       the CMS's per-PAGE toggle (dashboard #511)
+//   !searchVisible    the CMS's per-CLIENT flag (dashboard #1169) — the whole site is not
+//                     public yet, so every page it renders is withheld
+//
+// Note what this does NOT do: robots.txt keeps allowing crawlers even for a hidden client. A
+// `Disallow: /` would stop a crawler from ever FETCHING the page, so it would never read the
+// noindex below — freezing an already-indexed staging copy in place instead of removing it.
+const robotsNoindex = noindex || seo?.noindex === true || !effective.searchVisible
 
 const title = seo?.title || fallbackTitle
 const description = seo?.description ?? fallbackDescription ?? undefined

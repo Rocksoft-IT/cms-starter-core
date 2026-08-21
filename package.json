@@ -7,7 +7,8 @@
   "exports": {
     "./core/*": "./core/*",
     "./lib/*": "./lib/*",
-    "./types/*": "./types/*"
+    "./types/*": "./types/*",
+    "./scripts/*": "./scripts/*"
   },
   "peerDependencies": {
     "astro": "*",

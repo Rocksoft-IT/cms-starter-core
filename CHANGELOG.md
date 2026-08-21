@@ -4,6 +4,53 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.24.0 — a client that is not public yet stays out of search
+
+The CMS gained a per-client `search_visible` flag (dashboard #1169/#1312); this is the half that
+acts on it. A client that is not public yet — typically pre-cutover, live only on a provisional
+domain while its real domain still serves the old site — now builds a site search engines leave
+alone.
+
+| changed | what it does when `search_visible` is false |
+| --- | --- |
+| `core/Seo.astro` | every page emits `noindex, nofollow` — a third term beside the `noindex` prop and the per-page `seo.noindex` |
+| `core/robots.ts` | `robots.txt` drops the `Sitemap:` line |
+| `core/scripts/fetch-sitemap.mjs` | the build writes no sitemap files at all |
+| `core/effectiveConfig.ts` | exposes `searchVisible`, read from `GET /api/site-settings` |
+
+**No `Disallow: /`.** `Disallow` blocks crawling, and a crawler that cannot fetch the page never
+reads its `noindex` — which prevents indexing a staging copy Google has not seen, but permanently
+freezes one it has. Staying crawlable is correct either way. A test fails if a `Disallow` reappears.
+
+**A missing `search_visible` means VISIBLE**, the opposite of the CMS column's default. That
+default governs a newly created client, where a person decides; this one governs missing data — a
+mock build, a failed fetch, a panel older than the field — where defaulting to hidden would
+noindex every live site over one bad request.
+
+### Breaking for a client repo: `scripts/fetch-sitemap.mjs` moves into core
+
+It was the last piece of this feature that did not ride a pin bump, and the copies had already
+drifted — diligently.pl carried an env fix the starter never got back. Same treatment
+`core/robots.ts` got in v0.20.0.
+
+Per repo, when bumping to this release:
+
+1. Replace `scripts/fetch-sitemap.mjs` with the one-line wrapper:
+   ```js
+   import { run } from '@rocksoft/cms-starter-core/scripts/fetch-sitemap.mjs'
+   await run()
+   ```
+   The file must still EXIST at that path — `package.json` runs it by path.
+2. Ensure `build` and `sitemap:fetch` in `package.json` invoke it as
+   `node --env-file-if-exists=.env scripts/fetch-sitemap.mjs`. **Load-bearing:** this is a plain
+   Node script, so without the flag the API URL and token are absent on a server build, the step
+   throws, and under `set -e` the deploy dies before Astro starts — `public_html` never flips.
+   A repo that solved this with vite's `loadEnv` inside the script drops that variant here.
+
+### Note on v0.21.0–v0.23.0
+
+Those releases shipped without entries in this file. This entry does not reconstruct them.
+
 ## v0.20.0 — the client template stops carrying core's own machinery
 
 Four things a client repo used to own a copy of now live here, so a fix to any of them arrives with

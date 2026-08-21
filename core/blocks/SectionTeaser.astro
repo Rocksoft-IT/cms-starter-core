@@ -1,12 +1,12 @@
 ---
 // Section teaser (block `section_teaser`): lists a section's NEWEST items, resolved inline by the
-// API into `data.items` — each item already carries name / path / date / thumbnail, plus an
+// API into `data.items` — each item already carries name / path / date / featured_image, plus an
 // optional `status` and `attachment_count`. Two layouts share one header:
 //   - `cards`: a responsive news grid (image, date, title) — the H3 "latest news" look.
 //   - `list`:  a notice-board row list with a date badge, an optional status pill and an
 //              attachment count — the H4 "tablica / przetargi" look.
 // Pure renderer: ordering + limiting happened server-side, so this never sorts or slices.
-import type { ResponsiveImageMeta, SectionTeaserBlock } from '../../types/blocks'
+import type { ResponsiveImageMeta, SectionTeaserBlock, SectionTeaserItem, TeaserImage } from '../../types/blocks'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
@@ -54,9 +54,19 @@ function dateBadge(iso?: string | null): { day: string; month: string } | null {
   }
 }
 
-// The resolved thumbnail is a MediaUrls.for() object ({ url, … }); a bare string is tolerated for
+// The item's card picture. `featured_image` is the API's NORMALISED key for whichever collection
+// holds the item type's featured image — `thumbnail` on a post, `cover` on a case study, `image` on
+// a term, nothing at all on a service. Reading the raw `thumbnail` collection alone was why a
+// teaser over anything but a post rendered no images (#1278); the raw key stays as the tail of the
+// chain so an older payload (or a hand-written fixture) keeps working. Undefined when the item
+// genuinely has no picture — the <img> is then skipped, deliberately.
+function cardImage(item: SectionTeaserItem): TeaserImage | undefined {
+  return item.featured_image ?? item.thumbnail
+}
+
+// The resolved image is a MediaUrls.for() object ({ url, … }); a bare string is tolerated for
 // hand-written fixtures. Returns null when there's no image, so the <img> is skipped.
-function thumbUrl(t: unknown): string | null {
+function imageUrl(t: unknown): string | null {
   if (typeof t === 'string') return t
   if (t && typeof t === 'object' && typeof (t as { url?: unknown }).url === 'string') {
     return (t as { url: string }).url
@@ -64,10 +74,10 @@ function thumbUrl(t: unknown): string | null {
   return null
 }
 
-// The same MediaUrls.for() object also carries the responsive triple, so a teaser thumbnail gets a
+// The same MediaUrls.for() object also carries the responsive triple, so a teaser card image gets a
 // srcset from the conversion ladder without the resolver having to do anything extra. A bare-string
 // fixture has none — hence the null, which makes responsiveImageAttrs emit nothing.
-function thumbMeta(t: unknown): ResponsiveImageMeta | null {
+function imageMeta(t: unknown): ResponsiveImageMeta | null {
   // No need to normalize the individual keys: responsiveImageAttrs already treats a missing key,
   // null and undefined identically, and MediaUrls' object is a structural superset — the extra keys
   // (url, original, conversions, …) are simply never read.
@@ -86,7 +96,8 @@ function thumbMeta(t: unknown): ResponsiveImageMeta | null {
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             {items.map((item) => {
               const href = hrefOf(item.path)
-              const img = thumbUrl(item.thumbnail)
+              const image = cardImage(item)
+              const img = imageUrl(image)
               const date = formatDate(item.date, locale)
               const lead = nonEmpty(item.lead)
               return (
@@ -98,7 +109,7 @@ function thumbMeta(t: unknown): ResponsiveImageMeta | null {
                         alt={item.name ?? ''}
                         class="h-full w-full object-cover"
                         loading="lazy"
-                        {...responsiveImageAttrs(thumbMeta(item.thumbnail), IMAGE_SIZES.teaserCard)}
+                        {...responsiveImageAttrs(imageMeta(image), IMAGE_SIZES.teaserCard)}
                       />
                     </a>
                   )}

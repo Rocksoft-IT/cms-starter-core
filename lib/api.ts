@@ -489,6 +489,16 @@ export interface SiteSettingsData {
   default_og_image?: string | null
   /** The client's public site origin, as configured in the panel. */
   frontend_url?: string | null
+  /** Whether search engines may index this site at all (dashboard #1169). False for a client
+   *  that is not public yet - typically pre-cutover, live only on a provisional domain while
+   *  its real domain still serves the old site.
+   *
+   *  Optional HERE but not on the wire: the backend always sends a boolean. It is optional
+   *  because a build can legitimately see no value - an offline/mock build, a failed fetch, or
+   *  a panel deployed before the field existed - and every one of those must resolve to
+   *  VISIBLE. See resolveEffectiveConfig() for why that default is the opposite of the
+   *  backend's. */
+  search_visible?: boolean
   [key: string]: unknown
 }
 
