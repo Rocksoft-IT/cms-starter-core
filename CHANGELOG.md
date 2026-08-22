@@ -4,6 +4,30 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.27.0 — the consent banner can link to a privacy notice the CMS does not own
+
+`CookieConsent` resolved its privacy link from `settings.cookie_consent.privacy_page_id` and
+nothing else. A site whose privacy notice is a hand-written route — `src/pages/datenschutz.astro`,
+not a CMS page — had no id to point at, so the banner rendered with no link at all: the one piece
+of chrome that exists so a visitor can find out what they are agreeing to.
+
+`CookieConsent` now takes an optional `privacyHref`, a path or absolute URL the project layer
+supplies:
+
+```astro
+<CookieConsent {locale} privacyHref="/datenschutz" />
+```
+
+**The CMS still wins whenever it can answer.** A resolving `privacy_page_id` takes precedence, so
+a client-admin picking a privacy page in the panel changes the site even on a repo that passes
+this prop, and moving a notice into the CMS later needs no code change. The prop only fills the
+gap where no configuration answer exists.
+
+Blank and whitespace-only values from either source are treated as "no answer" rather than
+rendering `<a href="">`, which reloads the current page and looks like a working link.
+
+Purely additive: a site that passes nothing behaves exactly as before.
+
 ## v0.26.0 — a hidden client's old sitemap is removed, not merely left unwritten
 
 v0.24.0 made the build SKIP the sitemap fetch for a client that is not public yet. That is not

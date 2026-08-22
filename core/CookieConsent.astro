@@ -23,13 +23,26 @@
 import { getSiteSettings, getCookieConsent, getPages } from '../lib/api'
 import { CONSENT_SIGNALS_JS, resolveAnalytics } from './analytics'
 import { consentCopyDefaults } from './consentCopy'
+import { resolvePrivacyHref } from './privacyHref'
 
 interface Props {
   /** Locale of the page — drives the per-locale copy fetch and privacy-link resolution. */
   locale?: string
+  /**
+   * Where the banner's privacy link points when the CMS cannot say — a path or absolute URL owned
+   * by the project layer, e.g. `/datenschutz` for a repo whose privacy notice is a hand-written
+   * Astro route rather than a CMS page.
+   *
+   * The CMS still wins whenever it CAN answer: `settings.cookie_consent.privacy_page_id` resolving
+   * to a real page takes precedence, so switching a site's notice into the CMS later needs no code
+   * change here. This is the fallback for the case that has no configuration answer at all — the
+   * page the link must reach does not exist in the CMS, so no id can name it, and the alternative
+   * was a banner with no link on a site that has a privacy notice.
+   */
+  privacyHref?: string | null
 }
 
-const { locale = 'en' } = Astro.props
+const { locale = 'en', privacyHref: privacyHrefProp = null } = Astro.props
 
 const settings = await getSiteSettings()
 
@@ -65,13 +78,15 @@ const marketingLabel = copy?.marketing_label || fallback.marketing_label
 const marketingDescription = copy?.marketing_description || fallback.marketing_description
 const allowSelectionLabel = copy?.allow_selection_label || fallback.allow_selection_label
 
-// Resolve the picked privacy page to its localized path (or omit the link when unset/unresolved).
-let privacyHref: string | null = null
+// Resolve the picked privacy page to its localized path, falling back to the path the project
+// layer passed in. resolvePrivacyHref() owns the precedence rule and the blank-string guard.
+let fromCms: string | null = null
 const privacyId = settings.cookie_consent?.privacy_page_id
 if (showBanner && typeof privacyId === 'number') {
   const pages = await getPages(locale).catch(() => [])
-  privacyHref = pages.find((p) => p.id === privacyId)?.path ?? null
+  fromCms = pages.find((p) => p.id === privacyId)?.path ?? null
 }
+const privacyHref = showBanner ? resolvePrivacyHref(fromCms, privacyHrefProp) : null
 
 // One script serves both modes: the granular-only elements (customize button, panel, the two
 // checkboxes) are simply absent from the DOM in simple mode, and every handler below null-guards
@@ -148,10 +163,18 @@ ${CONSENT_SIGNALS_JS}
             </button>
           )}
           {/* Reject is presented first and is the same kind of control as Accept — not a dark pattern. */}
-          <button type="button" class="cookie-consent__button cookie-consent__button--reject" data-cookie-consent-reject>
+          <button
+            type="button"
+            class="cookie-consent__button cookie-consent__button--reject"
+            data-cookie-consent-reject
+          >
             {rejectLabel}
           </button>
-          <button type="button" class="cookie-consent__button cookie-consent__button--accept" data-cookie-consent-accept>
+          <button
+            type="button"
+            class="cookie-consent__button cookie-consent__button--accept"
+            data-cookie-consent-accept
+          >
             {acceptLabel}
           </button>
         </div>
@@ -167,14 +190,24 @@ ${CONSENT_SIGNALS_JS}
           <div class="cookie-consent__category">
             <label class="cookie-consent__category-header" for="cookie-consent-statistics">
               <span class="cookie-consent__category-label">{statisticsLabel}</span>
-              <input type="checkbox" id="cookie-consent-statistics" class="cookie-consent__toggle" data-cookie-consent-statistics />
+              <input
+                type="checkbox"
+                id="cookie-consent-statistics"
+                class="cookie-consent__toggle"
+                data-cookie-consent-statistics
+              />
             </label>
             <p class="cookie-consent__category-description">{statisticsDescription}</p>
           </div>
           <div class="cookie-consent__category">
             <label class="cookie-consent__category-header" for="cookie-consent-marketing">
               <span class="cookie-consent__category-label">{marketingLabel}</span>
-              <input type="checkbox" id="cookie-consent-marketing" class="cookie-consent__toggle" data-cookie-consent-marketing />
+              <input
+                type="checkbox"
+                id="cookie-consent-marketing"
+                class="cookie-consent__toggle"
+                data-cookie-consent-marketing
+              />
             </label>
             <p class="cookie-consent__category-description">{marketingDescription}</p>
           </div>
