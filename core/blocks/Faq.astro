@@ -22,12 +22,18 @@
 // native ::marker, the <details open> state selectors, and the answer's reveal animation.
 import type { FaqBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
+import { sectionAnchorId } from '../../lib/anchor'
 import { href as hrefOf } from '../../lib/href'
 interface Props {
   block: FaqBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, intro, layout, open_first, cta_label, cta_href, items = [] } = block.data
+const { anchor_id, eyebrow, heading, intro, layout, open_first, cta_label, cta_href, items = [] } = block.data
+
+// Deep-link target (#1416) — not to be confused with `groupName` below, which names the
+// accordion's exclusive group: that one is derived from the heading and must exist on every
+// block, this one is the editor's own and may be unset.
+const sectionId = sectionAnchorId(anchor_id)
 
 // Anything but 'list' renders the accordion (see the header note on the default).
 const isList = layout === 'list'
@@ -50,7 +56,7 @@ const slug = (heading ?? 'section')
 const groupName = `faq-${slug || 'section'}`
 ---
 
-<section class="section-faq">
+<section class="section-faq" id={sectionId}>
   <div class="faq-inner">
     {
       (eyebrow || heading || intro || hasCta) && (

@@ -298,6 +298,7 @@ export interface ResponsiveImageMeta {
 export interface RichContentBlock {
   type: 'rich_content'
   data: {
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     body?: string
@@ -307,6 +308,7 @@ export interface RichContentBlock {
     animation_url?: string
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    reveal?: 'default' | 'on' | 'off'
   }
 }
 
@@ -338,12 +340,14 @@ export interface VideoSectionBlock {
 export interface FeaturesBlock {
   type: 'features'
   data: {
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     intro?: string
     steps?: Array<{ number?: string; title?: string; description?: string }>
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    reveal?: 'default' | 'on' | 'off'
   }
 }
 
@@ -355,6 +359,7 @@ export interface CtaBannerBlock {
     body?: string
     badges?: Array<{ label?: string }>
     ctas?: Array<{ label?: string; href?: string }>
+    reveal?: 'default' | 'on' | 'off'
   }
 }
 
@@ -391,6 +396,7 @@ export interface PricingTeaserBlock {
     footer_href?: string
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    reveal?: 'default' | 'on' | 'off'
   }
 }
 
@@ -409,6 +415,7 @@ export interface CardsBlock {
     layout?: 'tiles' | 'cards' | 'steps'
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    reveal?: 'default' | 'on' | 'off'
     items?: Array<{
       icon?: 'location' | 'clock' | 'phone' | 'mail' | 'calendar' | 'info' | 'document' | 'folder' | 'download' | 'book'
       image?: string | null
@@ -436,6 +443,7 @@ export interface GalleryBlock {
 export interface FaqBlock {
   type: 'faq'
   data: {
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     intro?: string

@@ -1,13 +1,18 @@
 ---
 import type { RichContentBlock } from '../../types/blocks'
+import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
 interface Props {
   block: RichContentBlock
 }
 const { block } = Astro.props
+const { anchor_id } = block.data
+
+// Deep-link target, so a table of contents can point at this block (#1416). See lib/anchor.ts.
+const sectionId = sectionAnchorId(anchor_id)
 ---
 
-<section class="section-content">
+<section class="section-content" id={sectionId}>
   <div class="content-inner">
     {block.data.heading && <h2 class="rich-heading">{block.data.heading}</h2>}
     <RichText class="rich-body" html={block.data.body} />

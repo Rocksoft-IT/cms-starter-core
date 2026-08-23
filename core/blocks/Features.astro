@@ -1,15 +1,19 @@
 ---
 import type { FeaturesBlock } from '../../types/blocks'
+import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 interface Props {
   block: FeaturesBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, intro, steps = [] } = block.data
+const { anchor_id, eyebrow, heading, intro, steps = [] } = block.data
+
+// Deep-link target — a process/steps section is a typical TOC entry (#1416). See lib/anchor.ts.
+const sectionId = sectionAnchorId(anchor_id)
 ---
 
-<section class="section-features relative">
+<section class="section-features relative" id={sectionId}>
   <div class="features-inner">
     <div class="features-component">
       <SectionHeader {eyebrow} {heading} {intro} />
