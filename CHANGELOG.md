@@ -4,6 +4,56 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.29.0 — the header and footer are fetched once per build, not once per page
+
+`getPages`, `getBranding`, `getLocales` and `getSiteSettings` are all memoized, because a static
+build asks for each of them from every route. `getMenu` and `getFooter` were not — and they back
+the two things a layout mounts on **every single page**. So a site whose `Navbar` reads the header
+menu and whose footer reads the footer component paid two extra HTTP round-trips per built page,
+for two answers that cannot change within a build. Nine pages, eighteen wasted requests; three
+hundred pages and three locales, rather more.
+
+Both are memoized now, with the same shape `getPages` already uses: a `Map` keyed by what varies
+(`key|locale` for menus, `locale` for the footer), and **a rejected fetch is evicted** so one
+transient failure is not then served to every later caller.
+
+That eviction is the whole reason this was not a two-line change. `getFooter` used to swallow
+_every_ error into `null`:
+
+```ts
+.catch(() => null) // 404 (no active footer) / offline → no footer
+```
+
+A 404 and a dropped connection came back indistinguishable, and only one of them is an answer.
+Cached as-is, a single hiccup early in a build would have pinned a footerless site — on a German
+site, that is every page losing its Impressum link, silently. So the two are now separated:
+
+- **404 → `null`, and cached.** The client has no footer component; that is the CMS answering.
+- **anything else → rejects, and is evicted.** The renderer's own `.catch(() => null)` still
+  degrades that one page, exactly as before, and the next page retries.
+
+**Nothing changes for a caller that already `.catch`es**, which both in-tree callers
+(`core/Footer.astro`, the reference `Navbar.astro`) do — and any client Navbar generated from this
+template does too. A caller that awaited `getFooter` _bare_ and relied on `null`-on-network-error
+would now see a rejection; grep for `getFooter(` before bumping if yours is hand-written.
+
+`apiFetch` throws a new exported `ApiError` carrying `status`, which is what made the split
+possible. The message format (`API 404: /api/…`) is unchanged, so anything matching on it still
+matches.
+
+## v0.28.0 — `anchor_id` on rich_content, features and faq
+
+Published 2026-08-23 without an entry here; recorded after the fact from the commits it carried
+(#1416), so it is a summary rather than the usual upgrade note.
+
+- **`anchor_id` on `rich_content`, `features` and `faq`** — an editor-supplied `id` on the
+  section element, so a table of contents (or any link) can deep-link to that block. Normalized
+  through the new `lib/anchor.ts` (`sectionAnchorId`).
+- **`reveal` on `rich_content` and `features`** in the generated types, alongside the existing
+  `background` / `align` keys.
+
+Additive: a block with no `anchor_id` renders exactly as before.
+
 ## v0.27.0 — the consent banner can link to a privacy notice the CMS does not own
 
 `CookieConsent` resolved its privacy link from `settings.cookie_consent.privacy_page_id` and
@@ -63,12 +113,12 @@ acts on it. A client that is not public yet — typically pre-cutover, live only
 domain while its real domain still serves the old site — now builds a site search engines leave
 alone.
 
-| changed | what it does when `search_visible` is false |
-| --- | --- |
-| `core/Seo.astro` | every page emits `noindex, nofollow` — a third term beside the `noindex` prop and the per-page `seo.noindex` |
-| `core/robots.ts` | `robots.txt` drops the `Sitemap:` line |
-| `core/scripts/fetch-sitemap.mjs` | the build writes no sitemap files at all |
-| `core/effectiveConfig.ts` | exposes `searchVisible`, read from `GET /api/site-settings` |
+| changed                          | what it does when `search_visible` is false                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `core/Seo.astro`                 | every page emits `noindex, nofollow` — a third term beside the `noindex` prop and the per-page `seo.noindex` |
+| `core/robots.ts`                 | `robots.txt` drops the `Sitemap:` line                                                                       |
+| `core/scripts/fetch-sitemap.mjs` | the build writes no sitemap files at all                                                                     |
+| `core/effectiveConfig.ts`        | exposes `searchVisible`, read from `GET /api/site-settings`                                                  |
 
 **No `Disallow: /`.** `Disallow` blocks crawling, and a crawler that cannot fetch the page never
 reads its `noindex` — which prevents indexing a staging copy Google has not seen, but permanently
@@ -108,13 +158,13 @@ Those releases shipped without entries in this file. This entry does not reconst
 Four things a client repo used to own a copy of now live here, so a fix to any of them arrives with
 a pin bump instead of a per-repo edit (dashboard #1195 step 8, PR #1247).
 
-| new in core | what it is |
-| --- | --- |
+| new in core                | what it is                                                                                                               |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `deploy.sh` (package root) | the build-onward half of the deploy: build, package the release, verify, the atomic go-live flip, prune, the history log |
-| `core/sitePaths.ts` | `getSitePaths(cmsConfig)` — the whole `getStaticPaths` body of the catch-all route |
-| `core/PageDispatch.astro` | the page-type lookup and render that route's template used to inline |
-| `core/robots.ts` | the `robots.txt` handler |
-| `core/Seo.astro` | moved here from the site layer; unchanged otherwise |
+| `core/sitePaths.ts`        | `getSitePaths(cmsConfig)` — the whole `getStaticPaths` body of the catch-all route                                       |
+| `core/PageDispatch.astro`  | the page-type lookup and render that route's template used to inline                                                     |
+| `core/robots.ts`           | the `robots.txt` handler                                                                                                 |
+| `core/Seo.astro`           | moved here from the site layer; unchanged otherwise                                                                      |
 
 ### For an existing client: nothing breaks, and nothing changes on its own
 
@@ -186,12 +236,12 @@ No client action required.
 Four values a site used to hand-write in `cms.config.ts` now come from the CMS, each keeping its
 local value as a fallback. `core/effectiveConfig.ts` is the single place that precedence lives.
 
-| value | CMS source |
-| --- | --- |
-| `defaultLocale` | `GET /api/locales`, the entry flagged `is_default` |
-| `seo.siteName` | `GET /api/site-settings`, `site_name` |
-| `seo.defaultImage` | `GET /api/site-settings`, `default_og_image` |
-| `seo.siteUrl` | `frontend_url`, ranked under `ASTRO_SITE_URL` |
+| value              | CMS source                                         |
+| ------------------ | -------------------------------------------------- |
+| `defaultLocale`    | `GET /api/locales`, the entry flagged `is_default` |
+| `seo.siteName`     | `GET /api/site-settings`, `site_name`              |
+| `seo.defaultImage` | `GET /api/site-settings`, `default_og_image`       |
+| `seo.siteUrl`      | `frontend_url`, ranked under `ASTRO_SITE_URL`      |
 
 ### BREAKING — `siteUrl()` is now async
 
@@ -202,10 +252,10 @@ reach a build was a hand-edited repo value that then outlived it.
 
 A client repo owns the two call sites, so **both need `await` at bump time**:
 
-| file | un-awaited symptom | caught by `astro check`? |
-| --- | --- | --- |
-| `src/components/Seo.astro` | `canonicalUrl({ origin: Promise })` | **yes** |
-| `src/pages/robots.txt.ts` | `Sitemap: [object Promise]` | **NO** — a Promise is truthy |
+| file                       | un-awaited symptom                  | caught by `astro check`?     |
+| -------------------------- | ----------------------------------- | ---------------------------- |
+| `src/components/Seo.astro` | `canonicalUrl({ origin: Promise })` | **yes**                      |
+| `src/pages/robots.txt.ts`  | `Sitemap: [object Promise]`         | **NO** — a Promise is truthy |
 
 The second is the trap: it ships silently on a green build. After bumping, grep the built
 `dist/robots.txt` for a real URL. `src/pages/robots.txt.ts` also has to become

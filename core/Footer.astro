@@ -1,7 +1,9 @@
 ---
 // Core site footer — a global CMS component (GET /api/components/footer), rendered once by the
 // layout the way Navbar renders the header. Like Navbar it SELF-GATES: no active `footer`
-// component (404 / offline) → getFooter returns null → nothing renders.
+// component (404) → getFooter resolves null → nothing renders. A failed request rejects instead,
+// which the .catch below turns into the same nothing — the difference is that a failure is not
+// memoized, so it costs this page's footer rather than the whole build's.
 //
 // Structure only. This core renderer emits semantic class hooks and NO visual CSS — each client
 // frontend styles `.site-footer` et al. in its own stylesheet (the core-structure / client-style

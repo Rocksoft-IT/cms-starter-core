@@ -243,12 +243,31 @@ export function normalizeApiData(data: unknown, keepRootKeys: ReadonlySet<string
 
 const SEO_ROOT_KEY = new Set(['seo'])
 
+/**
+ * What `apiFetch` throws, carrying the HTTP status the message already spelled out.
+ *
+ * Needed the moment a response is memoized. A caller that answers `null` for BOTH "the CMS says
+ * this is not configured" (404) and "the request failed" cannot cache: caching the first is
+ * correct and caching the second pins one transient failure onto every page of the build. The
+ * status is what separates them. Message format is unchanged, so anything reading it still reads
+ * the same string.
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    path: string,
+  ) {
+    super(`API ${status}: ${path}`)
+    this.name = 'ApiError'
+  }
+}
+
 async function apiFetch(
   path: string,
   keepRootKeys: ReadonlySet<string> = SEO_ROOT_KEY,
 ): Promise<{ success: boolean; data: unknown }> {
   const res = await fetch(`${BASE}${path}`, { headers: AUTH_HEADERS })
-  if (!res.ok) throw new Error(`API ${res.status}: ${path}`)
+  if (!res.ok) throw new ApiError(res.status, path)
   const json = (await res.json()) as { success: boolean; data: unknown }
   return { ...json, data: normalizeApiData(json.data, keepRootKeys) }
 }
@@ -368,15 +387,35 @@ export interface MenuLink {
  * gate UI on activeness (`menu !== null`), which an empty-array-on-error contract couldn't
  * express, so this distinguishes "not configured" (null) from "active but empty" ([]).
  */
-export async function getMenu(key: string, locale?: string): Promise<MenuLink[] | null> {
+export function getMenu(key: string, locale?: string): Promise<MenuLink[] | null> {
   if (MOCK_MODE) return getMockMenu(key)
+
+  const cacheKey = `${key}|${locale ?? ''}`
+  let menu = menusByKey.get(cacheKey)
+  if (!menu) {
+    menu = fetchMenu(key, locale)
+    menusByKey.set(cacheKey, menu)
+    menu.catch(() => menusByKey.delete(cacheKey))
+  }
+  return menu
+}
+
+// Memoized per key+locale, the same way getPages is per locale, and for the same reason: a Navbar
+// (or a Footer) is chrome, mounted by the layout on EVERY page, so an unmemoized fetch here is one
+// request per built page — a cost that grows with the site while the answer never changes within a
+// build. A rejected fetch is evicted so one transient failure isn't served to every later caller;
+// a 404 is not a failure but the CMS's answer ("not configured"), so it resolves to null and is
+// cached like any other result.
+const menusByKey = new Map<string, Promise<MenuLink[] | null>>()
+
+async function fetchMenu(key: string, locale?: string): Promise<MenuLink[] | null> {
   // Pass the locale through: a Page-target item's href is that page's public path for the
   // requested locale, prefix included (MenuApiController::pageHref). Omitting it renders the
   // default locale's URLs inside a translated page — links that leave the locale on click.
   const query = locale ? `?locale=${encodeURIComponent(locale)}` : ''
   const res = await fetch(`${BASE}/api/menus/${key}${query}`, { headers: AUTH_HEADERS })
   if (res.status === 404) return null
-  if (!res.ok) throw new Error(`API ${res.status}: /api/menus/${key}`)
+  if (!res.ok) throw new ApiError(res.status, `/api/menus/${key}`)
   const json = (await res.json()) as { success: boolean; data: MenuLink[] }
   return json.data ?? []
 }
@@ -458,12 +497,37 @@ export interface FooterData {
 
 const FOOTER_ROOT_KEYS = new Set([...SEO_ROOT_KEY, 'logo'])
 
-export async function getFooter(locale = 'en'): Promise<FooterData | null> {
+export function getFooter(locale = 'en'): Promise<FooterData | null> {
   if (MOCK_MODE) return getMockFooter(locale)
-  // Keep `logo` raw: Footer.astro reads both `.url` and `.alt` off it (FooterData.logo: SeoImage).
-  return apiFetch(`/api/components/footer?locale=${locale}`, FOOTER_ROOT_KEYS)
-    .then((json) => json.data as FooterData)
-    .catch(() => null) // 404 (no active footer) / offline → no footer; the renderer self-gates
+
+  let footer = footerByLocale.get(locale)
+  if (!footer) {
+    footer = fetchFooter(locale)
+    footerByLocale.set(locale, footer)
+    footer.catch(() => footerByLocale.delete(locale))
+  }
+  return footer
+}
+
+// Memoized per locale, like getMenu above and for the same reason — the footer is chrome, so it is
+// fetched once per BUILD rather than once per page.
+//
+// This one used to swallow every error into `null`, which read as "no footer" and could not be
+// cached: a build that hiccupped once would have pinned a footerless site. The 404 is separated out
+// (that IS the answer — no footer component — and it caches), and anything else rejects, evicts,
+// and reaches the renderer, which still self-gates. So the failure mode is unchanged for callers
+// and no longer contagious.
+const footerByLocale = new Map<string, Promise<FooterData | null>>()
+
+async function fetchFooter(locale: string): Promise<FooterData | null> {
+  try {
+    // Keep `logo` raw: Footer.astro reads `.url` and `.alt` off it (FooterData.logo: SeoImage).
+    const json = await apiFetch(`/api/components/footer?locale=${locale}`, FOOTER_ROOT_KEYS)
+    return json.data as FooterData
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
 }
 
 /** Site-wide settings (GET /api/site-settings). Only the fields the frontend consumes are typed
