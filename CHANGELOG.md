@@ -4,6 +4,72 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.32.0 — the consent answer moves to a cookie, and the banner says what the ad cookies do
+
+Two consent changes ship in this tag. **The first one needs a line in your `astro.config.mjs`** —
+a pin bump alone leaves it inert.
+
+### The consent answer is stored in a first-party cookie, not `localStorage`
+
+WebKit purges script-written storage after seven days of Safari use without interaction with the
+site, and the cap is keyed to **how** a value was written, not to which API reads it. So the old
+`localStorage.setItem('cookie-consent', …)` re-prompted every Safari visitor roughly weekly
+whatever lifetime was configured — and swapping it for `document.cookie` would have changed
+nothing. A cookie set by a `Set-Cookie` header from a genuine first-party origin is exempt.
+
+`core/consent.mjs` owns the cookie's name, its lifetime (`CONSENT_MAX_AGE_DAYS = 365`) and the
+source of the endpoint that sets it; `core/consentEndpoint.mjs` is the Astro integration that
+writes that source to `dist/consent.php` on `astro:build:done`. A `.php` file works because the
+built `dist/` **is** the release directory and every client frontend is a RunCloud app with PHP 8.2
+on `stack: hybrid` — so the endpoint is origin-local with no new infrastructure.
+
+**Upgrading is two steps, not one:**
+
+```js
+// astro.config.mjs
+import { cmsConsentEndpoint } from '@rocksoft/cms-starter-core/core/consentEndpoint.mjs'
+
+integrations: [UnoCSS(), cmsRedirects(), cmsConsentEndpoint()],
+```
+
+Bump the pin **first**, then add the line — the import resolves against the pinned core, so a config
+edit that lands before the bump breaks the build. Skip the line entirely and the banner POSTs to a
+URL your build never emitted, silently falls back to `localStorage`, and your Safari visitors keep
+being re-prompted weekly: present, inert and quiet, which is why
+`tests/unit/consent-endpoint-registered.test.ts` ships as a guard for repos generated from the
+template. Verify after deploy with a POST to `/consent.php` — it must answer `204` with a
+`Set-Cookie: cookie-consent=…` header.
+
+Reading is unchanged for a returning visitor: the cookie is read first, a pre-existing
+`localStorage` record is still honoured and rewritten through the endpoint on the spot, so the
+upgrade re-prompts nobody. `pnpm dev` emits no endpoint and takes the fallback, which is the right
+thing for local work.
+
+### The banner says what the advertising cookies actually do
+
+The consent banner's built-in copy under-described both categories, and the top-level message
+described only half of what accepting does. All three strings change, in all four locales.
+
+| Key | Was | Now names |
+|---|---|---|
+| `marketing_description` | *"Used to measure and improve ad performance."* | that a click on a Google ad **elsewhere** is matched to this visit, and that **Google** — a third party — receives it |
+| `statistics_description` | *"Helps us understand how visitors use this site."* | the identifier, its **two-year** lifetime, and that it goes to Google |
+| `message` | *"We use cookies to measure traffic…"* | advertising as well as traffic |
+
+The `message` row is the one that matters most and is easiest to miss: granular mode is opt-in, so
+**most sites render no category rows at all**. For them that sentence is the entire first layer,
+and it promised traffic measurement while Accept also grants `ad_storage`, `ad_user_data` and
+`ad_personalization`.
+
+The compliance point behind it, from the legal research in #1352: the mandated artefact is the
+**purpose description**, not the category label. Cookiebot keeps the word "Marketing" and is fine,
+because a paragraph and a per-cookie table sit underneath it. Ours had a seven-word sentence.
+
+Copy only — no behaviour, no schema, no API shape. A site picks it up by bumping the core pin; a
+client who has authored their own `cookie_consent` component text is unaffected, since these are
+the fallbacks. The panel mirrors them as the editor's per-locale placeholders
+(`config/cms.php`), pinned string-for-string by `CookieConsentDefaultsAreMirroredInConfigTest`.
+
 ## v0.31.0 — `anchor_id` on cta_banner
 
 `CtaBanner` emitted a bare `<section class="section-cta">`, so nothing could deep-link to a

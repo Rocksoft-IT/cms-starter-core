@@ -5,8 +5,9 @@
 // off, a build contains zero analytics — the shipped default.
 //
 // Ordering is the whole point: `consent 'default' = denied` runs first, a prior "accept" is
-// replayed from localStorage, and only then does the GTM/GA4 tag load — so nothing is measured
-// until the visitor has consented (CookieConsent.astro flips it to granted on accept).
+// replayed from the consent cookie, and only then does the GTM/GA4 tag load — so nothing is
+// measured until the visitor has consented (CookieConsent.astro flips it to granted on accept).
+// Reading the cookie here is why it is not HttpOnly (core/consent.mjs, #1470).
 //
 // Which id ends up where — and which id is refused, with a build-log line saying why — is
 // core/analytics.ts, shared with CookieConsent.astro so the banner and the tag can never
@@ -27,10 +28,10 @@ warnAboutAnalytics(analytics)
 const { active, gtmId, gtagId, cookiebotId } = analytics
 
 // Default-deny bootstrap, then CONSENT_SIGNALS_JS's readCookieConsent()/applyCookieConsent()
-// replay a stored choice (either localStorage schema, #1226) BEFORE the tag loads below — so a
-// returning visitor's Statistics/Marketing grants are restored on every page, and the ad_* signals
-// are updated too, not just analytics_storage (the bug #1226 found: they used to stay denied
-// forever even after Accept).
+// replay a stored choice (either schema, #1226; from the cookie or a pre-#1470 localStorage
+// record) BEFORE the tag loads below — so a returning visitor's Statistics/Marketing grants are
+// restored on every page, and the ad_* signals are updated too, not just analytics_storage (the
+// bug #1226 found: they used to stay denied forever even after Accept).
 const bootstrap = `
 window.dataLayer = window.dataLayer || [];
 function gtag(){ dataLayer.push(arguments); }

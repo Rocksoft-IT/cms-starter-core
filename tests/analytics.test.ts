@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import { CONSENT_SIGNALS_JS, classifyAnalyticsId, resolveAnalytics, warnAboutAnalytics } from '../core/analytics'
+import {
+  CONSENT_COOKIE_NAME,
+  CONSENT_ENDPOINT_PATH,
+  CONSENT_MAX_AGE_DAYS,
+  consentEndpointSource,
+} from '../core/consent.mjs'
 import type { SiteSettingsData } from '../lib/api'
 
 // dashboard #1191 — a stored GA4/GTM id reached the API and then vanished: the loader accepted
@@ -155,6 +161,171 @@ describe('CONSENT_SIGNALS_JS', () => {
     for (const signal of ['analytics_storage', 'ad_storage', 'ad_user_data', 'ad_personalization']) {
       expect(CONSENT_SIGNALS_JS).toContain(signal)
     }
+  })
+
+  // dashboard #1470. The three above pin the SOURCE; these RUN it, because the whole point of the
+  // change is which storage a given call touches, and no amount of string matching shows that.
+  // The script is written for a browser and declares plain functions, so evaluating it in a
+  // Function() body and returning the three names is the closest thing to how a page loads it.
+  describe('as executed in a page', () => {
+    // Only the two properties the script actually reads off a response. Typing this as the real
+    // `fetch` would buy nothing and force every stub below through a cast.
+    type FetchStub = (url: string, init: { body: string }) => Promise<{ status: number }>
+
+    const load = (env: { cookie?: string; stored?: string | null; fetch?: FetchStub | null }) => {
+      const store = new Map<string, string>()
+      if (typeof env.stored === 'string') store.set(CONSENT_COOKIE_NAME, env.stored)
+
+      const calls: Array<{ url: string; body: string }> = []
+      const recording: FetchStub = (url, init) => {
+        calls.push({ url, body: init.body })
+        return Promise.resolve({ status: 204 })
+      }
+
+      // A `window` with no fetch is the third write path (an ancient browser), so `null` has to
+      // mean "absent" and be distinguishable from "not specified".
+      const win = { gtag: undefined, fetch: env.fetch === null ? undefined : (env.fetch ?? recording) }
+      const doc = { cookie: env.cookie ?? '' }
+      const storage = {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      }
+
+      const api = new Function(
+        'window',
+        'document',
+        'localStorage',
+        `${CONSENT_SIGNALS_JS}\nreturn { readCookieConsent: readCookieConsent, writeCookieConsent: writeCookieConsent };`,
+      )(win, doc, storage)
+
+      return { api, store, calls }
+    }
+
+    test('a fresh visit writes no consent record to script storage — it POSTs to our own origin', async () => {
+      // The acceptance criterion. WebKit purges anything script storage holds after seven days,
+      // so a value that never goes through the endpoint is a value Safari re-prompts for weekly.
+      const { api, store, calls } = load({})
+
+      expect(api.readCookieConsent()).toBeNull()
+
+      api.writeCookieConsent({ statistics: true, marketing: false })
+      await Promise.resolve()
+
+      expect(store.size).toBe(0)
+      expect(calls).toEqual([
+        { url: CONSENT_ENDPOINT_PATH, body: '{"statistics":true,"marketing":false}' },
+      ])
+    })
+
+    test('never assigns document.cookie — a script write would re-arm the very 7-day cap this escapes', () => {
+      expect(CONSENT_SIGNALS_JS).not.toMatch(/document\.cookie\s*=/)
+    })
+
+    test('the cookie is read back, in both stored shapes', () => {
+      const json = load({ cookie: `a=1; ${CONSENT_COOKIE_NAME}=%7B%22statistics%22%3Atrue%2C%22marketing%22%3Afalse%7D; b=2` })
+      expect(json.api.readCookieConsent()).toEqual({ statistics: true, marketing: false })
+
+      // Pre-#1226 bare strings still resolve, now over the new transport as well.
+      const bare = load({ cookie: `${CONSENT_COOKIE_NAME}=accepted` })
+      expect(bare.api.readCookieConsent()).toEqual({ statistics: true, marketing: true })
+    })
+
+    test('a record written by the PREVIOUS core still suppresses the banner, and is rewritten as a cookie', async () => {
+      // The read-through migration: nobody is re-prompted BY the upgrade. CookieConsent.astro
+      // opens the banner on a null read, so a non-null answer here is the banner staying shut.
+      for (const stored of ['accepted', 'rejected', '{"statistics":true,"marketing":false}']) {
+        const { api, calls } = load({ stored })
+
+        const seen = api.readCookieConsent()
+        await Promise.resolve()
+
+        expect(seen).not.toBeNull()
+        expect(calls).toHaveLength(1)
+        expect(calls[0]).toEqual({ url: CONSENT_ENDPOINT_PATH, body: JSON.stringify(seen) })
+      }
+    })
+
+    test('the migration leaves the old key alone — it is the fallback if the cookie does not stick', () => {
+      const { api, store } = load({ stored: 'accepted' })
+      api.readCookieConsent()
+      expect(store.get(CONSENT_COOKIE_NAME)).toBe('accepted')
+    })
+
+    test('the cookie wins over a stale localStorage record, and costs no POST', () => {
+      const { api, calls } = load({
+        cookie: `${CONSENT_COOKIE_NAME}=rejected`,
+        stored: 'accepted',
+      })
+
+      expect(api.readCookieConsent()).toEqual({ statistics: false, marketing: false })
+      expect(calls).toHaveLength(0)
+    })
+
+    test('a failed POST falls back to localStorage rather than losing the answer', async () => {
+      // Load-bearing, not defensive: a site whose endpoint is missing would otherwise store
+      // nothing at all and re-prompt on EVERY page view — worse than the weekly re-prompt.
+      const failures: FetchStub[] = [
+        () => Promise.reject(new Error('offline')),
+        () => Promise.resolve({ status: 404 }),
+        // The one `r.ok` waved through: a host that serves `.php` as a static file answers 200
+        // with the endpoint's own source and sets no cookie. Read as success, that stores nothing
+        // and re-prompts on every page view — worse than the weekly re-prompt this fixes.
+        () => Promise.resolve({ status: 200 }),
+      ]
+
+      for (const fetchImpl of failures) {
+        const { api, store } = load({ fetch: fetchImpl })
+
+        api.writeCookieConsent({ statistics: true, marketing: true })
+        await Promise.resolve()
+        await Promise.resolve()
+
+        expect(store.get(CONSENT_COOKIE_NAME)).toBe('{"statistics":true,"marketing":true}')
+      }
+    })
+
+    test('a browser with no fetch falls back too', () => {
+      const { api, store } = load({ fetch: null })
+      api.writeCookieConsent({ statistics: false, marketing: true })
+      expect(store.get(CONSENT_COOKIE_NAME)).toBe('{"statistics":false,"marketing":true}')
+    })
+  })
+})
+
+// dashboard #1470. The endpoint is generated rather than committed precisely so the lifetime stays
+// one constant, so what is worth pinning is that the constant reaches the header and that the four
+// cookie attributes the fix depends on are the ones written.
+describe('consentEndpointSource', () => {
+  test('carries the configured lifetime into the header, in seconds', () => {
+    expect(consentEndpointSource()).toContain(`time() + ${CONSENT_MAX_AGE_DAYS * 86400}`)
+    expect(consentEndpointSource({ maxAgeDays: 180 })).toContain(`time() + ${180 * 86400}`)
+  })
+
+  test('is not HttpOnly — ConsentMode.astro has to read the value back before the tag loads', () => {
+    expect(consentEndpointSource()).toContain("'httponly' => false")
+  })
+
+  test('makes Secure conditional — a preview domain is plain HTTP and would drop the cookie', () => {
+    const php = consentEndpointSource()
+    expect(php).toContain("'secure' => $https")
+    expect(php).toContain('HTTP_X_FORWARDED_PROTO')
+  })
+
+  test('sets no Domain — a mis-derived registrable domain is rejected outright, and subdomains are out of scope', () => {
+    expect(consentEndpointSource()).not.toContain("'domain'")
+  })
+
+  test('re-encodes the value from two validated booleans instead of echoing the body', () => {
+    const php = consentEndpointSource()
+    expect(php).toContain("is_bool($sent['statistics'])")
+    expect(php).toContain("is_bool($sent['marketing'])")
+    expect(php).toContain('$value = json_encode([')
+    expect(php).toContain('http_response_code(400)')
+  })
+
+  test('answers only POST', () => {
+    expect(consentEndpointSource()).toContain('http_response_code(405)')
   })
 })
 

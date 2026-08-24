@@ -8,6 +8,9 @@
 // `describeAnalytics()` renders the reason into the build log.
 
 import type { SiteSettingsData } from '../lib/api'
+// The server half of the consent record (#1470). Imported rather than restated so the inline
+// script and the endpoint that answers it can never disagree about the cookie's name or its URL.
+import { CONSENT_COOKIE_NAME, CONSENT_ENDPOINT_PATH } from './consent.mjs'
 
 /** GTM container id — loaded through gtm.js, and the only shape that takes the GTM loader. */
 const GTM_ID = /^GTM-[A-Z0-9]+$/
@@ -209,12 +212,41 @@ export interface CookieConsentValue {
  *
  * `writeCookieConsent()` always stores the JSON object `{"statistics":<bool>,"marketing":<bool>}`,
  * in BOTH modes — Accept and Reject are just fixed values of the same split, so the write path
- * never branches on mode.
+ * never branches on mode. Since #1470 it stores it by POSTing to the site's own origin and
+ * letting the server set a first-party cookie, NOT with `localStorage` and NOT with
+ * `document.cookie`: WebKit purges script-written storage after seven days of Safari use without
+ * interaction, so the old localStorage record re-prompted every Safari visitor roughly weekly
+ * whatever lifetime we configured. The cap is keyed to how the value was WRITTEN, so nothing in
+ * here may ever assign to `document.cookie` for this key — a single script write would re-arm the
+ * seven-day cap on the very cookie that exists to escape it. Reading it back is fine and is why
+ * the cookie is not HttpOnly. core/consent.mjs is the server half and owns the lifetime.
  *
- * `readCookieConsent()` is the tolerant half, and accepts either shape:
+ * The POST is best-effort with a localStorage FALLBACK, and that fallback is load-bearing rather
+ * than defensive: if a site's endpoint is missing (a web app that does not execute PHP), a
+ * fetch-only write would store nothing at all and re-prompt on EVERY page view — far worse than
+ * the weekly re-prompt this fixes. With the fallback, the worst case is exactly the old
+ * behaviour. `pnpm dev` takes the same path, since no dev server emits the endpoint.
+ *
+ * The success test is `status === 204` and not `r.ok`, because the case that must trigger the
+ * fallback does not always answer 4xx. A host that serves `.php` as a static file — or a proxy
+ * answering with an interstitial — returns **200**, with the endpoint's own source as the body and
+ * no `Set-Cookie` anywhere. `r.ok` reads that as a successful write, so nothing is stored, the
+ * fallback never runs, and the banner re-prompts on every single page view: the exact outcome the
+ * paragraph above calls far worse than the bug. The endpoint answers 204 and nothing else, so
+ * requiring it costs nothing and turns "the write succeeded" into a claim about this endpoint
+ * rather than about any 2xx that happens to come back.
+ *
+ * `readCookieConsent()` is the tolerant half. It accepts either shape:
  *   - bare string `'accepted'` / `'rejected'` — stored before #1226, or by a site still on an
  *     older core; read as both-true / both-false
  *   - JSON `{"statistics":<bool>,"marketing":<bool>}` — everything written from here on
+ * from either SOURCE: the cookie first, then a `localStorage` record left by a core older than
+ * #1470. A hit on the old source is rewritten through the new one on the spot — the read-through
+ * migration, which is what stops the upgrade itself re-prompting anybody. The stale key is left
+ * where it is rather than deleted: it costs nothing (the cookie is always read first) and it is
+ * the one thing that still holds the answer if the cookie does not stick, whereas deleting it
+ * turns a broken endpoint into a lost consent. Safari collects it within the week regardless.
+ *
  * That tolerance is what makes the toggle safe in both directions: a visitor who consented before
  * this shipped is not re-prompted, and flipping a client between modes never invalidates a stored
  * choice. Returns null when nothing usable is stored (not yet decided — show the banner).
@@ -224,9 +256,8 @@ export interface CookieConsentValue {
  * This always sets all four together, split by category.
  */
 export const CONSENT_SIGNALS_JS = `
-function readCookieConsent(){
+function parseCookieConsent(raw){
   try {
-    var raw = localStorage.getItem('cookie-consent');
     if (raw === 'accepted') return {statistics:true,marketing:true};
     if (raw === 'rejected') return {statistics:false,marketing:false};
     if (raw) {
@@ -236,8 +267,39 @@ function readCookieConsent(){
   } catch(e) {}
   return null;
 }
+function readConsentCookie(){
+  try {
+    var prefix = ${JSON.stringify(`${CONSENT_COOKIE_NAME}=`)};
+    var parts = (document.cookie || '').split(';');
+    for (var i = 0; i < parts.length; i++) {
+      var part = parts[i].trim();
+      if (part.indexOf(prefix) === 0) return decodeURIComponent(part.slice(prefix.length));
+    }
+  } catch(e) {}
+  return null;
+}
+function readLegacyConsent(){
+  try { return localStorage.getItem(${JSON.stringify(CONSENT_COOKIE_NAME)}); } catch(e) { return null; }
+}
+function readCookieConsent(){
+  var v = parseCookieConsent(readConsentCookie());
+  if (v) return v;
+  v = parseCookieConsent(readLegacyConsent());
+  if (v) writeCookieConsent(v);
+  return v;
+}
 function writeCookieConsent(v){
-  try { localStorage.setItem('cookie-consent', JSON.stringify(v)); } catch(e) {}
+  var body = JSON.stringify(v);
+  function fallback(){ try { localStorage.setItem(${JSON.stringify(CONSENT_COOKIE_NAME)}, body); } catch(e) {} }
+  try {
+    if (!window.fetch) return fallback();
+    window.fetch(${JSON.stringify(CONSENT_ENDPOINT_PATH)}, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/json'},
+      body: body
+    }).then(function(r){ if (!r || r.status !== 204) fallback(); })['catch'](fallback);
+  } catch(e) { fallback(); }
 }
 function applyCookieConsent(v){
   if (!v || !window.gtag) return;

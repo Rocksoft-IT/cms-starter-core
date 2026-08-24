@@ -1,6 +1,6 @@
 {
   "en": {
-    "message": "We use cookies to measure traffic. Accept to allow analytics, or reject to keep them off.",
+    "message": "We use cookies to measure traffic and, if you accept, for advertising. Accept to allow them, or reject to keep them off.",
     "accept_label": "Accept",
     "reject_label": "Reject",
     "manage_label": "Privacy policy",
@@ -8,13 +8,13 @@
     "necessary_label": "Necessary",
     "always_on_label": "Always on",
     "statistics_label": "Statistics",
-    "statistics_description": "Helps us understand how visitors use this site.",
+    "statistics_description": "Google Analytics counts visits and shows how pages are used. It stores an identifier in your browser for two years and sends it to Google, a third party.",
     "marketing_label": "Marketing",
-    "marketing_description": "Used to measure and improve ad performance.",
+    "marketing_description": "Lets Google use this visit for ad measurement and personalised ads, and store an advertising identifier that links a click on a Google ad elsewhere to your visit here.",
     "allow_selection_label": "Allow selection"
   },
   "pl": {
-    "message": "Używamy plików cookie do pomiaru ruchu. Zaakceptuj, aby włączyć analitykę, lub odrzuć, aby pozostała wyłączona.",
+    "message": "Używamy plików cookie do pomiaru ruchu, a po wyrażeniu zgody – także do celów reklamowych. Zaakceptuj, aby na to zezwolić, lub odrzuć, aby pozostały wyłączone.",
     "accept_label": "Akceptuję",
     "reject_label": "Odrzucam",
     "manage_label": "Polityka prywatności",
@@ -22,13 +22,13 @@
     "necessary_label": "Niezbędne",
     "always_on_label": "Zawsze włączone",
     "statistics_label": "Statystyki",
-    "statistics_description": "Pomagają nam zrozumieć, jak odwiedzający korzystają z tej strony.",
+    "statistics_description": "Google Analytics liczy wizyty i pokazuje, jak korzystasz ze strony. Zapisuje w Twojej przeglądarce identyfikator na dwa lata i przekazuje go Google – podmiotowi trzeciemu.",
     "marketing_label": "Marketing",
-    "marketing_description": "Służą do mierzenia i poprawy skuteczności reklam.",
+    "marketing_description": "Pozwalają Google mierzyć skuteczność reklam i personalizować je oraz zapisać identyfikator reklamowy, który łączy kliknięcie reklamy Google w innym miejscu z Twoją wizytą tutaj.",
     "allow_selection_label": "Zezwól na wybrane"
   },
   "no": {
-    "message": "Vi bruker informasjonskapsler for å måle trafikk. Godta for å tillate analyse, eller avvis for å holde den av.",
+    "message": "Vi bruker informasjonskapsler for å måle trafikk, og – hvis du godtar – til annonsering. Godta for å tillate dem, eller avvis for å holde dem av.",
     "accept_label": "Godta",
     "reject_label": "Avvis",
     "manage_label": "Personvernerklæring",
@@ -36,13 +36,13 @@
     "necessary_label": "Nødvendige",
     "always_on_label": "Alltid på",
     "statistics_label": "Statistikk",
-    "statistics_description": "Hjelper oss å forstå hvordan besøkende bruker dette nettstedet.",
+    "statistics_description": "Google Analytics teller besøk og viser hvordan sidene brukes. Det lagrer en identifikator i nettleseren din i to år og sender den til Google, en tredjepart.",
     "marketing_label": "Markedsføring",
-    "marketing_description": "Brukes til å måle og forbedre annonseytelse.",
+    "marketing_description": "Lar Google måle annonser og tilpasse dem, og lagre en annonseidentifikator som knytter et klikk på en Google-annonse et annet sted til besøket ditt her.",
     "allow_selection_label": "Tillat utvalg"
   },
   "de": {
-    "message": "Wir verwenden Cookies, um den Traffic zu messen. Akzeptieren Sie, um Analysen zu erlauben, oder lehnen Sie ab, um sie deaktiviert zu lassen.",
+    "message": "Wir verwenden Cookies, um den Traffic zu messen, und – wenn Sie zustimmen – für Werbung. Akzeptieren Sie, um sie zu erlauben, oder lehnen Sie ab, um sie deaktiviert zu lassen.",
     "accept_label": "Akzeptieren",
     "reject_label": "Ablehnen",
     "manage_label": "Datenschutzerklärung",
@@ -50,9 +50,9 @@
     "necessary_label": "Notwendig",
     "always_on_label": "Immer aktiv",
     "statistics_label": "Statistiken",
-    "statistics_description": "Hilft uns zu verstehen, wie Besucher diese Website nutzen.",
+    "statistics_description": "Google Analytics zählt Besuche und zeigt, wie die Seiten genutzt werden. Es speichert eine Kennung zwei Jahre lang in Ihrem Browser und übermittelt sie an Google, einen Dritten.",
     "marketing_label": "Marketing",
-    "marketing_description": "Wird verwendet, um die Werbeleistung zu messen und zu verbessern.",
+    "marketing_description": "Erlaubt Google, diesen Besuch für Werbemessung und personalisierte Werbung zu nutzen und eine Werbekennung zu speichern, die einen Klick auf eine Google-Anzeige anderswo mit Ihrem Besuch hier verknüpft.",
     "allow_selection_label": "Auswahl erlauben"
   }
 }
