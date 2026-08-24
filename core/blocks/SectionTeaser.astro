@@ -15,6 +15,16 @@ import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: SectionTeaserBlock
+  /**
+   * The locale tree this block is being built into, handed down by BlockRenderer.
+   *
+   * This used to read `Astro.currentLocale`, which is ALWAYS undefined on these sites — core
+   * builds the locale trees itself and no site declares Astro's own i18n config, which is the
+   * whole reason BlockRenderer grew this prop (#1147). Eleven components took it; this one was
+   * missed, so it silently ran as the default locale and formatted every card's date in the wrong
+   * language on a translated page (#1463).
+   */
+  locale?: string
 }
 
 const { block } = Astro.props
@@ -29,7 +39,7 @@ const {
   attachments_label,
 } = block.data
 
-const locale = Astro.currentLocale ?? defaultLocale
+const locale = Astro.props.locale ?? defaultLocale
 const hasHeader = Boolean(eyebrow || heading)
 const isList = layout === 'list'
 const hasAction = Boolean(action_label && action_href)

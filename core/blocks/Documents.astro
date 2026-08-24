@@ -17,12 +17,20 @@ import { formatDate } from '../format'
 
 interface Props {
   block: DocumentsBlock
+  /**
+   * The locale tree this block is being built into, handed down by BlockRenderer.
+   *
+   * Same miss as SectionTeaser (#1463): this read `Astro.currentLocale`, which is ALWAYS undefined
+   * on these sites, so each row's published date rendered in the default language on a translated
+   * page. See BlockRenderer's docblock for why that channel does not work here (#1147).
+   */
+  locale?: string
 }
 
 const { block } = Astro.props
 const { heading, icon, files = [] } = block.data
 
-const locale = Astro.currentLocale ?? defaultLocale
+const locale = Astro.props.locale ?? defaultLocale
 
 // A safe href for an entry: an absolute http(s) URL (external links, resolved file URLs) or a
 // site-relative path (`/files/…`), but never a protocol-relative `//host` or a dangerous scheme
