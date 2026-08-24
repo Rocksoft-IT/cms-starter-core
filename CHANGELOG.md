@@ -4,6 +4,36 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.31.0 — `anchor_id` on cta_banner
+
+`CtaBanner` emitted a bare `<section class="section-cta">`, so nothing could deep-link to a
+call-to-action banner — and the banner is the block most likely to BE the target rather than to
+hold one. A site whose header menu item and hero button both point at `#kontakt` had to park that
+anchor on whatever block happened to precede the banner, so the jump landed one section early.
+Observed on a live site (#1474).
+
+`anchor_id` is the same field and the same `sectionAnchorId()` normalization the seven other
+section-level blocks already use (`rich_content`, `features`, `faq` since v0.28.0; `cards`,
+`gallery`, `team`, `pricing_table` before that). Additive: a banner with no `anchor_id` renders
+exactly as before — no `id` attribute at all, not `id=""`.
+
+## v0.30.0 — two blocks stopped formatting dates in the wrong language
+
+Published 2026-08-24 without an entry here; recorded after the fact from the commit it carried
+(#1463), so it is a summary rather than the usual upgrade note. **This one is worth taking**: it
+is a user-visible bug on every translated page, not a refactor.
+
+`SectionTeaser` and `Documents` read `Astro.currentLocale` to format their dates. On these sites
+that is **always** undefined — core builds the locale trees itself and no site declares Astro's
+own i18n config, which is the whole reason `BlockRenderer` grew a `locale` prop at all (#1147).
+Eleven components took the prop; these two were missed, so both fell back to the default
+locale and rendered e.g. "July 8, 2026" on a Polish page. Both now declare and read `locale?:
+string`, which `BlockRenderer` was already handing down.
+
+**If your repo has a hand-written renderer for either block**, check it takes the `locale` prop
+rather than reading `Astro.currentLocale` — the same miss is invisible until someone reads a date
+on a translated page.
+
 ## v0.29.0 — the header and footer are fetched once per build, not once per page
 
 `getPages`, `getBranding`, `getLocales` and `getSiteSettings` are all memoized, because a static

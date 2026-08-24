@@ -1,14 +1,18 @@
 ---
 import type { CtaBannerBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
+import { sectionAnchorId } from '../../lib/anchor'
 interface Props {
   block: CtaBannerBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, body, badges = [], ctas = [] } = block.data
+const { eyebrow, heading, body, badges = [], ctas = [], anchor_id } = block.data
+
+// Deep-link target, so a header CTA or in-page link can point at this banner (#1474). See lib/anchor.ts.
+const sectionId = sectionAnchorId(anchor_id)
 ---
 
-<section class="section-cta">
+<section class="section-cta" id={sectionId}>
   <div class="cta-inner">
     <div class="cta-content">
       {

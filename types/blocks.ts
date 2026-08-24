@@ -354,6 +354,7 @@ export interface FeaturesBlock {
 export interface CtaBannerBlock {
   type: 'cta_banner'
   data: {
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     body?: string
