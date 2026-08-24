@@ -4,6 +4,79 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.35.0 — a variable brand font registers its whole weight axis, and `columns` stops dropping two settings
+
+Two independent changes ride this tag, because neither had been published when the other
+landed. Both are a pin bump and nothing else — no config edit, no layout edit.
+
+### A variable brand font registers its whole weight axis, not a selection
+
+A pin bump and nothing else. No config edit, no layout edit — the change is entirely in what the
+build asks Google for.
+
+**The measurement this comes from.** For `Inter` with `subsets: latin, latin-ext`:
+
+| request | woff2 files | bytes | `@font-face` blocks | weights the browser may use |
+| --- | --- | --- | --- | --- |
+| `wght@400;600;700` | 2 | 47.1 + 83.1 KB | 6 | 400 / 600 / 700 |
+| `wght@100..900` | the same 2 | the same bytes | 2 | 100–900 |
+
+Google serves the **variable** file either way. Asking for three discrete weights does not fetch
+three smaller files — it fetches the same variable file and declares it three times, which fences
+the browser off from weights the downloaded face already carries. On two live sites that showed up
+as body copy set in `font-weight: 500` rendering at 400, from a file that contains 500.
+
+So `GET /api/branding` now carries `weight_range` per role — `"100 900"`, the form unifont reads
+as a range — and `cmsFonts()` registers that in preference to the discrete list. The preflight
+spells it `100..900`, which is what css2 accepts. Fewer `@font-face` declarations in every page's
+inlined CSS, the same download, and no weight a site's CSS can reach for and miss.
+
+**Nothing breaks on the way there.** `weights` is still in the payload, so a site that has not
+taken this bump keeps building exactly as it does today; `weight_range` is simply a key it does not
+read. A backend older than this sends no such key and the discrete list is what registers. And an
+unreadable range — anything but two numbers and a space — is ignored rather than passed on, because
+a malformed one would reach Google as a family it does not publish and cost the client its font.
+
+**Static families are unaffected**, deliberately. Roughly a fifth of the CMS catalog has no `wght`
+axis, and there a range would expand to every instance inside it (Poppins: 3 files becoming 18).
+Those keep the discrete list, and the panel keeps offering the weight checkboxes that make it
+worth something.
+
+### `columns` stops dropping the two settings the panel offers
+
+The `columns` block has offered **Prose measure** and **Reverse on mobile** since it shipped.
+Neither did anything. `ColumnsBlock` declared `layout` + `columns` and stopped there, and
+`core/blocks/Columns.astro` read neither field — so an editor picked a setting, the panel saved it,
+`GET /api/pages` returned it, and every client site rendered as though it were unset.
+
+That is the failure mode worth naming: not an unsupported field, but a **silently ignored** one.
+Nothing in the panel, the payload or the page says the choice did not take, so the only way to find
+it is to notice the page looks wrong and go reading a renderer in another repo. It surfaced from the
+client side — taeles-kebap-astro#45 narrowed both fields locally with a cast to stop its own site
+dropping them, which fixes one client and leaves every other one broken.
+
+**No client action.** Both settings are optional and absent on almost every block; a row that sets
+neither renders exactly as before. The two shortcuts changed shape but not their resolved value:
+
+```diff
+- 'columns-grid': 'container-global grid gap-8 items-start grid-cols-[var(--cols)] max-md:grid-cols-1',
++ 'columns-grid': 'w-[90%] max-w-[var(--columns-measure,var(--layout-container))] mx-auto ' +
++   'grid gap-8 items-start grid-cols-[var(--cols)] max-md:grid-cols-1',
++ 'columns-reverse-mobile': 'max-md:[&>*]:[order:var(--col-order)]',
+```
+
+`container-global` expanded to `w-[90%] max-w-[var(--layout-container)] mx-auto`, which is what the
+fallback resolves to — so a site that overrides `columns-grid` keeps its override, and a site that
+does not sees no change. The measure rides a custom property rather than swapping `container-global`
+for `container-prose`: both expand to a `max-w-[…]` utility, and composing them on one element would
+leave the winner to the order Uno happens to emit them in.
+
+`mobile_reverse` reverses with `order` under the `max-md:` variant, from a per-column `--col-order`
+the renderer sets. Not by reversing the markup and not by switching the container to
+`flex-col-reverse`: the DOM order stays as authored, so reading and focus order stay with it; the
+desktop row is untouched because `order` never applies above `md`; and it generalises to the three-
+and four-column presets instead of assuming two.
+
 ## v0.34.0 — a second brand font role, so a site can drop its Google Fonts `<link>`
 
 v0.33.0 shipped one font token, and it turned out to be one too few. Measured across the fleet
@@ -65,9 +138,11 @@ integrations: [UnoCSS(), cmsRedirects(), cmsConsentEndpoint(), cmsFonts()]
 ```
 
 ```astro
---- // src/layouts/Layout.astro
+---
+// src/layouts/Layout.astro
 import BrandFont from '@rocksoft/cms-starter-core/core/BrandFont.astro'
 ---
+
 <head>
   …
   <BrandFont />
@@ -98,6 +173,7 @@ the CMS overrides it** — the integration appends, and Astro resolves the last 
 variable. Same precedence as every other brand value here: `/api/branding` over
 `cmsConfig.brand.colors` over core's defaults. Astro logs that the two families did not merge,
 which is the signal that a site-level declaration is now being overridden from the panel.
+
 ## v0.32.0 — the consent answer moves to a cookie, and the banner says what the ad cookies do
 
 Two consent changes ship in this tag. **The first one needs a line in your `astro.config.mjs`** —
@@ -144,11 +220,11 @@ thing for local work.
 The consent banner's built-in copy under-described both categories, and the top-level message
 described only half of what accepting does. All three strings change, in all four locales.
 
-| Key | Was | Now names |
-|---|---|---|
-| `marketing_description` | *"Used to measure and improve ad performance."* | that a click on a Google ad **elsewhere** is matched to this visit, and that **Google** — a third party — receives it |
-| `statistics_description` | *"Helps us understand how visitors use this site."* | the identifier, its **two-year** lifetime, and that it goes to Google |
-| `message` | *"We use cookies to measure traffic…"* | advertising as well as traffic |
+| Key                      | Was                                                 | Now names                                                                                                             |
+| ------------------------ | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `marketing_description`  | _"Used to measure and improve ad performance."_     | that a click on a Google ad **elsewhere** is matched to this visit, and that **Google** — a third party — receives it |
+| `statistics_description` | _"Helps us understand how visitors use this site."_ | the identifier, its **two-year** lifetime, and that it goes to Google                                                 |
+| `message`                | _"We use cookies to measure traffic…"_              | advertising as well as traffic                                                                                        |
 
 The `message` row is the one that matters most and is easiest to miss: granular mode is opt-in, so
 **most sites render no category rows at all**. For them that sentence is the entire first layer,

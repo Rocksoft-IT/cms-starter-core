@@ -281,8 +281,18 @@ export const coreShortcuts: Record<string, string> = {
   // The container sits on the grid (the inner element), not on the <section>. Tracks come from
   // block data through the inline `--cols` custom property; below `md` they collapse to one column
   // in authoring order.
+  //
+  // The measure is a property with the page container as its fallback, so the block's `width`
+  // setting can narrow the row to the prose band from the component's inline style — swapping
+  // `container-global` for `container-prose` would put two `max-w-[…]` utilities on one element
+  // and leave the winner to emission order.
   'section-columns': 'py-8',
-  'columns-grid': 'container-global grid gap-8 items-start grid-cols-[var(--cols)] max-md:grid-cols-1',
+  'columns-grid':
+    'w-[90%] max-w-[var(--columns-measure,var(--layout-container))] mx-auto ' +
+    'grid gap-8 items-start grid-cols-[var(--cols)] max-md:grid-cols-1',
+  // `mobile_reverse`, applied only while the row is stacked. The per-column `--col-order` comes
+  // from the component; above `md` this never applies, so grid placement stays in authoring order.
+  'columns-reverse-mobile': 'max-md:[&>*]:[order:var(--col-order)]',
 
   // ── Testimonials block ──────────────────────────────────────────────────────
   // Stacked cards at a reading measure are the default; `.is-slider` on the wrapper switches the

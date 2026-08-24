@@ -331,6 +331,10 @@ export async function getPage(path: string, locale = 'en'): Promise<PageResult |
 export interface BrandFont {
   family: string
   weights: number[]
+  /** A variable family's whole `wght` axis, `"100 900"` (dashboard #1549) — preferred over
+   *  `weights`, which stays in the payload for a core older than that. Absent on a static family,
+   *  and on a backend that predates the field. */
+  weight_range?: string | null
   fallbacks: string[]
   provider: string
 }

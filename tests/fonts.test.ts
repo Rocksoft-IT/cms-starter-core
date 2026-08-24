@@ -25,6 +25,9 @@ function branding(
 /** A body-face payload, the shape BrandFonts::resolve() publishes it in. */
 const INTER_BODY = { family: 'Inter', weights: [400, 600, 700], fallbacks: ['ui-sans-serif', 'system-ui', 'sans-serif'], provider: 'google' }
 
+/** The same role as a VARIABLE family: the whole axis beside the discrete list (#1549). */
+const INTER_VARIABLE = { ...INTER_BODY, weight_range: '100 900' }
+
 describe('toFontFamilies()', () => {
   it('maps the CMS payload onto an Astro font family', () => {
     expect(toFontFamilies(branding(), PROVIDER)).toEqual([
@@ -73,6 +76,29 @@ describe('toFontFamilies()', () => {
 
     expect(families.map((f) => f.name)).toEqual(['Inter', 'Inter'])
     expect(families.map((f) => f.cssVariable)).toEqual(['--font-primary', '--font-body'])
+  })
+
+  it('registers a variable family as its whole axis, not as the listed weights', () => {
+    // dashboard #1549 — Google returns the same file for `wght@400;600;700` as for `wght@100..900`,
+    // so the discrete list only fences the browser off from weights the file already carries.
+    const [family] = toFontFamilies(branding(INTER_VARIABLE), PROVIDER)
+
+    expect(family.weights).toEqual(['100 900'])
+  })
+
+  it('keeps the discrete list for a static family and for an older backend', () => {
+    // The 9 static families in the catalog, where a range WOULD expand to every instance in it —
+    // and any payload from a backend that predates the field.
+    expect(toFontFamilies(branding(INTER_BODY), PROVIDER)[0].weights).toEqual([400, 600, 700])
+    expect(toFontFamilies(branding({ ...INTER_BODY, weight_range: null }), PROVIDER)[0].weights).toEqual([400, 600, 700])
+  })
+
+  it('ignores a weight range it cannot read as one', () => {
+    // Two numbers and a space is the whole grammar unifont accepts; anything else would reach
+    // Google as a family it does not publish and cost the client its font.
+    for (const bad of ['100..900', '100', 'thin bold', '', ' ', 100]) {
+      expect(toFontFamilies(branding({ ...INTER_BODY, weight_range: bad }), PROVIDER)[0].weights).toEqual([400, 600, 700])
+    }
   })
 
   it('answers nothing for a client that has set no font', () => {
@@ -203,6 +229,17 @@ describe('cmsFonts()', () => {
     expect(fetch.mock.calls[1][0]).toBe(
       'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap',
     )
+  })
+
+  it('preflights a variable family as a range, in the form css2 accepts', async () => {
+    // `100..900`, not `100 900` and not a sorted list — dashboard #1549. Getting this wrong asks
+    // Google for a family it does not publish, and the preflight then drops the font entirely.
+    stubEnv()
+    const fetch = stubFetch(() => Response.json({ success: true, data: branding(INTER_VARIABLE) }), servable)
+
+    await setup(hookArgs().args)
+
+    expect(fetch.mock.calls[1][0]).toBe('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap')
   })
 
   it('builds without the font when Google will not serve it', async () => {

@@ -3,9 +3,10 @@
 // block's `columns_layout` shares.
 //
 // The container sits on the grid, not on the <section>: the section stays full-bleed so a site can
-// give it a background, and the measure is one shortcut (`columns-grid` → `container-global`) a site
-// can remap. Track sizing rides the inline `--cols` custom property, read by an arbitrary-value
-// utility in that same shortcut — so this component needs no CSS of its own at all.
+// give it a background, and the measure is one shortcut (`columns-grid`) a site can remap. Track
+// sizing rides the inline `--cols` custom property, read by an arbitrary-value utility in that same
+// shortcut — so this component needs no CSS of its own at all. The block's other two settings ride
+// the same channel, for the same reason: a custom property has no specificity to lose.
 import type { ColumnsBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import BlockRenderer from '../BlockRenderer.astro'
@@ -34,13 +35,28 @@ const columns = (block.data.columns ?? [])
 
 // On mobile the grid auto-stacks to one column, in authoring order (see the `columns-grid` shortcut).
 const template = columns.map((col) => `${col.share}fr`).join(' ')
+
+// `width: 'prose'` narrows the row to the text measure. Set as a property rather than by swapping
+// `container-global` for `container-prose`: both expand to a `max-w-[…]` utility, so composing them
+// on one element would leave the winner to the order Uno happens to emit them in.
+const measure = block.data.width === 'prose' ? 'var(--layout-container-prose)' : undefined
+
+// `mobile_reverse` flips which column reads first ONLY while the row is stacked. Done with `order`
+// under the `max-md:` variant rather than by reversing the markup or switching the container to
+// `flex-col-reverse`: the DOM order stays as authored (so reading and focus order do too), the
+// desktop row is untouched because `order` is never applied above `md`, and it generalises to a
+// three- or four-column preset instead of assuming two.
+const reverse = block.data.mobile_reverse === true
 ---
 
 <section class="section-columns">
-  <div class="columns-grid" style={`--cols: ${template};`}>
+  <div
+    class:list={['columns-grid', reverse && 'columns-reverse-mobile']}
+    style={[`--cols: ${template};`, measure && `--columns-measure: ${measure};`].filter(Boolean).join(' ')}
+  >
     {
-      columns.map((col) => (
-        <div class="columns-col">
+      columns.map((col, i) => (
+        <div class="columns-col" style={reverse ? `--col-order: ${columns.length - i}` : undefined}>
           <BlockRenderer blocks={col.blocks} {locale} />
         </div>
       ))

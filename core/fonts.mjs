@@ -115,6 +115,17 @@ function toFontFamily(entry, cssVariable, provider) {
   // silently fetch a same-named Google family instead.
   if (role.provider !== undefined && role.provider !== 'google') return null
 
+  // A variable family is registered as its whole `wght` axis — `"100 900"`, which unifont turns
+  // into `100..900` and Google answers with ONE file covering every weight (dashboard #1549).
+  // Asking for discrete weights instead does not get smaller files: measured on the live css2
+  // endpoint, `Inter:wght@400;600;700` returns the same two woff2 files as `wght@100..900` and
+  // merely declares them three times, which fences the browser off from weights the file already
+  // carries. `weight_range` is read in preference to `weights` for exactly that reason; a backend
+  // older than #1549 sends no such key and the discrete list below is what a family registers.
+  const range = typeof role.weight_range === 'string' && /^\d+ \d+$/.test(role.weight_range.trim())
+    ? role.weight_range.trim()
+    : null
+
   const weights = Array.isArray(role.weights)
     ? [...new Set(role.weights.map(Number).filter((w) => Number.isInteger(w) && w >= 1 && w <= 1000))].sort(
         (a, b) => a - b,
@@ -133,7 +144,7 @@ function toFontFamily(entry, cssVariable, provider) {
     // nothing keeps a payload from a panel older than this feature's weight/fallback fields
     // building — with a plain regular face and a generic stack, which is a worse font, not a
     // broken site.
-    weights: weights.length > 0 ? weights : [400],
+    weights: range !== null ? [range] : weights.length > 0 ? weights : [400],
     ...(fallbacks.length > 0 ? { fallbacks } : {}),
     subsets: SUBSETS,
     // Astro's default is `['normal', 'italic']`, which DOUBLES the download — two subsets times
@@ -182,10 +193,16 @@ export function toFontFamilies(raw, provider) {
  * it answers 400 for a family it does not publish and for a weight it does not have.
  *
  * @param {string} name
- * @param {number[]} weights
+ * @param {Array<number|string>} weights discrete weights, or a single `"min max"` range (#1549)
  */
 function css2Url(name, weights) {
-  const spec = `${name.replace(/\s+/g, '+')}:wght@${[...weights].sort((a, b) => a - b).join(';')}`
+  // A range weight (`"100 900"`, dashboard #1549) is spelled `100..900` in a css2 query and cannot
+  // be sorted alongside numbers — it IS the whole axis, so it stands alone. Everything else is the
+  // discrete list, ascending, as before.
+  const spec = weights.some((w) => typeof w === 'string' && w.includes(' '))
+    ? `${name.replace(/\s+/g, '+')}:wght@${String(weights[0]).trim().replace(' ', '..')}`
+    : `${name.replace(/\s+/g, '+')}:wght@${[...weights].sort((a, b) => a - b).join(';')}`
+
   return `https://fonts.googleapis.com/css2?family=${spec}&display=swap`
 }
 
@@ -200,7 +217,7 @@ function css2Url(name, weights) {
  * previous release live.
  *
  * @param {string} name
- * @param {number[]} weights
+ * @param {Array<number|string>} weights
  */
 async function isServable(name, weights) {
   const url = css2Url(name, weights)

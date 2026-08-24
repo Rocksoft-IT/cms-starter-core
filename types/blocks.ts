@@ -29,6 +29,20 @@ export interface ColumnsBlock {
   data: {
     layout: string
     columns: ResolvedColumn[]
+    /**
+     * Which measure the row sits on. `prose` narrows it to `--layout-container-prose` so a row
+     * reads as a continuation of the text band above it — the source composes "heading, wide
+     * paragraph, then two columns" as ONE component, and split across two blocks the row has no
+     * other way to know that. Absent/`default` is the page container.
+     */
+    width?: 'default' | 'prose'
+    /**
+     * Which column reads first once the row stacks on a phone. The default is authoring order;
+     * `true` puts the SECOND column on top — what an illustration beside a list wants, since the
+     * picture introduces the list rather than trailing it. Visual only: the DOM order is unchanged
+     * at every width, so the reading and focus order stay as authored.
+     */
+    mobile_reverse?: boolean
   }
 }
 
