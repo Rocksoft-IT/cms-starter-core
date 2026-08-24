@@ -13,7 +13,7 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { heading, subheading, ctas = [], columns = [], columns_layout } = block.data
+const { eyebrow, heading, subheading, ctas = [], columns = [], columns_layout } = block.data
 
 // Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading
 // occupy the FIRST slot of the chosen layout; each `columns` entry supplies a further slot
@@ -35,6 +35,7 @@ const textGrow = shareAt(undefined, layoutShares, 0)
       <div class="container-hero">
         <div class="hero-2col">
           <div class="hero-2col-left" style={`flex-grow:${textGrow}`}>
+            {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
             <RichText class="heading-h1" html={heading} />
             {subheading && <RichText class="subhero-text" html={subheading} />}
           </div>
@@ -58,6 +59,7 @@ const textGrow = shareAt(undefined, layoutShares, 0)
         <div class="hero-wrapper">
           <div class="hero-col">
             <div class="hero-text">
+              {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
               <RichText class="heading-h1" html={heading} />
               {subheading && <RichText class="subhero-text" html={subheading} />}
             </div>

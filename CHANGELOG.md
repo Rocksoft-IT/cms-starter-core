@@ -4,6 +4,36 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.36.0 — `hero` can carry an eyebrow, like every other section block
+
+`hero` was the only section-level block with no `eyebrow`. Ten blocks render one through the
+shared `SectionHeader`, and the CMS offers the field on all of them — so an editor composing a
+hero had to fold the kicker into the heading itself, where it inherits `heading-h1` and cannot
+be styled or translated apart from it. Dashboard #1509, surfaced by the scandinavian-taste
+migration.
+
+`HeroBlock.data` gains `eyebrow?: string` and `Hero.astro` renders it above the heading in
+**both** layout branches — the two-column hero and the single-column one — so the field does not
+silently work in one arrangement and vanish in the other.
+
+**No client action, and no visual change to an existing hero.** The field is optional and absent
+on every hero authored so far; a hero that does not set it renders exactly as before.
+
+It is deliberately NOT routed through `SectionHeader`. That component emits an `<h2>`, and a
+hero's heading is the page's `<h1>` — composing it would either demote the hero heading or
+produce a second heading level above it. The eyebrow reuses the shared `section-eyebrow`
+shortcut instead, so it picks up the same typography as the other ten blocks and retunes with
+them, without borrowing the wrong document structure.
+
+```diff
+- const { heading, subheading, ctas = [], columns = [], columns_layout } = block.data
++ const { eyebrow, heading, subheading, ctas = [], columns = [], columns_layout } = block.data
++ {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+```
+
+It renders as plain text, not rich text: `hero.eyebrow` is a `text` field in the registry, the
+same as every other block's eyebrow, while `heading` and `subheading` stay `richtext`.
+
 ## v0.35.0 — a variable brand font registers its whole weight axis, and `columns` stops dropping two settings
 
 Two independent changes ride this tag, because neither had been published when the other

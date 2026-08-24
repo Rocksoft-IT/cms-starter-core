@@ -52,6 +52,7 @@ export interface ColumnsBlock {
 export interface HeroBlock {
   type: 'hero'
   data: {
+    eyebrow?: string
     heading?: string
     subheading?: string
     image?: string | null
