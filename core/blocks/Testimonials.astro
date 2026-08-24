@@ -8,6 +8,7 @@ import type { TestimonialsBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: TestimonialsBlock
@@ -16,7 +17,7 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { eyebrow, heading, layout = 'slider', items = [] } = block.data
+const { eyebrow, heading, layout = 'slider', items = [], background } = block.data
 
 const hasHeader = Boolean(eyebrow || heading)
 
@@ -42,7 +43,7 @@ function initial(name?: string) {
 
 {
   (hasHeader || items.length > 0) && (
-    <section class="section-testimonials py-16">
+    <section class:list={['section-testimonials py-16 section-surface', backgroundClass(background)]}>
       <div class="container-global">
         <SectionHeader {eyebrow} {heading} />
 

@@ -1,0 +1,42 @@
+---
+// The client's brand font, rendered into <head> (dashboard #1485).
+//
+// Astro's <Font> emits the @font-face rules for the downloaded files, the `:root { --font-primary:
+// … }` declaration core's `font-brand` shortcut reads, and the preload links. It is also the one
+// piece of this feature that can THROW: given a cssVariable no family registered, it raises
+// FontFamilyNotFound and fails the build. That is exactly the state a site is in before its client
+// picks a font — i.e. the common case — so the render is gated.
+//
+// `fontData` from astro:assets is the gate, and it is the RIGHT gate: it is built from the same
+// `config.fonts` array cmsFonts() writes, so it answers "did the config side register this?" with
+// the config side's own answer, rather than re-deriving it from the API and risking the two
+// disagreeing (branding fetched twice, one call failing). A family Astro registered but could not
+// resolve — Google unreachable — is present here with an empty array, which is the intended
+// outcome: <Font> then emits the variable carrying only the fallback stack, and the page renders
+// in system type instead of failing.
+//
+// Sites render this once, in the layout head:
+//
+//   import BrandFont from '@rocksoft/cms-starter-core/core/BrandFont.astro'
+//   <BrandFont />
+import { Font, fontData } from 'astro:assets'
+import { BRAND_FONT_CSS_VARIABLE } from './fonts.mjs'
+
+interface Props {
+  /** Emit preload links for the font files. Off by default — see below. */
+  preload?: boolean
+}
+
+const { preload = false } = Astro.props
+
+// `Object.hasOwn`, not a truthiness check: a registered-but-unresolved family is `[]`, which is
+// falsy and is precisely the case that must still render (fallback stack, no failed build).
+const registered = Object.hasOwn(fontData, BRAND_FONT_CSS_VARIABLE)
+---
+
+{/*
+  Preload is opt-in rather than on: the brand face styles headings, not body copy, so preloading it
+  competes with the LCP image on most of these pages for a face the reader meets below the fold.
+  A site whose hero is typographic passes `preload`.
+*/}
+{registered && <Font cssVariable={BRAND_FONT_CSS_VARIABLE} preload={preload} />}

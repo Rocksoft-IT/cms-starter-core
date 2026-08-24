@@ -4,6 +4,58 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.33.0 — the CMS can set the brand font, and the build self-hosts it
+
+`font-brand` — the shortcut behind every section, FAQ and CTA heading, and the features step
+numbers — resolves `var(--font-primary, inherit)`, and **nothing in this stack ever defined
+`--font-primary`**. The build emitted colour tokens at `:root` and no font token at all, so the
+brand face was whatever each site's `global.css` put on `body`. Changing it meant a PR against the
+client repo, or a `custom_html` block carrying a `<style>` — the anti-pattern #1451 / #1455 exist
+to remove. Dashboard #1485 closes the half of #114 that was dropped in 2026-07.
+
+**Two new pieces, and a client repo needs both.** This is the one-time cost; after it, the font is
+a panel edit:
+
+```js
+// astro.config.mjs — alongside v0.32.0's cmsConsentEndpoint(), which needs an edit of its own
+import { cmsFonts } from '@rocksoft/cms-starter-core/core/fonts.mjs'
+integrations: [UnoCSS(), cmsRedirects(), cmsConsentEndpoint(), cmsFonts()]
+```
+
+```astro
+--- // src/layouts/Layout.astro
+import BrandFont from '@rocksoft/cms-starter-core/core/BrandFont.astro'
+---
+<head>
+  …
+  <BrandFont />
+</head>
+```
+
+`cmsFonts()` reads `GET /api/branding`.`fonts.primary` at config time — same shape, same
+credentials and the same `.env` handling as `cmsRedirects()` — and registers it as an Astro font
+family. Astro downloads the files into `_astro/fonts`; `<BrandFont />` emits the `@font-face`
+rules, the preload links (opt-in, `<BrandFont preload />`) and the `:root { --font-primary: … }`
+that `font-brand` has been reading all along. **The built site makes no request to
+`fonts.googleapis.com` or `fonts.gstatic.com`** — which is the point: on a fleet shipping a consent
+system, a linked font is a third-party request to gate, and a gated font means text reflowing after
+the visitor accepts.
+
+Only upright faces are downloaded (`styles: ['normal']`, against Astro's default of normal +
+italic) and both `latin` and `latin-ext` are requested — the second is what carries ą/ć/ę/ł and the
+German umlauts, without which Polish text falls back one glyph at a time.
+
+**Nothing here can fail a build.** The integration preflights the family against Google with a
+bounded timeout and registers it only if that answers; Astro's own resolver runs with
+`throwOnError: false`, so an unresolvable family degrades to the fallback stack; and `<BrandFont />`
+renders `<Font>` — which throws on an unregistered `cssVariable` — only when `fontData` says one
+was registered. A client that has set no font registers nothing and renders exactly as before.
+
+**A site that declares `--font-primary` in its own `astro.config.mjs` keeps that declaration, but
+the CMS overrides it** — the integration appends, and Astro resolves the last registration for a
+variable. Same precedence as every other brand value here: `/api/branding` over
+`cmsConfig.brand.colors` over core's defaults. Astro logs that the two families did not merge,
+which is the signal that a site-level declaration is now being overridden from the panel.
 ## v0.32.0 — the consent answer moves to a cookie, and the banner says what the ad cookies do
 
 Two consent changes ship in this tag. **The first one needs a line in your `astro.config.mjs`** —

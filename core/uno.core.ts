@@ -119,8 +119,7 @@ export const coreShortcuts: Record<string, string> = {
   'hero-col': 'flex flex-col items-stretch text-center gap-8',
   'hero-text': 'flex flex-col items-center gap-3',
   'hero-ctas': 'actions-row',
-  'buttons-lottie-group':
-    'flex flex-row justify-between items-center self-stretch gap-4 max-md:justify-center',
+  'buttons-lottie-group': 'flex flex-row justify-between items-center self-stretch gap-4 max-md:justify-center',
   // Hidden until the animation loads (see the reveal listeners in the component). The 220x220 box
   // stays reserved so revealing shifts nothing, and lottie-player's error-emoji fallback stays
   // suppressed when the /documents/*.json assets are absent.
@@ -131,9 +130,7 @@ export const coreShortcuts: Record<string, string> = {
   // its own styling. `flex-[1_1_0]` so the inline flex-grow from the layout token decides the split;
   // without the 0 basis the tracks would size to their content first. The stack breakpoint is Uno's
   // `lg` rather than the 991px this inherited from a Webflow export.
-  'hero-2col':
-    'flex flex-row items-center justify-center gap-10 pt-[5vh] pb-[10vh] ' +
-    'max-lg:flex-col max-lg:gap-12',
+  'hero-2col': 'flex flex-row items-center justify-center gap-10 pt-[5vh] pb-[10vh] ' + 'max-lg:flex-col max-lg:gap-12',
   'hero-2col-left': 'flex-[1_1_0] text-center max-lg:w-full',
   'hero-2col-right': 'flex-[1_1_0] min-w-0 max-lg:w-full',
 
@@ -189,7 +186,23 @@ export const coreShortcuts: Record<string, string> = {
   'section-buttons': 'py-8 container-narrow actions-row',
 
   // ── Rich content block ───────────────────────────────────────────────────────
-  'section-content': 'section-y',
+  // ── Section background variants (dashboard #1498) ────────────────────────
+  // The paint half of the `background` field: a block maps its value to a modifier class
+  // (lib/background.ts) and this decides what each one looks like. Composed into every section
+  // shortcut whose block declares the field, so the five values mean the same thing everywhere
+  // instead of each block inventing its own. The TEXT side lives in core/styles/tokens.css,
+  // which re-points `--color-heading` / `--color-text-*` inside `.is-dark` / `.is-brand` — a
+  // utility here would miss `section-intro`, `rich-body`, `card-label` and `card-value`, which
+  // name their colour token explicitly.
+  //
+  // `dark` and `brand` take `secondary` and `primary`, the two palette keys core already treats
+  // as dark surfaces (`promo-split-panel` is `bg-secondary`, its CTA is `text-secondary` on
+  // white). A client that sets either to a light colour gets an unreadable band — the same
+  // unguaranteed-role problem as #1475; making that contract explicit is its own change.
+  'section-surface':
+    '[&.is-light]:bg-surface [&.is-muted]:bg-surface-alt [&.is-brand]:bg-primary [&.is-dark]:bg-secondary',
+
+  'section-content': 'section-y section-surface',
   'content-inner': 'container-narrow',
 
   // ── Custom HTML block ───────────────────────────────────────────────────────
@@ -204,7 +217,7 @@ export const coreShortcuts: Record<string, string> = {
   // The step cards alternate sides, so `features-card-top`/`-bottom` are alignment only. The
   // number badge takes the brand accent rather than the `--color-jonquil` it used to fall back
   // to — that token was never in any palette, so the yellow came from a hardcoded fallback.
-  'section-features': 'section-y',
+  'section-features': 'section-y section-surface',
   'features-inner': 'container-narrow',
   // `w-full max-w-[720px]` rather than the `w-[720px] max-w-full` it used to carry: identical
   // rendering, but it states the measure as a max-width like every other container in core.
@@ -215,8 +228,7 @@ export const coreShortcuts: Record<string, string> = {
     'max-sm:max-w-full max-sm:self-stretch',
   'features-card-top': 'self-start',
   'features-card-bottom': 'self-end',
-  'features-number-badge':
-    'flex items-center justify-center shrink-0 w-14 h-14 bg-accent rounded-[8px]',
+  'features-number-badge': 'flex items-center justify-center shrink-0 w-14 h-14 bg-accent rounded-[8px]',
 
   // ── FAQ block ───────────────────────────────────────────────────────────────
   // A single-open accordion, or the same cards always open (`faq-item-static`, at the end of this
@@ -289,7 +301,7 @@ export const coreShortcuts: Record<string, string> = {
   // two from drifting.
   'section-tabs': 'py-12',
   'tabs-inner': 'container-narrow',
-  'tablist': 'flex flex-wrap gap-1 mb-6 border-b-2 border-b-solid border-b-section-bg',
+  tablist: 'flex flex-wrap gap-1 mb-6 border-b-2 border-b-solid border-b-section-bg',
   tab:
     'appearance-none bg-none border-none px-[1.1rem] py-3 [font:inherit] font-semibold cursor-pointer ' +
     'text-text-secondary border-b-2 border-b-solid border-b-transparent -mb-0.5 ' +
@@ -336,7 +348,8 @@ export const coreShortcuts: Record<string, string> = {
   // right, wrapping on narrow viewports — which is why the text gets its own wrapper.
   'section-header': 'text-center mb-12 flex flex-col items-center gap-2',
   'section-header-text': 'flex flex-col items-center gap-2',
-  'section-header-with-action': 'flex-row flex-wrap items-end justify-between text-left [&>.section-header-text]:items-start',
+  'section-header-with-action':
+    'flex-row flex-wrap items-end justify-between text-left [&>.section-header-text]:items-start',
   'link-inline': 'text-text-primary underline hover:no-underline',
 
   // ── Pricing teaser block ──────────────────────────────────────────────────
@@ -349,7 +362,7 @@ export const coreShortcuts: Record<string, string> = {
   // The section carries its own dark styling via the `.is-dark` variant, so the
   // component sets exactly one class for the background select (single source of
   // truth — inner text inherits, cards restate their own colors).
-  'section-pricing-table': 'bg-section-bg [&.is-dark]:bg-secondary [&.is-dark]:text-white',
+  'section-pricing-table': 'bg-section-bg section-surface',
   // Tab button carries its own active styling via `.is-active` variants, so the
   // client script only toggles that one class (single source of truth).
   'pricing-tab':
@@ -387,8 +400,7 @@ export const coreShortcuts: Record<string, string> = {
   // The shared eyebrow, worn as a chip: rgba(255,255,255,.12) pill, 7px 14px, tinted for the dark
   // panel. Size and color come after `eyebrow` so they win.
   'promo-split-eyebrow':
-    'eyebrow inline-flex items-center gap-2 bg-white/12 rounded-full px-3.5 py-[7px] ' +
-    'text-[12px] text-white/85',
+    'eyebrow inline-flex items-center gap-2 bg-white/12 rounded-full px-3.5 py-[7px] ' + 'text-[12px] text-white/85',
   // Heading: clamp(30px,3.4vw,40px)/1.08, -0.02em, white, 20px above.
   'promo-split-heading': 'text-[clamp(30px,3.4vw,40px)] font-bold leading-[1.08] tracking-[-0.02em] text-white mt-5',
   // Body: 16.5px/1.6, tinted white (#c4d6c6 in the handoff → white/75 on the token panel),
@@ -426,7 +438,7 @@ export const coreShortcuts: Record<string, string> = {
   // class name — so they generated nothing while reading in the source like working style. Anything
   // needing a real descendant selector is not a shortcut; it belongs in a site stylesheet.
   // `verify:core-styles` now fails on a selector-shaped key so the same silence cannot return.
-  'section-cards': 'section-y',
+  'section-cards': 'section-y section-surface',
   'cards-inner': 'container-global',
   'cards-grid': 'grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] list-reset mt-6',
   card: 'flex items-start gap-[14px] h-full no-underline',
@@ -563,9 +575,7 @@ export const coreShortcuts: Record<string, string> = {
   // second hairline 4px below it read as a stray line rather than as structure. The panel is a
   // tinted, rounded tray instead — a filled block groups the three category rows as one settings
   // surface and gives the confirm button a floor to sit on, which the bare rule never did.
-  'cookie-consent__panel':
-    'flex flex-col gap-3 rounded-[12px] bg-surface-alt p-4 ' +
-    '[&[hidden]]:hidden',
+  'cookie-consent__panel': 'flex flex-col gap-3 rounded-[12px] bg-surface-alt p-4 ' + '[&[hidden]]:hidden',
 
   // Each category is a card ON that tray (surface over surface-alt, the inverse of the nesting
   // one level up), so a row reads as one unit — label, toggle and description belong together

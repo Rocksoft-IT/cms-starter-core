@@ -341,6 +341,18 @@ export interface BrandingData {
   // null/absent → the logo image stands alone.
   brand_name?: string | null
   brand_subtitle?: string | null
+  // The client's brand font (dashboard #1485), or null when it has chosen none. Read at CONFIG
+  // time by core/fonts.mjs — `fonts` is an astro.config option, so the family has to be known
+  // before Vite exists — which is why nothing in the render path consumes this field; it is
+  // declared here because this interface is the contract for the whole /api/branding payload.
+  fonts?: {
+    primary: {
+      family: string
+      weights: number[]
+      fallbacks: string[]
+      provider: string
+    } | null
+  } | null
   // Optional brand colors (e.g. per-client, from CMS settings). When present, Layout injects
   // each as the matching `--color-*` CSS var at build time, overriding the token default.
   primary_color?: string | null

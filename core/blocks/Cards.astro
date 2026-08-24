@@ -16,6 +16,7 @@
 // re-upload or a redraw on every existing instance.
 import type { CardsBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 import { href as hrefOf } from '../../lib/href'
 import { iconPath } from '../../lib/icons'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
@@ -26,7 +27,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, intro, layout } = block.data
+const { anchor_id, eyebrow, heading, intro, layout, background } = block.data
 
 // Also reads the retired `tiles` shape, because this component is registered as the transitional
 // renderer for `nav_tiles` too: content still carries that type until the data migration runs.
@@ -52,6 +53,7 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker)
     <section
       class:list={[
         'section-cards',
+        backgroundClass(background),
         // Whole literal strings, never a name assembled from the mode at runtime: UnoCSS extracts
         // class names statically from source, so an assembled one generates no CSS at all and the
         // layout silently loses every rule. The styling-contract check catches exactly this.
