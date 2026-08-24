@@ -1,11 +1,11 @@
 ---
-// The client's brand font, rendered into <head> (dashboard #1485).
+// The client's brand fonts, rendered into <head> (dashboard #1485; the body role added in #1521).
 //
 // Astro's <Font> emits the @font-face rules for the downloaded files, the `:root { --font-primary:
 // … }` declaration core's `font-brand` shortcut reads, and the preload links. It is also the one
 // piece of this feature that can THROW: given a cssVariable no family registered, it raises
 // FontFamilyNotFound and fails the build. That is exactly the state a site is in before its client
-// picks a font — i.e. the common case — so the render is gated.
+// picks a font — i.e. the common case — so each render is gated.
 //
 // `fontData` from astro:assets is the gate, and it is the RIGHT gate: it is built from the same
 // `config.fonts` array cmsFonts() writes, so it answers "did the config side register this?" with
@@ -15,12 +15,22 @@
 // outcome: <Font> then emits the variable carrying only the fallback stack, and the page renders
 // in system type instead of failing.
 //
+// The two roles are gated separately because they are separate choices: a client may set a display
+// face and no body face, or the reverse, and the build may have dropped one of the two at its
+// preflight while keeping the other.
+//
+// `--font-body` is a token this PUBLISHES, not one core applies. Running text inherits from
+// `body`, whose rule lives in the site's own global.css — unlayered, and therefore unbeatable by
+// anything core could write. A site adopts the body face with one line there:
+//
+//   body { font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif); }
+//
 // Sites render this once, in the layout head:
 //
 //   import BrandFont from '@rocksoft/cms-starter-core/core/BrandFont.astro'
 //   <BrandFont />
 import { Font, fontData } from 'astro:assets'
-import { BRAND_FONT_CSS_VARIABLE } from './fonts.mjs'
+import { FONT_ROLES } from './fonts.mjs'
 
 interface Props {
   /** Emit preload links for the font files. Off by default — see below. */
@@ -31,12 +41,14 @@ const { preload = false } = Astro.props
 
 // `Object.hasOwn`, not a truthiness check: a registered-but-unresolved family is `[]`, which is
 // falsy and is precisely the case that must still render (fallback stack, no failed build).
-const registered = Object.hasOwn(fontData, BRAND_FONT_CSS_VARIABLE)
+const registered = FONT_ROLES.map(({ cssVariable }) => cssVariable).filter((cssVariable) =>
+  Object.hasOwn(fontData, cssVariable),
+)
 ---
 
 {/*
-  Preload is opt-in rather than on: the brand face styles headings, not body copy, so preloading it
-  competes with the LCP image on most of these pages for a face the reader meets below the fold.
-  A site whose hero is typographic passes `preload`.
+  Preload is opt-in rather than on: the brand faces style headings and body copy, so preloading
+  them competes with the LCP image on most of these pages. A site whose hero is typographic passes
+  `preload`.
 */}
-{registered && <Font cssVariable={BRAND_FONT_CSS_VARIABLE} preload={preload} />}
+{registered.map((cssVariable) => <Font cssVariable={cssVariable} preload={preload} />)}

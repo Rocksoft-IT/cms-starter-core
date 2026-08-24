@@ -4,6 +4,48 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.34.0 — a second brand font role, so a site can drop its Google Fonts `<link>`
+
+v0.33.0 shipped one font token, and it turned out to be one too few. Measured across the fleet
+right after that rollout, three live sites were still fetching a `fonts.googleapis.com`
+stylesheet at runtime — and every one of them uses a **display face and a body face**, so moving
+only the display one would have left the `<link>`, and its third-party request, exactly where it
+was. Dashboard #1521.
+
+`GET /api/branding` now carries `fonts.body` next to `fonts.primary`, and `cmsFonts()` registers
+both:
+
+| Role | API | Variable |
+| --- | --- | --- |
+| Display | `fonts.primary` | `--font-primary` — what core's `font-brand` shortcut resolves |
+| Body | `fonts.body` | `--font-body` — what the SITE's `body` rule resolves |
+
+**`--font-body` is published, not applied — and adopting it is a one-line site edit.** Running
+text inherits from `body`, whose rule lives in the site's own `global.css`: unlayered, later in the
+cascade, and therefore unbeatable by anything this package could declare. Point that rule at the
+token, keeping the site's current stack as the fallback for a client that picks no body face:
+
+```css
+/* src/styles/global.css */
+body { font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif); }
+```
+
+No change is needed in `astro.config.mjs` or `Layout.astro` — `cmsFonts()` and `<BrandFont />`
+handle both roles as they stand. A client that has set no body font registers nothing for it, and
+the variable stays undefined, which is why the fallback above is what renders today.
+
+**The roles are independent, in every layer.** Either can be set alone; each is preflighted against
+Google on its own, so a family Google has retired in one role never costs the other its face; and
+picking one family for both is normal rather than a collision — Astro keys a family by
+cssVariable + name + provider, so it is two variables over one cached download.
+
+**A face the CMS does not own stays site-layer.** A decorative accent script belongs in the site's
+own `fonts:` entry in `astro.config.mjs` with a `<Font cssVariable="--font-accent" />` in the
+layout head — Astro downloads it at build time too, so it costs no runtime request, and
+`cmsFonts()` appends rather than replaces, so it coexists with both CMS roles. What it must NOT be
+is a `cmsConfig.fonts.stylesheets` URL: that is a `<link>` the visitor's browser fetches, before
+any consent decision. See `frontend/docs/starter.md` § Brand fonts.
+
 ## v0.33.0 — the CMS can set the brand font, and the build self-hosts it
 
 `font-brand` — the shortcut behind every section, FAQ and CTA heading, and the features step

@@ -1,4 +1,5 @@
-// The client's brand font, self-hosted by the build (dashboard #1485, finishing #114).
+// The client's brand fonts, self-hosted by the build (dashboard #1485, finishing #114; the body
+// role added in #1521).
 //
 // Why this exists: core resolves its display face from one CSS variable —
 // `'font-brand': '[font-family:var(--font-primary,inherit)]'` in uno.core.ts — and nothing ever
@@ -7,6 +8,13 @@
 // site's own `global.css` put on `body`. A client wanting its own brand face had exactly two
 // routes: a PR against its repo, or a `custom_html` block carrying a `<style>` — the second being
 // the anti-pattern #1451 / #1455 set out to remove.
+//
+// TWO ROLES, because one was not enough to retire a single `<link>` (#1521). Every site still
+// requesting fonts.googleapis.com at runtime uses a display face AND a body face, so migrating
+// only the display one left the stylesheet — and the third-party request — exactly where it was.
+// `--font-body` is EMITTED here, not applied: core cannot put `font-family` on `body` and win
+// (a site's own global.css is unlayered and later in the cascade), so the site points its body
+// rule at the variable. One line, once, in the PR that deletes `cmsConfig.fonts`.
 //
 // SELF-HOSTED, NOT LINKED. Astro's Fonts API downloads the files at build time into
 // `_astro/fonts` and serves them from the site's own origin. A `<link>` to fonts.googleapis.com
@@ -51,6 +59,25 @@ const MOCK_FIXTURE = 'src/fixtures/data/branding.json'
 export const BRAND_FONT_CSS_VARIABLE = '--font-primary'
 
 /**
+ * The body face's variable (#1521). No core shortcut reads this one — running text inherits from
+ * `body`, which is the site's own rule — so it is a token core PUBLISHES and the site consumes.
+ */
+export const BODY_FONT_CSS_VARIABLE = '--font-body'
+
+/**
+ * The `fonts.*` key of GET /api/branding each variable comes from, in the order they are
+ * registered. One list rather than two code paths: a role is a payload key plus a variable name,
+ * and everything else about the two is identical — same catalog, same subsets, same preflight,
+ * same failure discipline.
+ *
+ * @type {ReadonlyArray<{ key: string, cssVariable: string }>}
+ */
+export const FONT_ROLES = [
+  { key: 'primary', cssVariable: BRAND_FONT_CSS_VARIABLE },
+  { key: 'body', cssVariable: BODY_FONT_CSS_VARIABLE },
+]
+
+/**
  * Character sets to download. `latin-ext` is not optional on this fleet — it is what carries ą, ć,
  * ę, ł, ń, ó, ś, ż, ź and the German umlauts; without it Polish text falls back mid-word, one
  * glyph at a time. Every family in the CMS catalog is published with both.
@@ -64,13 +91,73 @@ const TIMEOUT_MS = 10_000
 const NEEDS_FONTS = new Set(['build', 'dev'])
 
 /**
- * The CMS's `fonts.primary` payload as an Astro font family, or `[]` when there is nothing to
- * register — which is the state every client is in until it picks one, and the reason this whole
- * feature is additive.
+ * One `fonts.<role>` payload as an Astro font family, or null when it names nothing registrable.
  *
  * Every rejection here is a build the CMS's data cannot break. The backend validates against a
  * closed catalog, so a bad shape means an older/newer panel or a hand-edited fixture, not an
  * editor's typo — and neither is worth a failed deploy.
+ *
+ * @param {unknown} entry the `fonts.primary` / `fonts.body` object
+ * @param {string} cssVariable the variable this role lands on
+ * @param {unknown} provider an Astro font provider (fontProviders.google())
+ * @returns {Record<string, unknown> | null}
+ */
+function toFontFamily(entry, cssVariable, provider) {
+  if (!entry || typeof entry !== 'object') return null
+
+  const role = /** @type {Record<string, any>} */ (entry)
+
+  const name = typeof role.family === 'string' ? role.family.trim() : ''
+  if (name === '') return null
+
+  // The backend names the provider explicitly (see BrandFonts::resolve). An unknown one must not
+  // resolve through Google's by accident — that is how a future self-hosted-upload provider would
+  // silently fetch a same-named Google family instead.
+  if (role.provider !== undefined && role.provider !== 'google') return null
+
+  const weights = Array.isArray(role.weights)
+    ? [...new Set(role.weights.map(Number).filter((w) => Number.isInteger(w) && w >= 1 && w <= 1000))].sort(
+        (a, b) => a - b,
+      )
+    : []
+
+  const fallbacks = Array.isArray(role.fallbacks)
+    ? role.fallbacks.filter((f) => typeof f === 'string' && f.trim() !== '')
+    : []
+
+  return {
+    provider,
+    name,
+    cssVariable,
+    // Astro's own defaults are `[400]` and `['sans-serif']`. Falling back to them rather than to
+    // nothing keeps a payload from a panel older than this feature's weight/fallback fields
+    // building — with a plain regular face and a generic stack, which is a worse font, not a
+    // broken site.
+    weights: weights.length > 0 ? weights : [400],
+    ...(fallbacks.length > 0 ? { fallbacks } : {}),
+    subsets: SUBSETS,
+    // Astro's default is `['normal', 'italic']`, which DOUBLES the download — two subsets times
+    // two styles times every weight, so a plain 400/700 family ships eight files instead of
+    // four. `font-brand` styles headings (section, FAQ, CTA, the features step numbers); an
+    // italic one is close to nonexistent, and where a heading does carry an <em> the browser
+    // synthesizes an oblique. Half the bytes for a distinction this face is never asked to make.
+    //
+    // The body face is held to the same rule (#1521) rather than gaining a real italic: an <em>
+    // in a paragraph is also synthesized, and paying for it means every weight twice over on the
+    // face that has the most weights. A per-role italic opt-in is a follow-up for a client whose
+    // prose actually asks for one.
+    styles: ['normal'],
+  }
+}
+
+/**
+ * The CMS's `fonts` payload as Astro font families — one entry per role the client has chosen,
+ * in FONT_ROLES order, or `[]` when it has chosen none. That empty case is the state every client
+ * is in until it picks something, and the reason this whole feature is additive.
+ *
+ * A role that cannot be read is skipped on its own: a client with a display face and a garbled
+ * body one still gets its display face, because the two are independent choices and nothing about
+ * one implies the other.
  *
  * `provider` is passed in rather than imported so the pure shape can be asserted without Astro's
  * config module, and so a second provider later is a caller's decision, not a rewrite here.
@@ -82,47 +169,12 @@ const NEEDS_FONTS = new Set(['build', 'dev'])
 export function toFontFamilies(raw, provider) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return []
 
-  const primary = /** @type {Record<string, any>} */ (raw).fonts?.primary
-  if (!primary || typeof primary !== 'object') return []
+  const fonts = /** @type {Record<string, any>} */ (raw).fonts
+  if (!fonts || typeof fonts !== 'object') return []
 
-  const name = typeof primary.family === 'string' ? primary.family.trim() : ''
-  if (name === '') return []
-
-  // The backend names the provider explicitly (see BrandFonts::resolve). An unknown one must not
-  // resolve through Google's by accident — that is how a future self-hosted-upload provider would
-  // silently fetch a same-named Google family instead.
-  if (primary.provider !== undefined && primary.provider !== 'google') return []
-
-  const weights = Array.isArray(primary.weights)
-    ? [...new Set(primary.weights.map(Number).filter((w) => Number.isInteger(w) && w >= 1 && w <= 1000))].sort(
-        (a, b) => a - b,
-      )
-    : []
-
-  const fallbacks = Array.isArray(primary.fallbacks)
-    ? primary.fallbacks.filter((f) => typeof f === 'string' && f.trim() !== '')
-    : []
-
-  return [
-    {
-      provider,
-      name,
-      cssVariable: BRAND_FONT_CSS_VARIABLE,
-      // Astro's own defaults are `[400]` and `['sans-serif']`. Falling back to them rather than to
-      // nothing keeps a payload from a panel older than this feature's weight/fallback fields
-      // building — with a plain regular face and a generic stack, which is a worse font, not a
-      // broken site.
-      weights: weights.length > 0 ? weights : [400],
-      ...(fallbacks.length > 0 ? { fallbacks } : {}),
-      subsets: SUBSETS,
-      // Astro's default is `['normal', 'italic']`, which DOUBLES the download — two subsets times
-      // two styles times every weight, so a plain 400/700 family ships eight files instead of
-      // four. `font-brand` styles headings (section, FAQ, CTA, the features step numbers); an
-      // italic one is close to nonexistent, and where a heading does carry an <em> the browser
-      // synthesizes an oblique. Half the bytes for a distinction this face is never asked to make.
-      styles: ['normal'],
-    },
-  ]
+  return FONT_ROLES.map(({ key, cssVariable }) => toFontFamily(fonts[key], cssVariable, provider)).filter(
+    (family) => family !== null,
+  )
 }
 
 /**
@@ -224,12 +276,12 @@ async function readMockBranding(root) {
 }
 
 /**
- * Astro integration: register the client's brand font so the build self-hosts it and emits
- * `--font-primary`.
+ * Astro integration: register the client's brand fonts so the build self-hosts them and emits
+ * `--font-primary` (display) and `--font-body`.
  *
  * Add it to `integrations` in astro.config.mjs, next to cmsRedirects(), and render core's
  * `<BrandFont />` in the layout head — the component is what turns a registered family into the
- * `@font-face` rules and the `:root` variable:
+ * `@font-face` rules and the `:root` variables:
  *
  *   import { fontProviders } from 'astro/config'
  *   import { cmsFonts } from '@rocksoft/cms-starter-core/core/fonts.mjs'
@@ -277,27 +329,51 @@ export function cmsFonts({ baseUrl, token, provider } = {}) {
         // it is a live import of Astro's config module, and a mock build has no reason to pay for
         // one it will not use.
         const resolvedProvider = provider ?? (await import('astro/config')).fontProviders.google()
-        const fonts = toFontFamilies(raw, resolvedProvider)
+        const candidates = toFontFamilies(raw, resolvedProvider)
+
+        if (candidates.length === 0) return
+
+        // Preflighted per role, and kept per role: a display face Google will serve must not be
+        // dropped because the body one was renamed or retired. Concurrently, because the two
+        // requests share nothing — sequential would add a second timeout (10s each) to the front
+        // of every build whose font host is slow. The warnings are emitted afterwards, walking
+        // the results IN CANDIDATE ORDER, so the deploy log — the only place any of this is ever
+        // read — does not depend on which request came back first.
+        const preflighted = await Promise.all(
+          candidates.map((family) =>
+            isServable(family.name, family.weights).then(
+              () => ({ family }),
+              (error) => ({ family, error }),
+            ),
+          ),
+        )
+
+        const fonts = []
+        for (const { family, error } of preflighted) {
+          if (error) {
+            logger.warn(`${error.message} — building without the "${family.name}" brand font.`)
+            continue
+          }
+
+          fonts.push(family)
+        }
 
         if (fonts.length === 0) return
 
-        const [family] = fonts
-
-        try {
-          await isServable(family.name, family.weights)
-        } catch (error) {
-          logger.warn(`${error.message} — building without the "${family.name}" brand font.`)
-          return
-        }
-
         // Appended, not assigned — `updateConfig` concatenates arrays, so a site's own `fonts`
-        // entries are kept and this one lands after them. Astro resolves the LAST registration for
+        // entries are kept and these land after them. Astro resolves the LAST registration for
         // a cssVariable, so the CMS wins over a site that also declared `--font-primary`: the same
         // precedence every other brand value in this stack has (/api/branding over
         // `cmsConfig.brand.colors` over core's defaults). Astro logs that the two did not merge,
         // which is worth seeing — it names a site-level declaration the panel is now overriding.
+        // A site's OWN face under a different variable (`--font-accent`, say) is untouched by any
+        // of this: Astro keys a family by cssVariable + name + provider, so the accent script a
+        // site self-hosts itself coexists with both CMS roles — and picking one family for both
+        // roles is likewise fine, two variables over one cached download.
         updateConfig({ fonts })
-        logger.info(`Brand font from the CMS: ${family.name} (${family.weights.join(', ')}).`)
+        logger.info(
+          `Brand fonts from the CMS: ${fonts.map((f) => `${f.cssVariable} → ${f.name} (${f.weights.join(', ')})`).join(', ')}.`,
+        )
       },
     },
   }

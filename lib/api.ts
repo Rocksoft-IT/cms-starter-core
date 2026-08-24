@@ -327,6 +327,14 @@ export async function getPage(path: string, locale = 'en'): Promise<PageResult |
   return null
 }
 
+/** One brand font role as /api/branding resolves it — the shape core/fonts.mjs registers. */
+export interface BrandFont {
+  family: string
+  weights: number[]
+  fallbacks: string[]
+  provider: string
+}
+
 export interface BrandingData {
   favicon: {
     '32': string | null
@@ -341,17 +349,17 @@ export interface BrandingData {
   // null/absent → the logo image stands alone.
   brand_name?: string | null
   brand_subtitle?: string | null
-  // The client's brand font (dashboard #1485), or null when it has chosen none. Read at CONFIG
-  // time by core/fonts.mjs — `fonts` is an astro.config option, so the family has to be known
-  // before Vite exists — which is why nothing in the render path consumes this field; it is
-  // declared here because this interface is the contract for the whole /api/branding payload.
+  // The client's brand fonts (dashboard #1485; `body` added in #1521), each null when it has
+  // chosen none for that role. Read at CONFIG time by core/fonts.mjs — `fonts` is an astro.config
+  // option, so the family has to be known before Vite exists — which is why nothing in the render
+  // path consumes this field; it is declared here because this interface is the contract for the
+  // whole /api/branding payload.
   fonts?: {
-    primary: {
-      family: string
-      weights: number[]
-      fallbacks: string[]
-      provider: string
-    } | null
+    primary: BrandFont | null
+    // Optional where `primary` is required, and deliberately so: a backend between #1485 and
+    // #1521 answers with a `fonts` object that has only the display role. Same reasoning as the
+    // `?` on `fonts` itself — the two halves of this stack do not have to deploy in step.
+    body?: BrandFont | null
   } | null
   // Optional brand colors (e.g. per-client, from CMS settings). When present, Layout injects
   // each as the matching `--color-*` CSS var at build time, overriding the token default.

@@ -10,15 +10,21 @@ import type { AstroIntegration } from 'astro'
 /** The CSS variable core's `font-brand` shortcut reads, and the one this integration registers. */
 export declare const BRAND_FONT_CSS_VARIABLE: '--font-primary'
 
+/** The body face's variable (#1521) — published by the build, applied by the site's `body` rule. */
+export declare const BODY_FONT_CSS_VARIABLE: '--font-body'
+
+/** The `fonts.*` payload key each variable comes from, in registration order. */
+export declare const FONT_ROLES: ReadonlyArray<{ key: string; cssVariable: string }>
+
 /**
- * The CMS branding payload as Astro font families — one entry, or none when the client has picked
- * no font (or the payload cannot be read as one).
+ * The CMS branding payload as Astro font families — one entry per role the client has chosen (in
+ * FONT_ROLES order), or none when it has picked no font (or the payload cannot be read as one).
  */
 export declare function toFontFamilies(raw: unknown, provider: unknown): Array<Record<string, unknown>>
 
 /**
- * Astro integration: register the client's brand font so the build self-hosts it and emits
- * `--font-primary`. Pair it with core's `<BrandFont />` in the layout head.
+ * Astro integration: register the client's brand fonts so the build self-hosts them and emits
+ * `--font-primary` and `--font-body`. Pair it with core's `<BrandFont />` in the layout head.
  *
  * `baseUrl` / `token` default to ASTRO_API_URL / ASTRO_API_TOKEN (env, or the site's .env);
  * `provider` defaults to Astro's Google font provider.

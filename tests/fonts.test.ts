@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { cmsFonts, toFontFamilies, BRAND_FONT_CSS_VARIABLE } from '../core/fonts.mjs'
+import { cmsFonts, toFontFamilies, BRAND_FONT_CSS_VARIABLE, BODY_FONT_CSS_VARIABLE } from '../core/fonts.mjs'
 
 // dashboard #1485 — the client's brand font has to survive the trip from /api/branding into
 // `config.fonts`, and NOTHING about it may take a deploy down. Both halves are covered here
@@ -14,10 +14,16 @@ import { cmsFonts, toFontFamilies, BRAND_FONT_CSS_VARIABLE } from '../core/fonts
 // the one thing the drop-bunny-font-fetch change took out of this repo's CI.
 const PROVIDER = { name: 'google-stub' }
 
-/** What GET /api/branding returns for a client that has picked Courier Prime. */
-function branding(primary: unknown = { family: 'Courier Prime', weights: [400, 700], fallbacks: ['ui-monospace', 'monospace'], provider: 'google' }) {
-  return { brand_name: 'Example', fonts: { primary } }
+/** What GET /api/branding returns for a client that has picked Courier Prime and no body face. */
+function branding(
+  primary: unknown = { family: 'Courier Prime', weights: [400, 700], fallbacks: ['ui-monospace', 'monospace'], provider: 'google' },
+  body: unknown = null,
+) {
+  return { brand_name: 'Example', fonts: { primary, body } }
 }
+
+/** A body-face payload, the shape BrandFonts::resolve() publishes it in. */
+const INTER_BODY = { family: 'Inter', weights: [400, 600, 700], fallbacks: ['ui-sans-serif', 'system-ui', 'sans-serif'], provider: 'google' }
 
 describe('toFontFamilies()', () => {
   it('maps the CMS payload onto an Astro font family', () => {
@@ -41,10 +47,39 @@ describe('toFontFamilies()', () => {
     expect(toFontFamilies(branding(), PROVIDER)[0].cssVariable).toBe('--font-primary')
   })
 
+  it('maps both roles onto their own variable, in registration order', () => {
+    // dashboard #1521 — one token could not retire a single site's Google Fonts <link>, because
+    // every site still making one uses a display face AND a body face.
+    const families = toFontFamilies(branding(undefined, INTER_BODY), PROVIDER)
+
+    expect(families.map((f) => f.cssVariable)).toEqual(['--font-primary', '--font-body'])
+    expect(families.map((f) => f.name)).toEqual(['Courier Prime', 'Inter'])
+    expect(BODY_FONT_CSS_VARIABLE).toBe('--font-body')
+  })
+
+  it('takes each role on its own', () => {
+    // A client may set either alone, and a garbled one must not cost the other: the two are
+    // independent editor choices, and nothing about one implies the other.
+    expect(toFontFamilies(branding(null, INTER_BODY), PROVIDER).map((f) => f.cssVariable)).toEqual(['--font-body'])
+    expect(toFontFamilies(branding(undefined, { family: '  ' }), PROVIDER).map((f) => f.cssVariable)).toEqual([
+      '--font-primary',
+    ])
+  })
+
+  it('registers one family twice when both roles name it', () => {
+    // Likely in practice — one family, two roles. Astro keys a family by cssVariable + name +
+    // provider, so two entries are two variables over one cached download, not a collision.
+    const families = toFontFamilies(branding(INTER_BODY, INTER_BODY), PROVIDER)
+
+    expect(families.map((f) => f.name)).toEqual(['Inter', 'Inter'])
+    expect(families.map((f) => f.cssVariable)).toEqual(['--font-primary', '--font-body'])
+  })
+
   it('answers nothing for a client that has set no font', () => {
     // The common case, and the one that has to keep rendering exactly as it did before #1485.
     expect(toFontFamilies(branding(null), PROVIDER)).toEqual([])
     expect(toFontFamilies({ brand_name: 'Example' }, PROVIDER)).toEqual([])
+    expect(toFontFamilies({ brand_name: 'Example', fonts: null }, PROVIDER)).toEqual([])
     expect(toFontFamilies(null, PROVIDER)).toEqual([])
     expect(toFontFamilies([], PROVIDER)).toEqual([])
     expect(toFontFamilies('nope', PROVIDER)).toEqual([])
@@ -193,6 +228,40 @@ describe('cmsFonts()', () => {
 
     expect(updates).toEqual([])
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('building without a CMS brand font'))
+  })
+
+  it('registers both roles, preflighting each on its own', async () => {
+    // dashboard #1521. Two families, two preflights, two variables — and the order the roles are
+    // declared in, which is what decides nothing here but is asserted so a reshuffle is visible.
+    stubEnv()
+    const fetch = stubFetch(() => Response.json({ success: true, data: branding(undefined, INTER_BODY) }), servable, servable)
+
+    const { updates, args } = hookArgs()
+    await setup(args)
+
+    const registered = updates[0].fonts as Array<Record<string, unknown>>
+    expect(registered.map((f) => f.cssVariable)).toEqual(['--font-primary', '--font-body'])
+    expect(fetch.mock.calls[1][0]).toBe('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap')
+    expect(fetch.mock.calls[2][0]).toBe('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap')
+  })
+
+  it('keeps the role Google will serve when the other one it will not', async () => {
+    // The failure that matters most: a retired family in ONE role (taeles' "Fredoka One") must
+    // not cost the site the face that is still published.
+    stubEnv()
+    stubFetch(
+      () => Response.json({ success: true, data: branding(undefined, INTER_BODY) }),
+      () => new Response('', { status: 400, statusText: 'Bad Request' }),
+      servable,
+    )
+
+    const { updates, logger, args } = hookArgs()
+    await setup(args)
+
+    const registered = updates[0].fonts as Array<Record<string, unknown>>
+    expect(registered.map((f) => f.name)).toEqual(['Inter'])
+    expect(registered[0].cssVariable).toBe('--font-body')
+    expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Courier Prime'))
   })
 
   it('does not preflight — or register — when the client has no font', async () => {

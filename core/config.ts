@@ -46,7 +46,15 @@ export interface CmsConfig {
    *  per `preconnect` entry (set `crossorigin` for origins serving the font binaries —
    *  browsers fetch those CORS, e.g. fonts.gstatic.com) and a <link rel="stylesheet"> per
    *  `stylesheets` URL. Omit for system fonts. Pair with `--font-*` overrides in the site's
-   *  styles/site.css. */
+   *  styles/site.css.
+   *
+   *  LAST RESORT (dashboard #1521). Every URL here is a RUNTIME request to a third party: it
+   *  sends the visitor's IP before any consent decision, so on a fleet that ships a consent
+   *  system it is a request to gate — and a gated font means text reflowing after the visitor
+   *  accepts. Two build-time channels remove it: the CMS's Typography card, which self-hosts the
+   *  display and body faces (`fonts.primary` / `fonts.body` → `--font-primary` / `--font-body`,
+   *  see core/fonts.mjs), and Astro's own `fonts:` config for a face the CMS does not own — a
+   *  decorative accent script. Reach for this key only for a host neither can serve. */
   fonts?: {
     preconnect?: Array<{ href: string; crossorigin?: boolean }>
     stylesheets?: string[]
