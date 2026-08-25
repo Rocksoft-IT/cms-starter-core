@@ -66,7 +66,12 @@
      already carry); these tokens are what both halves read, so redefining one here retunes the
      band everywhere at once. */
   --band-light-bg: var(--color-surface, #fff);
-  --band-muted-bg: #f2f2f2;
+  /* Reads `surface-alt` rather than a literal, for the same reason `light` reads `surface`: a
+     hardcoded near-white INVERTS on a dark-themed site. Täles sets `surface: #141f16` and
+     `heading: #ffffff`, so a literal `#f2f2f2` here put its white heading on a near-white slab —
+     1.07:1 (#1578). A site with no `surface-alt` gets the neutral default, which is #f5f6f8 rather
+     than the #f2f2f2 this used to be: a different value, not a different colour. */
+  --band-muted-bg: var(--color-surface-alt, #f2f2f2);
   --band-dark-bg: #000;
   --band-dark-text: #fff;
   /* A dark band needs its OWN secondary grey — #b3b3b3 on black reads like #999 does on white, and
@@ -75,9 +80,13 @@
   --band-dark-text-secondary: #b3b3b3;
   --band-dark-border: rgb(255 255 255 / 14%);
 
-  /* The brand band is the other inverted one. Its text roles default to the palette's OWN readable
-     partner for `primary` rather than to white: `button-primary-text` is the color a client already
-     maintains for "text on the brand color", so core needs no second guess at it. */
+  /* The brand band is the other inverted one, and its text is the hard case: the fill is `primary`,
+     a hue core does not control and cannot name a partner for in advance.
+     This value is the FALLBACK for a browser without relative color syntax — the derivation that
+     replaces it is the @supports block below. `button-primary-text` is the least-bad static guess,
+     but it is only correct when a client's primary BUTTON is also its brand color; Diligently
+     (`primary #ffcf00`, `button-primary #000000`, `button-primary-text #ffffff`) got white on
+     yellow, 1.48:1 (#1578). */
   --band-brand-text: var(--color-button-primary-text, #fff);
   --band-brand-border: rgb(255 255 255 / 24%);
 
@@ -88,6 +97,44 @@
   --band-text-base: var(--color-text-primary, #151516);
   --band-text-secondary-base: var(--color-text-secondary, #4a4a57);
   --band-border-base: var(--color-border, #e3e5ea);
+}
+
+/*
+ * The brand band's text, DERIVED from the fill it sits on rather than named in advance.
+ *
+ * `primary` is client-editable and core has no readable partner for an arbitrary hue — every static
+ * default is a guess, and the previous one (`button-primary-text`) was wrong whenever a client's
+ * primary button is not its brand color. This makes the same DECISION the panel makes in
+ * `App\Support\Color::text()` — past a lightness threshold take black, below it take white — but it
+ * is NOT the same computation, and the difference is worth knowing about.
+ *
+ * `Color::text()` thresholds WCAG relative luminance (gamma-linearised sRGB, weighted
+ * .2126/.7152/.0722) at 0.179. CSS cannot compute that from a single hex: relative color syntax
+ * exposes channels only inside a color function, so there is nowhere to do the weighted sum. What
+ * IS available is OKLCH's perceptual lightness, and 0.58 is where it was calibrated against the
+ * WCAG crossover — swept over the sRGB cube, it minimises the cases where the chosen colour lands
+ * under 4.5:1 while the other one would have cleared it (~2%, all highly saturated greens and
+ * purples where the two metrics genuinely disagree; near the crossover both choices are equal
+ * anyway, so disagreement there costs nothing). It is strictly better than the static default it
+ * replaces in every case, and exact for neutrals.
+ *
+ * `clamp()` collapses the calc to exactly 0 or 1, so the result is always black or white.
+ *
+ * Derived rather than added as a branding field ON PURPOSE. A field would be a second value to keep
+ * in sync with `primary`, and the two drifting apart is precisely how the old default broke. Here
+ * there is one setting — the client picks `primary` in the panel — and the text cannot drift from
+ * it. A site that wants something else still redefines `--band-brand-text` in its own `:root`
+ * (seam 2), which wins over this by source order.
+ *
+ * Gated because an unsupported relative color function is invalid at computed-value time, which
+ * makes the custom property "guaranteed-invalid" — and `var(--band-brand-text, …)` would then NOT
+ * use its fallback, it would poison the declaration that reads it. @supports keeps such a browser
+ * on the static value above instead. Chrome 119+, Safari 16.4+, Firefox 128+.
+ */
+@supports (color: oklch(from red l c h)) {
+  :root {
+    --band-brand-text: oklch(from var(--color-primary, #3b5aff) clamp(0, (0.58 - l) * 1000, 1) 0 0);
+  }
 }
 
 @layer core {

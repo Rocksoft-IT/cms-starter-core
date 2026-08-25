@@ -4,6 +4,91 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.38.0 — a band derives its readable text, and a section block can be the page H1
+
+Two independent changes ride this tag, because neither had been published when the other landed.
+Both are a pin bump and nothing else — no config edit, no layout edit.
+
+### A section block can render its heading as the page `<h1>`
+
+A section block renders an `<h2>` for its own heading. That is right while the section sits under a
+page title and wrong when the section **is** the page title: a page composed only of blocks then
+ships no `<h1>` at all, its real title renders one level down, and every heading below it hangs off
+nothing. Four pages on one client site were in exactly that state — each opens with a `promo_split`
+or a `rich_content`, so each rendered its title as an `<h2>` with no `<h1>` anywhere (dashboard
+#1579).
+
+`heading_level` is a new select on **`promo_split`** and **`rich_content`**:
+
+| value | renders |
+| --- | --- |
+| `default` | `<h2>` — unchanged |
+| `h1` | `<h1>` — "this section is the page title" |
+| `h2` / `h3` | that tag |
+
+It rides the same shared-field seam as `background` / `align` / `reveal`, so extending it to another
+block later is one line. **`default` keeps the current `<h2>`**, and anything unrecognised — an empty
+string, a cased `H1`, a value from a newer schema this build does not know — falls back to `h2` too,
+which is what makes it render-identical for every page that has no opinion.
+
+It is deliberately **not** clamped to one `<h1>` per page: a block cannot see the rest of the page,
+so that stays the editor's call — the same position the standalone `heading` block already takes.
+
+### A band derives its readable text instead of guessing it
+
+v0.37.0 left one band variant guessing and another one hardcoded. Both are one line here, and
+neither needs a config edit or a new panel field — a pin bump is the whole change.
+
+**The `brand` band's text is now derived from the fill it sits on.** It defaulted to
+`--color-button-primary-text`, which is the partner of `button-primary`, not of `primary`. When a
+client's primary button is not its brand colour the default is simply wrong: with
+`primary: #ffcf00` and `button-primary-text: #ffffff` it produced white on yellow, **1.48:1**. The
+token is now computed from the fill — black on a light brand, white on a dark one — so it cannot
+disagree with `primary` again.
+
+It makes the same *decision* as the panel's `App\Support\Color::text()`, not the same computation:
+that thresholds WCAG relative luminance, which CSS cannot derive from a single hex, so this
+thresholds OKLCH perceptual lightness at `0.58`, calibrated against the WCAG crossover across the
+sRGB cube. Exact for neutrals; for roughly 2% of highly saturated greens and purples the two metrics
+disagree and the derivation can pick the less readable of black/white. Strictly better than the
+static default it replaces in every case, but not a guarantee of AA on an arbitrary hue — if your
+brand colour is a mid-tone, check the band and set `--band-brand-text` yourself.
+
+This is deliberately **not** a new branding field. A field would be a second value to keep in sync
+with `primary`, and the two drifting apart is exactly how the old default broke. There is one
+setting — the client picks `primary` in the panel — and the text follows it.
+
+```diff
++ @supports (color: oklch(from red l c h)) {
++   :root {
++     --band-brand-text: oklch(from var(--color-primary, #3b5aff) clamp(0, (0.65 - l) * 1000, 1) 0 0);
++   }
++ }
+```
+
+It is gated because an unsupported relative colour function is invalid at computed-value time,
+which would poison the declaration reading it rather than fall back. A browser without it keeps
+v0.37.0's value — no regression, no fix either. Chrome 119+, Safari 16.4+, Firefox 128+.
+
+**The `muted` band follows the palette instead of a literal.** `--band-light-bg` already read
+`var(--color-surface)`; its sibling was a hardcoded `#f2f2f2`, which **inverts on a dark-themed
+site** — a site with `surface: #141f16` and `heading: #ffffff` got a near-white slab under a white
+heading, 1.07:1. It now reads `var(--color-surface-alt, #f2f2f2)`.
+
+```diff
+- --band-muted-bg: #f2f2f2;
++ --band-muted-bg: var(--color-surface-alt, #f2f2f2);
+```
+
+**One visual change to check:** a site that sets no `surface-alt` now paints `muted` with core's
+neutral `#f5f6f8` where it used to be `#f2f2f2`. Three points apart and indistinguishable in place,
+but it is a real difference, so it is stated rather than buried. Every other band value is
+unchanged, and a site that sets no band renders byte-identically as always.
+
+**A site that painted its own bands should re-check two things:** if it redefined `--band-brand-text`
+in its own `:root`, that still wins (seam 2) and nothing changes; if it relied on `muted` being
+exactly `#f2f2f2`, set `--color-surface-alt` or `--band-muted-bg` explicitly.
+
 ## v0.37.0 — a section band is readable, and `pricing_teaser` gets one at all
 
 v0.36.0 shipped the `background` select's render half — six blocks declare the field, and until
