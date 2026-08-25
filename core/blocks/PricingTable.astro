@@ -15,19 +15,15 @@ import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
 import { backgroundClass } from '../../lib/background'
+import { tabLabel } from '../../lib/tab-label'
 
 interface Props {
   block: PricingTableBlock
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, body, background, width, billing_toggle, tabs, plans, tab_icons } = block.data
-
-// Human labels for the backend's billing_type enum (mirrors config/cms.php select options).
-const TAB_LABELS: Record<string, string> = {
-  one_time: 'One-time',
-  subscription: 'Subscription',
-}
+const { anchor_id, eyebrow, heading, body, background, width, billing_toggle, tabs, plans, tab_icons, tab_labels } =
+  block.data
 
 // Ungrouped payloads (billing_toggle off, or hand-authored fixtures) arrive as a flat
 // `plans` list — normalize both shapes into a tab list so the template has one path.
@@ -36,6 +32,10 @@ const showTabs = !!billing_toggle && displayTabs.length > 1
 
 const sectionId = sectionAnchorId(anchor_id)
 const tabIcon = (billingType: string) => tab_icons?.find((icon) => icon.billing_type === billingType)?.icon_svg
+
+// The button's name: this table's own `tab_labels` first, then core's default pair. Shared with
+// any client override that renders this block — see lib/tab-label.ts.
+const labelOf = (billingType: string) => tabLabel(billingType, tab_labels)
 
 // Prefix for the tab-button ↔ panel aria-controls wiring. Derived from the anchor when set;
 // two anchor-less pricing tables on one page would collide — give them anchors in the CMS.
@@ -69,7 +69,7 @@ const bandClass = backgroundClass(background)
                 aria-controls={`${idPrefix}-panel-${tab.billing_type}`}
                 class:list={['pricing-tab', i === 0 && 'is-active']}
               >
-                {TAB_LABELS[tab.billing_type] ?? tab.billing_type}
+                {labelOf(tab.billing_type)}
                 {icon && (
                   <span class="shrink-0 w-5 h-5 flex items-center justify-center" set:html={sanitizeSvg(icon)} />
                 )}

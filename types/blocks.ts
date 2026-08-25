@@ -172,6 +172,12 @@ export interface PricingTableBlock {
     plans?: PricingPlan[]
     tabs?: PricingTab[]
     tab_icons?: Array<{ billing_type: string; icon_svg?: string }>
+    /**
+     * Per-table names for the billing-toggle buttons, keyed like `tab_icons` above. An
+     * OVERRIDE of the renderer's default pair — unset, or a row whose label is blank, falls
+     * back to it, so no existing table changes (#1416).
+     */
+    tab_labels?: Array<{ billing_type: string; label?: string }>
   }
 }
 
