@@ -3,7 +3,7 @@ import type { HeroBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import RichText from '../RichText.astro'
 import BlockRenderer from '../BlockRenderer.astro'
-import { href as hrefOf } from '../../lib/href'
+import HeroCtas from './HeroCtas.astro'
 
 interface Props {
   block: HeroBlock
@@ -13,13 +13,12 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { eyebrow, heading, subheading, ctas = [], columns = [], columns_layout } = block.data
+const { eyebrow, heading, subheading, ctas = [], cta_note, columns = [], columns_layout } = block.data
 
 // Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading
 // occupy the FIRST slot of the chosen layout; each `columns` entry supplies a further slot
 // holding ordinary blocks the editor composed — so "image left, heading right" is authored
-// rather than picked from a fixed set of variants. With no `columns` (the common case) nothing
-// changes: the single-column hero renders exactly as before, lottie players included.
+// rather than picked from a fixed set of variants.
 const multiColumn = columns.length > 0
 
 // Track sizing: each column's `width` numerator, falling back to its slot's layout share (see
@@ -38,6 +37,7 @@ const textGrow = shareAt(undefined, layoutShares, 0)
             {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
             <RichText class="heading-h1" html={heading} />
             {subheading && <RichText class="subhero-text" html={subheading} />}
+            <HeroCtas {ctas} {cta_note} />
           </div>
           {columns.map((column, i) => (
             <div class="hero-2col-right" style={`flex-grow:${shareAt(column.width, layoutShares, i + 1)}`}>
@@ -63,31 +63,7 @@ const textGrow = shareAt(undefined, layoutShares, 0)
               <RichText class="heading-h1" html={heading} />
               {subheading && <RichText class="subhero-text" html={subheading} />}
             </div>
-            <div class="buttons-lottie-group">
-              <lottie-player
-                class="image-hero-lottie"
-                data-src="/documents/AnalyticsAnimation-1.json"
-                loop
-                autoplay
-                aria-hidden="true"
-              />
-              {ctas.length > 0 && (
-                <div class="hero-ctas">
-                  {ctas.map((cta, i) => (
-                    <a href={hrefOf(cta.href)} class={i === 0 ? 'btn-primary' : 'btn-outline'}>
-                      {cta.label}
-                    </a>
-                  ))}
-                </div>
-              )}
-              <lottie-player
-                class="image-hero-lottie"
-                data-src="/documents/MegaphoneAnimation.json"
-                loop
-                autoplay
-                aria-hidden="true"
-              />
-            </div>
+            <HeroCtas {ctas} {cta_note} />
           </div>
         </div>
       </div>
@@ -98,40 +74,6 @@ const textGrow = shareAt(undefined, layoutShares, 0)
         <div class="hero-gradient-overlay" />
       </div>
     </section>
-  )
-}
-
-{
-  /* Lottie is only ever used by the single-column hero, so a columns hero must not pay for the
-     player bundle. */
-  !multiColumn && (
-    <>
-      <script is:inline defer src="https://unpkg.com/@lottiefiles/lottie-player@2/dist/lottie-player.js" />
-      {/* Passed via set:html so the raw JS is emitted verbatim. Inside a JSX fragment an inline
-          <script>'s children are treated as literal text, so a `{`…`}` expression child would be
-          printed as-is — wrapping the whole body in a dead `{ "string" }` block that never runs. */}
-      <script
-        is:inline
-        set:html={`if (window.matchMedia('(min-width: 768px)').matches) {
-          customElements.whenDefined('lottie-player').then(function () {
-            document.querySelectorAll('.image-hero-lottie[data-src]').forEach(function (el) {
-              // Reveal a player only once its animation actually loads. If the JSON is missing
-              // (e.g. a starter without the brand /documents/*.json assets), the player fires
-              // 'error' and stays hidden instead of showing lottie-player's error-emoji fallback.
-              var reveal = function () {
-                el.classList.add('is-loaded')
-              }
-              el.addEventListener('ready', reveal)
-              el.addEventListener('load', reveal)
-              el.addEventListener('error', function () {
-                el.classList.remove('is-loaded')
-              })
-              el.setAttribute('src', el.getAttribute('data-src') || '')
-            })
-          })
-        }`}
-      />
-    </>
   )
 }
 

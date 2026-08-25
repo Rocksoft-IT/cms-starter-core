@@ -1,0 +1,41 @@
+---
+// The hero's call-to-action cluster: its buttons, and the reassurance line under them.
+//
+// Extracted because it was the piece that went missing. `Hero.astro` renders two layouts, and
+// `ctas` was written into only one of them — a hero with nested columns dropped its buttons
+// entirely, silently, while the field stayed filled in the panel. `cta_note` (dashboard#1354) was
+// never written into either. One component rendered from both branches is what stops a third
+// layout losing them again.
+//
+// It lives in `core/blocks/` rather than beside the other shared components on purpose: the field
+// -coverage gate follows delegates only into `blocks/` and `lib/`, so a hero helper anywhere else
+// would make `ctas` and `cta_note` read as unrendered on a block that renders them fine.
+import type { HeroBlock } from '../../types/blocks'
+import { href as hrefOf } from '../../lib/href'
+import { usableCtas } from '../../lib/ctas'
+
+interface Props {
+  ctas?: HeroBlock['data']['ctas']
+  cta_note?: string
+}
+
+const { cta_note } = Astro.props
+
+// A row saved with only half its pair is an unfinished input, not an instruction to draw an empty
+// link — the same rule the two other blocks fed by `$ctaList` now follow. See lib/ctas.ts.
+const ctas = usableCtas(Astro.props.ctas)
+---
+
+{
+  ctas.length > 0 && (
+    <div class="hero-ctas">
+      {ctas.map((cta, i) => (
+        <a href={hrefOf(cta.href)} class={i === 0 ? 'btn-primary' : 'btn-outline'}>
+          {cta.label}
+        </a>
+      ))}
+    </div>
+  )
+}
+
+{cta_note && <p class="hero-cta-note">{cta_note}</p>}

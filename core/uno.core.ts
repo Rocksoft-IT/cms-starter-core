@@ -148,6 +148,13 @@ export const coreShortcuts: Record<string, string> = {
   'hero-col': 'flex flex-col items-stretch text-center gap-8',
   'hero-text': 'flex flex-col items-center gap-3',
   'hero-ctas': 'actions-row',
+  // The reassurance line under the buttons ("100% free, no credit card required") — its own field
+  // precisely so it sits BELOW the CTA rather than in the subheading above it (dashboard#1354).
+  'hero-cta-note': 'text-[14px] text-muted m-0',
+  // Retained for CLIENT OVERRIDES only: core's own hero stopped emitting these when the
+  // reference site's hardcoded animations came out of it. diligently.pl's Hero override still
+  // uses both, so deleting them here would silently restyle that site on its next core bump.
+  // They come out together with a core-owned Lottie component (dashboard#1647).
   'buttons-lottie-group': 'flex flex-row justify-between items-center self-stretch gap-4 max-md:justify-center',
   // Hidden until the animation loads (see the reveal listeners in the component). The 220x220 box
   // stays reserved so revealing shifts nothing, and lottie-player's error-emoji fallback stays
@@ -367,6 +374,10 @@ export const coreShortcuts: Record<string, string> = {
   'section-eyebrow': 'eyebrow',
   'section-heading': 'font-brand font-bold text-[40px] leading-[1.2]',
   'section-intro': 'text-[18px] text-text-secondary leading-[1.7]',
+  // The box for the optional illustration under a section heading (core/SectionHeader.astro). Core
+  // sizes it and stops: what goes inside is whichever player the SITE mounts on
+  // `[data-animation-src]`, so the box has to reserve its space before anything is in it.
+  'section-animation': 'block w-[220px] h-[220px] mt-2',
   // Centred by default. With an `action` slot filled it becomes a row — heading block left, action
   // right, wrapping on narrow viewports — which is why the text gets its own wrapper.
   'section-header': 'text-center mb-12 flex flex-col items-center gap-2',
@@ -405,6 +416,18 @@ export const coreShortcuts: Record<string, string> = {
     'self-start text-[11px] font-bold tracking-[0.12em] uppercase text-text-secondary border border-gray-200 rounded-full px-3 py-1',
   'pricing-badge': 'self-start text-[12px] font-semibold bg-primary text-button-primary-text rounded-full px-3 py-1',
   'pricing-price': 'text-[36px] font-bold leading-[1.1]',
+  // `price_size: small` — a step down from the price's own size, and never wrapping. Which
+  // sections take it is an editorial choice with no rule behind it (#1416), so it is a modifier
+  // on top of `pricing-price` rather than a second price style.
+  'pricing-price-sm': 'text-[32px] whitespace-nowrap',
+  // The plan's `fine_print`, in whichever of its three slots the plan names. One shortcut so the
+  // note reads the same wherever it lands — the slot decides position, not typography.
+  'pricing-fine-print': 'text-[12px] text-text-secondary leading-[1.5]',
+  // `description_height: fixed` — every card's blurb the same height, so the prices below them
+  // line up across the row. A floor and not a cap: clipping a longer blurb an editor writes later
+  // is worse than a card being a line taller. Released below `md`, where one card per row means
+  // there is nothing to line up.
+  'pricing-description-fixed': 'md:min-h-[7.5rem]',
 
   // ── Hours & location block ────────────────────────────────────────────────
   'section-hours-location': 'bg-section-bg',

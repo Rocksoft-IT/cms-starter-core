@@ -14,23 +14,43 @@
 // site layer re-implemented the whole eyebrow/heading markup in its own component instead of
 // composing this one — the exact drift this extraction removes. An unused slot renders nothing, so
 // it costs the other ten call sites literally zero.
+// `animation` is here rather than in the one block that first wanted it (#1416): "an illustration
+// under the section heading" is a property of the header, and the header is already the one place
+// eleven blocks share. Optional, so the call sites that pass nothing render exactly as before.
+//
+// CORE SHIPS NO PLAYER. It emits the element and the source and stops there — no library, no
+// third-party script, nothing on a page that has no animation. That is deliberate and it is the
+// second half of #1647: core used to hardcode one client's Lottie files and pull a player from
+// unpkg.com on every page carrying a hero, which 404'd on every other client and put a third-party
+// request in the shared engine. Which library animates this — and whether one does at all — is the
+// site's decision, made where fonts and brand CSS are made. `diligently.pl` already answers it
+// well (`src/lib/lottie.ts`: a self-hosted dependency, imported dynamically, skipped below a
+// viewport floor so a phone never pays for 375KB), and that answer belongs to that site rather
+// than to everyone who installs core.
+//
+// So the contract is the DOM: a `.section-animation` element carrying `data-animation-src`. A site
+// mounts it; a site that does not gets a sized, empty, decorative box and no requests.
+
 interface Props {
   eyebrow?: string
   heading?: string
   intro?: string
+  /** A JSON animation this site serves (the `$sectionAnimation` field in the block registry). */
+  animation?: string
 }
 
-const { eyebrow, heading, intro } = Astro.props
+const { eyebrow, heading, intro, animation } = Astro.props
 const hasAction = Astro.slots.has('action')
 ---
 
 {
-  (eyebrow || heading || intro || hasAction) && (
+  (eyebrow || heading || intro || animation || hasAction) && (
     <div class:list={['section-header', hasAction && 'section-header-with-action']}>
       <div class="section-header-text">
         {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
         {heading && <h2 class="section-heading">{heading}</h2>}
         {intro && <p class="section-intro">{intro}</p>}
+        {animation && <div class="section-animation" data-animation-src={animation} aria-hidden="true" />}
       </div>
       {hasAction && <slot name="action" />}
     </div>

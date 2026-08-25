@@ -1,12 +1,16 @@
 ---
 import type { CtaBannerBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
+import { usableCtas } from '../../lib/ctas'
 import { sectionAnchorId } from '../../lib/anchor'
 interface Props {
   block: CtaBannerBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, body, badges = [], ctas = [], anchor_id } = block.data
+const { eyebrow, heading, body, badges = [], anchor_id } = block.data
+
+// Half-filled rows dropped rather than drawn as an empty link — see lib/ctas.ts.
+const ctas = usableCtas(block.data.ctas)
 
 // Deep-link target, so a header CTA or in-page link can point at this banner (#1474). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)

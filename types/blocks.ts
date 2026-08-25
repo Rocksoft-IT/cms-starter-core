@@ -49,15 +49,23 @@ export interface ColumnsBlock {
 // `hero` nests too: its optional `columns` area lets an editor compose the slots beside the
 // heading (diligently-dashboard#570), replacing the old `right_kind` + `right_*` fields, which
 // could only ever put content on the right and only one of four hardcoded kinds.
+/**
+ * HAND-MAINTAINED, and that is why it drifts: `hero` carries a `blocks`-typed field (`columns`),
+ * so `pnpm cms:types` skips the whole interface (see `isNested` in scripts/gen-block-types.mjs)
+ * and nothing regenerates it. It had drifted in both directions at once — `cta_note` was added to
+ * the backend (dashboard#1354) and never landed here, while `image` and `variant` were retired
+ * from the backend in dashboard#669 and lingered here for months. `eyebrow` sat in the first state
+ * until v0.36.0. Keep it in step with `config/cms.php`'s `hero.fields` by hand.
+ */
 export interface HeroBlock {
   type: 'hero'
   data: {
     eyebrow?: string
     heading?: string
     subheading?: string
-    image?: string | null
-    variant?: 'image-right' | 'image-left' | 'no-image'
     ctas?: Array<{ label?: string; href?: string }>
+    /** The reassurance line UNDER the buttons ("100% free, no credit card required"). */
+    cta_note?: string
     columns_layout?: string
     columns?: ResolvedColumn[]
   }
@@ -129,6 +137,13 @@ export interface PricingPlan {
   cta_label?: string
   cta_href?: string
   fine_print?: string
+  /**
+   * Where `fine_print` is printed, because what the note says decides that: a setup fee
+   * qualifies the PRICE (`under_price`), a payment-timing line qualifies the PURCHASE
+   * (`under_button`), and an add-on remark qualifies the PLAN, so it closes the feature list
+   * (`with_details`) — #1416. Unset is `under_price`, where every note already prints.
+   */
+  fine_print_placement?: 'under_price' | 'under_button' | 'with_details'
   /** Tier illustration for the head of the card. A single media field, so the API flattens it
    *  to a URL; `plan_image_meta` carries the intrinsic size and srcset (absent for an SVG). */
   plan_image?: string
@@ -166,8 +181,18 @@ export interface PricingTableBlock {
     // behind there, so `muted`/`brand` failed to type-check while the API accepted them.
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    /** A JSON animation this site serves, hung under the section heading (#1416). Same field
+     *  name and same `asset_url` contract as `rich_content.animation_url`. */
+    animation_url?: string
     /** `wide` reaches past the page container, for a set of four cards. */
     width?: 'default' | 'wide'
+    /** `fixed` gives every card's blurb the same height so the prices line up across the row
+     *  (#1416). The wider breakpoints relax it only on a `wide` table — that is the layout's
+     *  business, which is why this has two states rather than the source's two classes. */
+    description_height?: 'default' | 'fixed'
+    /** `small` sets the price a step down and stops it wrapping (#1416). A per-section choice
+     *  with no rule behind it: not the column count, not the price's length, not the toggle. */
+    price_size?: 'default' | 'small'
     billing_toggle?: boolean
     plans?: PricingPlan[]
     tabs?: PricingTab[]
@@ -178,6 +203,9 @@ export interface PricingTableBlock {
      * back to it, so no existing table changes (#1416).
      */
     tab_labels?: Array<{ billing_type: string; label?: string }>
+    /** The link that closes the section, under `body` — the same shared shape `hero` and
+     *  `cta_banner` carry. Empty means the section closes without one (#1416). */
+    ctas?: Array<{ label?: string; href?: string }>
   }
 }
 

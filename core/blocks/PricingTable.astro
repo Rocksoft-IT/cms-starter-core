@@ -14,6 +14,7 @@ import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { usableCtas } from '../../lib/ctas'
 import { backgroundClass } from '../../lib/background'
 import { tabLabel } from '../../lib/tab-label'
 
@@ -22,8 +23,23 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, body, background, width, billing_toggle, tabs, plans, tab_icons, tab_labels } =
-  block.data
+const {
+  anchor_id,
+  eyebrow,
+  heading,
+  body,
+  background,
+  animation_url,
+  width,
+  description_height,
+  price_size,
+  billing_toggle,
+  tabs,
+  plans,
+  tab_icons,
+  tab_labels,
+  ctas,
+} = block.data
 
 // Ungrouped payloads (billing_toggle off, or hand-authored fixtures) arrive as a flat
 // `plans` list — normalize both shapes into a tab list so the template has one path.
@@ -45,6 +61,16 @@ const idPrefix = sectionId ?? 'pricing-table'
 // so `container-${width}` would generate no CSS at all (see docs/starter.md).
 const containerClass = width === 'wide' ? 'container-wide' : 'container-global'
 
+// Literal branches for the same extraction reason. Both fields are overrides on top of the card's
+// normal look, so an unset value adds no class and every table saved before they existed renders
+// byte-identically (#1416).
+const descriptionClass = description_height === 'fixed' ? 'pricing-description-fixed' : undefined
+const priceClass = price_size === 'small' ? 'pricing-price-sm' : undefined
+
+// The closing link(s) under `body`, half-filled rows dropped — see lib/ctas.ts, shared with the
+// two other blocks fed by the same `$ctaList` shape.
+const closingCtas = usableCtas(ctas)
+
 // The shared `background` select, on the same helper as the five other blocks that carry it
 // (#1498). It used to be a local `background === 'dark'` ternary here, paired with a shortcut that
 // read "dark" as the client-editable SECONDARY brand color — white text on a white band for a
@@ -54,7 +80,7 @@ const bandClass = backgroundClass(background)
 
 <section id={sectionId} class:list={['section-pricing-table section-band py-20', bandClass]}>
   <div class={containerClass}>
-    <SectionHeader {eyebrow} {heading} />
+    <SectionHeader {eyebrow} {heading} animation={animation_url} />
 
     {
       showTabs && (
@@ -94,6 +120,11 @@ const bandClass = backgroundClass(background)
         >
           {tab.plans.map((plan) => {
             const features = plan.features ?? []
+            // Where this plan's note goes. Absent means `under_price`, which is where this
+            // renderer already printed every note, so no stored plan moves (#1416). The note
+            // itself is built once — only its position varies, so its markup must not.
+            const notePlacement = plan.fine_print_placement ?? 'under_price'
+            const note = plan.fine_print ? <p class="pricing-fine-print">{plan.fine_print}</p> : null
             return (
               <article class="pricing-card surface-light">
                 {plan.size_label && <span class="pricing-chip">{plan.size_label}</span>}
@@ -115,20 +146,32 @@ const bandClass = backgroundClass(background)
                 )}
 
                 {plan.description && (
-                  <RichText class="text-[14px] leading-[1.6] text-text-secondary [&_p]:mb-0" html={plan.description} />
+                  <RichText
+                    class:list={['text-[14px] leading-[1.6] text-text-secondary [&_p]:mb-0', descriptionClass]}
+                    html={plan.description}
+                  />
                 )}
 
                 {plan.badge && <span class="pricing-badge">{plan.badge}</span>}
 
-                <div class="pricing-price">{plan.price ?? ''}</div>
+                <div class:list={['pricing-price', priceClass]}>{plan.price ?? ''}</div>
 
-                {plan.fine_print && <p class="text-[12px] text-text-secondary leading-[1.5]">{plan.fine_print}</p>}
+                {notePlacement === 'under_price' && note}
 
                 {plan.cta_label && plan.cta_href && (
                   <a href={hrefOf(plan.cta_href)} class="btn-primary justify-center mt-auto">
                     {plan.cta_label}
                   </a>
                 )}
+
+                {notePlacement === 'under_button' && note}
+
+                {/* `with_details` closes the feature list rather than following it: the note
+                    qualifies what the plan contains, so it belongs with the lines it qualifies,
+                    and where that list collapses behind a control the note collapses with it.
+                    This is the fallback for a plan that has such a note but no list to put it in
+                    — the list's own copy is inside the <details> below. */}
+                {notePlacement === 'with_details' && features.length === 0 && note}
 
                 {features.length > 0 && (
                   <details class="group mt-1">
@@ -153,6 +196,8 @@ const bandClass = backgroundClass(background)
                         </li>
                       ))}
                     </ul>
+
+                    {notePlacement === 'with_details' && note}
                   </details>
                 )}
               </article>
@@ -169,6 +214,20 @@ const bandClass = backgroundClass(background)
         <p class="text-center max-w-[700px] mx-auto mt-12 text-[15px] leading-[1.7] text-text-secondary">
           {body}
         </p>
+      )
+    }
+
+    {
+      /* The section's closing link(s), under that paragraph — outline rather than primary, so the
+         plan cards' own buttons stay the section's main action (#1416). */
+      closingCtas.length > 0 && (
+        <div class="actions-row justify-center mt-8">
+          {closingCtas.map((cta) => (
+            <a href={hrefOf(cta.href)} class="btn-outline">
+              {cta.label}
+            </a>
+          ))}
+        </div>
       )
     }
   </div>
