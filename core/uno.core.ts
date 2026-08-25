@@ -110,6 +110,35 @@ export const coreShortcuts: Record<string, string> = {
   'list-reset': 'list-none p-0 m-0',
   'actions-row': 'flex flex-wrap justify-center gap-4',
 
+  // ── Section bands (the shared `background` select) ──────────────────────────
+  // Every block carrying the `background` field emits `section-band` plus one modifier from
+  // lib/background.ts (`is-light` / `is-muted` / `is-brand` / `is-dark`; `default` emits nothing).
+  // Six blocks used to drop the value on the floor — an editor picked "Dark", the panel saved it
+  // and the page rendered white (#1498).
+  //
+  // The FILL lives here rather than in a stylesheet because it competes with plain utilities a
+  // section shortcut may already carry (`section-pricing-table` has `bg-section-bg`): a Uno
+  // utility is unlayered, so an `@layer core` rule could never win. The `[&.is-x]:` compound is
+  // one specificity step above the utility, which is what makes it stick — the form
+  // `section-pricing-table` already proved. The text-ROLE tokens are the other half and live in
+  // core/styles/tokens.css, where nothing competes with them.
+  //
+  // Every value is a `--band-*` token with a neutral fallback — bar the brand band's fill, which is
+  // the palette's own `primary` — so a site retunes a band by declaring a custom property (seam 2)
+  // or by redefining this one key (seam 1). Core carries no brand values: `is-brand` pairs `primary`
+  // with the color a client already maintains for text on it (`button-primary-text`, the default
+  // behind `--band-brand-text`) rather than assuming white over an unknown brand.
+  //
+  // Written as arbitrary PROPERTIES (`[background-color:…]`) rather than arbitrary values
+  // (`bg-[…]`): `text-[var(--x)]` is ambiguous — UnoCSS has to guess color vs font-size from the
+  // bracket — and guessing wrong here is exactly the silent-no-op failure this change exists to
+  // remove. `font-brand` already ships in this form.
+  'section-band':
+    '[&.is-light]:[background-color:var(--band-light-bg,#fff)] ' +
+    '[&.is-muted]:[background-color:var(--band-muted-bg,#f2f2f2)] ' +
+    '[&.is-brand]:bg-primary [&.is-brand]:[color:var(--band-brand-text,#fff)] ' +
+    '[&.is-dark]:[background-color:var(--band-dark-bg,#000)] [&.is-dark]:[color:var(--band-dark-text,#fff)]',
+
   // ── Hero block ──────────────────────────────────────────────────────────
   // Hero used to nest three arbitrary measures (1080 / 1040 / 990) inside each other. One
   // container is enough: the inner rows sit inside it and centre their own content.
@@ -186,23 +215,7 @@ export const coreShortcuts: Record<string, string> = {
   'section-buttons': 'py-8 container-narrow actions-row',
 
   // ── Rich content block ───────────────────────────────────────────────────────
-  // ── Section background variants (dashboard #1498) ────────────────────────
-  // The paint half of the `background` field: a block maps its value to a modifier class
-  // (lib/background.ts) and this decides what each one looks like. Composed into every section
-  // shortcut whose block declares the field, so the five values mean the same thing everywhere
-  // instead of each block inventing its own. The TEXT side lives in core/styles/tokens.css,
-  // which re-points `--color-heading` / `--color-text-*` inside `.is-dark` / `.is-brand` — a
-  // utility here would miss `section-intro`, `rich-body`, `card-label` and `card-value`, which
-  // name their colour token explicitly.
-  //
-  // `dark` and `brand` take `secondary` and `primary`, the two palette keys core already treats
-  // as dark surfaces (`promo-split-panel` is `bg-secondary`, its CTA is `text-secondary` on
-  // white). A client that sets either to a light colour gets an unreadable band — the same
-  // unguaranteed-role problem as #1475; making that contract explicit is its own change.
-  'section-surface':
-    '[&.is-light]:bg-surface [&.is-muted]:bg-surface-alt [&.is-brand]:bg-primary [&.is-dark]:bg-secondary',
-
-  'section-content': 'section-y section-surface',
+  'section-content': 'section-y',
   'content-inner': 'container-narrow',
 
   // ── Custom HTML block ───────────────────────────────────────────────────────
@@ -217,7 +230,7 @@ export const coreShortcuts: Record<string, string> = {
   // The step cards alternate sides, so `features-card-top`/`-bottom` are alignment only. The
   // number badge takes the brand accent rather than the `--color-jonquil` it used to fall back
   // to — that token was never in any palette, so the yellow came from a hardcoded fallback.
-  'section-features': 'section-y section-surface',
+  'section-features': 'section-y',
   'features-inner': 'container-narrow',
   // `w-full max-w-[720px]` rather than the `w-[720px] max-w-full` it used to carry: identical
   // rendering, but it states the measure as a max-width like every other container in core.
@@ -369,10 +382,15 @@ export const coreShortcuts: Record<string, string> = {
   'highlights-inner': 'container-prose',
 
   // ── Pricing table block ───────────────────────────────────────────────────
-  // The section carries its own dark styling via the `.is-dark` variant, so the
-  // component sets exactly one class for the background select (single source of
-  // truth — inner text inherits, cards restate their own colors).
-  'section-pricing-table': 'bg-section-bg section-surface',
+  // Only the block's own default fill lives here now: the `background` select is painted by the
+  // shared `section-band` shortcut above, like the five other blocks that carry the field.
+  //
+  // What used to be here — `[&.is-dark]:bg-secondary [&.is-dark]:text-white` — read "dark" as the
+  // SECONDARY BRAND COLOR, which happens to be dark only because the neutral palette defaults it
+  // to #101841. It is client-editable with no such guarantee, so a client whose secondary is
+  // #ffffff (client 22) got white text on a white "dark" band — the #1475 defect class, a token
+  // used for a role it does not promise (#1498).
+  'section-pricing-table': 'bg-section-bg',
   // Tab button carries its own active styling via `.is-active` variants, so the
   // client script only toggles that one class (single source of truth).
   'pricing-tab':
@@ -448,7 +466,7 @@ export const coreShortcuts: Record<string, string> = {
   // class name — so they generated nothing while reading in the source like working style. Anything
   // needing a real descendant selector is not a shortcut; it belongs in a site stylesheet.
   // `verify:core-styles` now fails on a selector-shaped key so the same silence cannot return.
-  'section-cards': 'section-y section-surface',
+  'section-cards': 'section-y',
   'cards-inner': 'container-global',
   'cards-grid': 'grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] list-reset mt-6',
   card: 'flex items-start gap-[14px] h-full no-underline',

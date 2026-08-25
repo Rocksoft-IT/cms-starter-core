@@ -8,13 +8,17 @@ interface Props {
   block: FeaturesBlock
 }
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, intro, steps = [], background } = block.data
+const { anchor_id, eyebrow, heading, intro, background, steps = [] } = block.data
 
 // Deep-link target — a process/steps section is a typical TOC entry (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
+
+// The shared `background` select — a band modifier the styling layer paints (#1498).
+// See lib/background.ts.
+const bandClass = backgroundClass(background)
 ---
 
-<section class:list={['section-features relative', backgroundClass(background)]} id={sectionId}>
+<section class:list={['section-features section-band relative', bandClass]} id={sectionId}>
   <div class="features-inner">
     <div class="features-component">
       <SectionHeader {eyebrow} {heading} {intro} />
@@ -23,7 +27,7 @@ const sectionId = sectionAnchorId(anchor_id)
           steps.map((step, i) => {
             const isEven = i % 2 === 1
             return (
-              <div class={`features-card ${isEven ? 'features-card-bottom' : 'features-card-top'}`}>
+              <div class={`features-card surface-light ${isEven ? 'features-card-bottom' : 'features-card-top'}`}>
                 <div class="features-number-badge">
                   <span class="font-brand font-bold text-black text-[18px]">{step.number}</span>
                 </div>

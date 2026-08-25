@@ -11,10 +11,10 @@
 import type { PricingTableBlock } from '../../types/blocks'
 import { sanitizeSvg } from '../../lib/sanitize'
 import { sectionAnchorId } from '../../lib/anchor'
-import { backgroundClass } from '../../lib/background'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: PricingTableBlock
@@ -44,9 +44,15 @@ const idPrefix = sectionId ?? 'pricing-table'
 // A literal lookup, not an interpolated class: UnoCSS extracts class names from source text,
 // so `container-${width}` would generate no CSS at all (see docs/starter.md).
 const containerClass = width === 'wide' ? 'container-wide' : 'container-global'
+
+// The shared `background` select, on the same helper as the five other blocks that carry it
+// (#1498). It used to be a local `background === 'dark'` ternary here, paired with a shortcut that
+// read "dark" as the client-editable SECONDARY brand color — white text on a white band for a
+// client whose secondary is light. See lib/background.ts.
+const bandClass = backgroundClass(background)
 ---
 
-<section id={sectionId} class:list={['section-pricing-table py-20', backgroundClass(background)]}>
+<section id={sectionId} class:list={['section-pricing-table section-band py-20', bandClass]}>
   <div class={containerClass}>
     <SectionHeader {eyebrow} {heading} />
 
@@ -89,7 +95,7 @@ const containerClass = width === 'wide' ? 'container-wide' : 'container-global'
           {tab.plans.map((plan) => {
             const features = plan.features ?? []
             return (
-              <article class="pricing-card">
+              <article class="pricing-card surface-light">
                 {plan.size_label && <span class="pricing-chip">{plan.size_label}</span>}
 
                 <h3 class="font-bold text-[24px] leading-[1.2]">{plan.name}</h3>
@@ -157,8 +163,12 @@ const containerClass = width === 'wide' ? 'container-wide' : 'container-global'
     }
 
     {
+      /* One class, both bands: a dark band re-maps `--color-text-secondary` to its own lighter
+         grey (core/styles/tokens.css), so the per-band ternary this used to carry is gone. */
       body && (
-        <p class="text-center max-w-[700px] mx-auto mt-12 text-[15px] leading-[1.7] text-text-secondary">{body}</p>
+        <p class="text-center max-w-[700px] mx-auto mt-12 text-[15px] leading-[1.7] text-text-secondary">
+          {body}
+        </p>
       )
     }
   </div>

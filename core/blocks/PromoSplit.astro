@@ -7,6 +7,7 @@
 // The 2-col split only applies when an image is set; a copy-only panel stays single-column.
 import type { PromoSplitBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
+import { headingTag } from '../../lib/headingLevel'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 
 interface Props {
@@ -14,7 +15,9 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { eyebrow, heading, body, cta_label, cta_href, src, src_meta, alt = '', reverse } = block.data
+const { eyebrow, heading, heading_level, body, cta_label, cta_href, src, src_meta, alt = '', reverse } = block.data
+// Capitalized so Astro treats it as a dynamic tag rather than a literal <headingtag> element.
+const Heading = headingTag(heading_level)
 ---
 
 <section class="section-promo-split">
@@ -22,7 +25,7 @@ const { eyebrow, heading, body, cta_label, cta_href, src, src_meta, alt = '', re
     <div class:list={['promo-split-panel', src && 'md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]']}>
       <div class="promo-split-content">
         {eyebrow && <span class="promo-split-eyebrow">{eyebrow}</span>}
-        {heading && <h2 class="promo-split-heading">{heading}</h2>}
+        {heading && <Heading class="promo-split-heading">{heading}</Heading>}
         {body && <p class="promo-split-body">{body}</p>}
         {
           cta_label && cta_href && (

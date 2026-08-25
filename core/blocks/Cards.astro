@@ -52,7 +52,9 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker)
   entries.length > 0 && (
     <section
       class:list={[
-        'section-cards',
+        'section-cards section-band',
+        // The shared `background` select — one band modifier the styling layer paints (#1498).
+        // See lib/background.ts.
         backgroundClass(background),
         // Whole literal strings, never a name assembled from the mode at runtime: UnoCSS extracts
         // class names statically from source, so an assembled one generates no CSS at all and the

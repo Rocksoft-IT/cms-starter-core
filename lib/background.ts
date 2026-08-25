@@ -1,30 +1,33 @@
 /**
- * Section background variants — the render half of the `background` field.
+ * Normalize a CMS `background` select into the band modifier class the section carries. Shared by
+ * every block that exposes the field (rich_content, features, cards, testimonials, pricing_teaser,
+ * pricing_table) — the same shared-field pattern `sectionAnchorId()` follows in lib/anchor.ts.
  *
- * The field is declared on `rich_content`, `features`, `cards`, `testimonials` and
- * `pricing_table`, and for a long time only `pricing_table` read it: the panel stored the value,
- * the API returned it, and every other renderer dropped it silently (dashboard #1498). A block
- * maps its value to one of these modifier classes and lets the shortcut layer paint it, which
- * keeps the choice of colour in the site layer where the styling contract puts it
- * (`scripts/verify-core-styleless.mjs`).
+ * `default` and an absent value yield undefined, so the section emits no modifier at all and
+ * renders exactly as it did before the field was wired up (Astro drops an undefined entry from
+ * `class:list`). That is what makes this additive: only a band an editor explicitly coloured
+ * changes.
  *
- * `default` (and anything unrecognised, including a value from a newer schema this build does not
- * know) yields `undefined`, which Astro omits from `class:list` entirely — so a section with no
- * opinion renders exactly as it did before this existed.
+ * A literal lookup, never a name assembled from the value (`is-${background}`): UnoCSS extracts
+ * class names statically from source, so an assembled one generates no CSS — the failure
+ * `verify:core-styles` check 5 exists to catch.
+ *
+ * The classes are hooks, not colors. Core paints neutral defaults for them (the `section-band`
+ * shortcut in core/uno.core.ts plus the `--band-*` tokens in core/styles/tokens.css); a site
+ * retunes any band by redefining those tokens or that shortcut — see docs/starter.md
+ * § "Styling contract".
  */
-export type SectionBackground = 'default' | 'light' | 'muted' | 'brand' | 'dark'
+// A Map rather than an object literal: a plain lookup would resolve `background: "constructor"`
+// (or any other Object.prototype key) up the prototype chain and hand a function back as a class
+// name. `get` on an unknown key is undefined, which is also what an option the CMS gains before a
+// core bump should render as — no band, not a class nothing styles.
+const BAND_CLASSES = new Map([
+  ['light', 'is-light'],
+  ['muted', 'is-muted'],
+  ['brand', 'is-brand'],
+  ['dark', 'is-dark'],
+])
 
-const BACKGROUND_CLASSES: Record<Exclude<SectionBackground, 'default'>, string> = {
-  light: 'is-light',
-  muted: 'is-muted',
-  brand: 'is-brand',
-  dark: 'is-dark',
-}
-
-/**
- * The modifier class for a `background` value, or `undefined` when the section should keep the
- * page background.
- */
 export function backgroundClass(background?: string | null): string | undefined {
-  return BACKGROUND_CLASSES[background as Exclude<SectionBackground, 'default'>]
+  return BAND_CLASSES.get(background?.trim() ?? '')
 }

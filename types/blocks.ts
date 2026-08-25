@@ -316,6 +316,7 @@ export interface RichContentBlock {
     anchor_id?: string
     eyebrow?: string
     heading?: string
+    heading_level?: 'default' | 'h1' | 'h2' | 'h3'
     body?: string
     image?: string | null
     image_meta?: ResponsiveImageMeta
@@ -384,6 +385,7 @@ export interface PromoSplitBlock {
   data: {
     eyebrow?: string
     heading?: string
+    heading_level?: 'default' | 'h1' | 'h2' | 'h3'
     body?: string
     cta_label?: string
     cta_href?: string

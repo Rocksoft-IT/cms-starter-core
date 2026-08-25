@@ -17,7 +17,11 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { eyebrow, heading, layout = 'slider', items = [], background } = block.data
+const { eyebrow, heading, background, layout = 'slider', items = [] } = block.data
+
+// The shared `background` select — a band modifier the styling layer paints (#1498).
+// See lib/background.ts.
+const bandClass = backgroundClass(background)
 
 const hasHeader = Boolean(eyebrow || heading)
 
@@ -43,7 +47,7 @@ function initial(name?: string) {
 
 {
   (hasHeader || items.length > 0) && (
-    <section class:list={['section-testimonials py-16 section-surface', backgroundClass(background)]}>
+    <section class:list={['section-testimonials section-band py-16', bandClass]}>
       <div class="container-global">
         <SectionHeader {eyebrow} {heading} />
 
@@ -62,7 +66,7 @@ function initial(name?: string) {
                   const stars = item.rating != null ? Math.min(5, Math.max(1, Math.round(item.rating))) : null
                   return (
                     <div class="testimonial-slide">
-                      <figure class="m-0 h-full bg-section-bg rounded-[16px] p-10 flex flex-col justify-between items-start gap-6">
+                      <figure class="surface-light m-0 h-full bg-section-bg rounded-[16px] p-10 flex flex-col justify-between items-start gap-6">
                         {stars != null && (
                           <div class="flex gap-1 text-primary" role="img" aria-label={`${stars}/5`}>
                             {Array.from({ length: stars }).map(() => (

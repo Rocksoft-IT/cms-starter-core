@@ -6,13 +6,18 @@
 import type { PricingTeaserBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: PricingTeaserBlock
 }
 
 const { block } = Astro.props
-const { eyebrow, heading, body, cards = [], footer_label, footer_href } = block.data
+const { eyebrow, heading, body, background, cards = [], footer_label, footer_href } = block.data
+
+// The shared `background` select — a band modifier the styling layer paints (#1498).
+// See lib/background.ts.
+const bandClass = backgroundClass(background)
 
 // `bullets` is a plain textarea: one bullet per non-empty line.
 const bulletLines = (bullets?: string) =>
@@ -22,7 +27,7 @@ const bulletLines = (bullets?: string) =>
     .filter(Boolean)
 ---
 
-<section class="section-pricing-teaser py-16">
+<section class:list={['section-pricing-teaser section-band py-16', bandClass]}>
   <div class="pricing-teaser-inner">
     <SectionHeader {eyebrow} {heading} intro={body} />
 
@@ -32,7 +37,7 @@ const bulletLines = (bullets?: string) =>
           {cards.map((card) => {
             const lines = bulletLines(card.bullets)
             return (
-              <div class="border border-gray-200 rounded-[16px] p-8 flex flex-col bg-white">
+              <div class="surface-light border border-gray-200 rounded-[16px] p-8 flex flex-col bg-white">
                 <div class="flex flex-col gap-2 mb-4">
                   {card.eyebrow && (
                     <p class="text-[16px] leading-[1.2] uppercase text-text-secondary">{card.eyebrow}</p>

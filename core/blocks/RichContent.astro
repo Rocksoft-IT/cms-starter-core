@@ -2,20 +2,27 @@
 import type { RichContentBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { headingTag } from '../../lib/headingLevel'
 import RichText from '../RichText.astro'
 interface Props {
   block: RichContentBlock
 }
 const { block } = Astro.props
-const { anchor_id, background } = block.data
+const { anchor_id, background, heading_level } = block.data
 
 // Deep-link target, so a table of contents can point at this block (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
+
+// The shared `background` select — a band modifier the styling layer paints (#1498).
+// See lib/background.ts.
+const bandClass = backgroundClass(background)
+// Capitalized so Astro treats it as a dynamic tag rather than a literal <headingtag> element.
+const Heading = headingTag(heading_level)
 ---
 
-<section class:list={['section-content', backgroundClass(background)]} id={sectionId}>
+<section class:list={['section-content section-band', bandClass]} id={sectionId}>
   <div class="content-inner">
-    {block.data.heading && <h2 class="rich-heading">{block.data.heading}</h2>}
+    {block.data.heading && <Heading class="rich-heading">{block.data.heading}</Heading>}
     <RichText class="rich-body" html={block.data.body} />
   </div>
 </section>

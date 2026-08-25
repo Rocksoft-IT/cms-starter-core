@@ -4,6 +4,62 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.37.0 — a section band is readable, and `pricing_teaser` gets one at all
+
+v0.36.0 shipped the `background` select's render half — six blocks declare the field, and until
+then only `pricing_table` read it, so an editor picked "Dark", the panel saved it, `/api/pages`
+returned it and the page rendered white (dashboard #1498). That half worked. This one fixes what
+it painted.
+
+**A "dark" band no longer resolves to a brand colour.** `is-dark` was `bg-secondary`. `secondary`
+is one of the client-editable branding colours and is dark only because the neutral palette happens
+to default it to `#101841` — nothing guarantees it. Bands now read `--band-*` tokens with neutral
+defaults (`#000` / `#f2f2f2` / white). Same defect class as #1475: a token used for a role it does
+not promise.
+
+**Known limitation — the `brand` band's text is still a guess.** `is-brand` fills with `primary`,
+a hue core does not control, and takes its text from `--band-brand-text` (default
+`--color-button-primary-text`). That default is wrong whenever a client's primary BUTTON colour is
+not its brand colour: with `primary: #ffcf00` and `button_primary_text: #ffffff` it yields white on
+yellow, **1.48:1**. Core cannot compute a readable partner for an arbitrary hue in CSS, so **a site
+whose `primary` is light must set `--band-brand-text` itself** until the build derives it. Tracked
+separately; `dark` / `light` / `muted` are unaffected.
+
+**A light card inside an inverted band stops rendering its own text invisible.** This is the one
+to check on your site. An inverted band re-maps `--color-text-primary` and sets `color`, and four
+core surfaces paint their own light background inside that band — `features-card`, the testimonial
+figure, the `pricing_teaser` card and `pricing-card`. Their headings carry no colour class, so they
+inherited the band's white onto a white card: **1:1 contrast, completely invisible.** Those four now
+carry a `surface-light` class that puts the light roles back. If your site defines its own light
+card inside a section that can be banded, add `surface-light` to it.
+
+**`pricing_teaser` renders the field at all.** It declares `background` in the schema like the other
+five and was missed, so the value was still dropped on the floor there.
+
+**`--color-muted` flips with the band too**, so `text-muted` (`faq-intro`, `gallery-note`,
+`team-photo-placeholder`, the separators) is no longer near-black on black.
+
+```diff
+- 'section-pricing-table': 'bg-section-bg section-surface',   // [&.is-dark]:bg-secondary
++ 'section-pricing-table': 'bg-section-bg',                   // the band rides `section-band`
+```
+
+**Renamed, and this is the only breaking part of the bump:** the `section-surface` shortcut is now
+`section-band`, it is no longer composed into `section-content` / `section-features` /
+`section-cards`, and each banded block emits `section-band` in its own markup instead. That matters
+because the styling contract tells a site to override those section shortcuts in its own `src/uno.ts`
+— under v0.36.0 doing so silently dropped `section-surface` and killed every band on the site. It
+cannot now. The token re-mapping is also scoped to `.section-band.is-dark` rather than a bare
+`.is-dark`, and moved into `@layer core` so a site rule still wins; the `--color-on-dark*` tokens
+v0.36.0 introduced are gone, replaced by `--band-*` (`--color-*` is the CMS palette's namespace, and
+a client adding an `on-dark` brand key would have collided with it).
+
+**No client action for a site that sets no band**, which today is every site in the fleet —
+`default` and an absent value still emit no class at all, so those pages render byte-identically.
+A site that overrides `section-content`/`-features`/`-cards`, or that redefined `--color-on-dark*`,
+should re-read the two paragraphs above; a site with a light `primary` should read the brand-band
+limitation.
+
 ## v0.36.0 — `hero` can carry an eyebrow, like every other section block
 
 `hero` was the only section-level block with no `eyebrow`. Ten blocks render one through the
