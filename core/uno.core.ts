@@ -196,24 +196,25 @@ export const coreShortcuts: Record<string, string> = {
   'hero-col': 'flex flex-col items-stretch text-center gap-8',
   'hero-text': 'flex flex-col items-center gap-3',
   'hero-ctas': 'actions-row',
-  // The advisor pill (dashboard#1711): a round photo of the person to talk to, their name and
-  // their role, standing in the CTA row beside the buttons. Structure only, in core's own
-  // tokens — a site that wants the redesign's dark-hero variant redefines these four keys, the
-  // primary styling seam.
+  // The CTA card (dashboard#1711, renamed from `advisor_*`): a picture, a strong line and a
+  // quiet one, standing in the CTA row beside the buttons. Usually the person to talk to — the
+  // shortcut names stopped saying so when the fields did, because the same pill carries a partner
+  // mark or a badge just as well. Structure only, in core's own tokens: a site that wants the
+  // redesign's dark-hero variant redefines these five keys, the primary styling seam.
   //
   // Deliberately shaped like `team-photo` / `team-name` / `team-role` below rather than a second
-  // vocabulary: a person with a picture and a job title is the same thing in both places, and
-  // the `[&_img]` pattern is what makes the photo fill a round frame whatever its aspect.
-  'hero-advisor':
+  // vocabulary: a picture over two lines of text is the same thing in both places, and the
+  // `[&_img]` pattern is what makes the photo fill a round frame whatever its aspect.
+  'hero-cta-card':
     'inline-flex items-center gap-3 no-underline ' +
     'rounded-full border border-solid border-border p-[6px] pr-6 ' +
     'transition-colors duration-300 hover:bg-section-bg',
-  'hero-advisor-photo':
+  'hero-cta-card-photo':
     'flex items-center justify-center shrink-0 w-10 h-10 rounded-full overflow-hidden bg-section-bg ' +
     '[&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover',
-  'hero-advisor-text': 'flex flex-col text-left leading-[1.25]',
-  'hero-advisor-name': 'font-bold text-[14px] text-text-primary',
-  'hero-advisor-role': 'text-[12px] text-text-secondary',
+  'hero-cta-card-text': 'flex flex-col text-left leading-[1.25]',
+  'hero-cta-card-title': 'font-bold text-[14px] text-text-primary',
+  'hero-cta-card-subtitle': 'text-[12px] text-text-secondary',
   // The reassurance line under the buttons ("100% free, no credit card required") — its own field
   // precisely so it sits BELOW the CTA rather than in the subheading above it (dashboard#1354).
   'hero-cta-note': 'text-[14px] text-muted m-0',
@@ -301,9 +302,40 @@ export const coreShortcuts: Record<string, string> = {
   // The `full_width` variant skips this and bleeds edge to edge. This replaced an inline style
   // built from `cmsConfig.layout.containerWidth` — the one place a width bypassed the Uno layer.
   'custom-html-inner': 'container-global',
+  // The eyebrow this block's own panel description has always promised, rendered from dashboard#1693.
+  // It reuses `section-eyebrow` rather than restating the treatment, and adds the ONE thing that
+  // does not carry over: SectionHeader spaces its eyebrow with `gap-2` on a flex column, and
+  // RichContent's `.content-inner` is plain block flow, where `rich-heading` has a bottom margin
+  // and no top one — so without this the label would sit flush against the heading.
+  'rich-eyebrow': 'section-eyebrow mb-2',
   'rich-heading': 'text-[40px] font-bold leading-[1.2] mb-6',
   'rich-body':
     'text-[18px] font-normal leading-[1.7] text-text-secondary [&_p]:mb-4 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto',
+
+  // ── Paragraph block: the `variant` select ───────────────────────────────────
+  // The `is-note` modifier from lib/variant.ts (`default` emits nothing). `paragraph` declared the
+  // field and no renderer read it, so "Note" was a control that changed nothing (dashboard#1693) —
+  // the same silent no-op `background` was until #1498 and `align` until #1643. smbp forked the
+  // whole component to get this one class.
+  //
+  // SELF-TARGETING and compound, like the `align-*` keys and for the same mechanism: what the
+  // extractor sees is this KEY, carried as a literal in Paragraph.astro's template, while the
+  // `is-note` half never needs extracting because the definition below bakes it into the generated
+  // selector. `variantClass()` lives in lib/, which UnoCSS does not scan — so a bare utility
+  // returned from there would be a class nothing styles.
+  //
+  // The values are core's own neutral tokens (`surface-alt` over `surface`, the same nesting
+  // `cookie-consent__panel` uses; `p-6` + `rounded-[12px]` as on `features-card`) — a visible box
+  // rather than an empty hook, because a note that looks like running prose on any site that has
+  // not styled it is exactly the dead control this key exists to end. NOT a new `--note-*` token
+  // namespace: core/styles/tokens.css calls `--band-*` "the one exception, and a narrow one", so a
+  // site retunes this by redefining the key (styling-contract seam 1).
+  //
+  // `border` is paired with `border-solid` deliberately: browsers default `border-style` to `none`,
+  // which collapses the width to 0 and paints no border at all.
+  'paragraph-variant':
+    '[&.is-note]:bg-surface-alt [&.is-note]:border [&.is-note]:border-solid [&.is-note]:border-border ' +
+    '[&.is-note]:rounded-[12px] [&.is-note]:p-6',
 
   // ── Features block ───────────────────────────────────────────────────────
   // The step cards alternate sides, so `features-card-top`/`-bottom` are alignment only. The

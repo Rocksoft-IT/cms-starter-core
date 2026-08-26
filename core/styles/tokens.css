@@ -153,12 +153,26 @@
    * sits straight on the band with no surface under it, so leaving it out would have left a cards
    * strip with dark labels on a black fill. Its light value comes back on `.surface-light` below,
    * which is what keeps a white card on a dark band from going white-on-white.
+   *
+   * `--color-eyebrow` joined the set in dashboard#1693, and it was the last role still missing.
+   * Twelve blocks draw a `section-eyebrow` and five of them hand it to SectionHeader INSIDE a band,
+   * so an eyebrow on a dark fill kept the brand accent it has on white: measured on core's own
+   * defaults, #3b5aff on #000 is 4.09:1 at 13px/700 — under the 4.5:1 that size needs, since 13px
+   * bold is not "large text". Same defect class as #1498 and #1475, one role further in; it was
+   * simply never visible in the fixtures until `rich_content` gained an eyebrow.
+   *
+   * It takes its own token rather than reusing `--band-dark-text`, for the reason
+   * `--band-dark-text-secondary` exists: a band is a different surface, and one token cannot serve
+   * both sides of it. The default is the band's own text colour — guaranteed readable, since that
+   * is the value the heading beside it already uses — and a site that wants a coloured eyebrow on
+   * an inverted band redefines this one token instead of overriding a component.
    */
   .section-band.is-dark {
     --color-heading: var(--band-dark-text, #fff);
     --color-text-primary: var(--band-dark-text, #fff);
     --color-text-secondary: var(--band-dark-text-secondary, #b3b3b3);
     --color-muted: var(--band-dark-text-secondary, #b3b3b3);
+    --color-eyebrow: var(--band-dark-eyebrow, var(--band-dark-text, #fff));
     --color-border: var(--band-dark-border, rgb(255 255 255 / 14%));
   }
 
@@ -167,6 +181,7 @@
     --color-text-primary: var(--band-brand-text, #fff);
     --color-text-secondary: var(--band-brand-text, #fff);
     --color-muted: var(--band-brand-text, #fff);
+    --color-eyebrow: var(--band-brand-eyebrow, var(--band-brand-text, #fff));
     --color-border: var(--band-brand-border, rgb(255 255 255 / 24%));
   }
 

@@ -4,11 +4,199 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.42.0 — the declared-but-unrendered fields are settled, and the advisor pill becomes a CTA card
+
+**Seven changes ride this tag, and two of them are breaking.** Read those two first — everything
+else here is additive, and a page that uses none of the new fields renders byte-identical markup.
+
+### Before you bump
+
+| breaking change | who it reaches |
+| --- | --- |
+| `advisor_*` on `hero` is renamed to `cta_card_*` | a repo overriding `Hero.astro` / `HeroCtas.astro`, or styling `.hero-advisor*` |
+| `rich_content.image` / `.alt` are **retired** | a repo whose `RichContent` override reads either field |
+
+Neither breaks at runtime the moment you bump: the renamed props and the retired fields arrive
+undefined, and an override falls through rather than throwing. What breaks is `astro check`. Stored
+content for both is migrated by the dashboard, so nothing has to be re-authored and no page loses a
+photograph.
+
+The rest of the release is one audit finishing: `rich_content` and `paragraph` between them declared
+five fields that no core renderer read, and each is now settled in one of the only two honest
+directions — rendered, or removed. None was left standing. Plus a contrast fix the eyebrow work
+uncovered, which is the only change here that alters a page nobody edited.
+
+These were not speculative fields. Measured on production the day this was written: taeles-kebap.de
+carries a `rich_content` with `eyebrow` filled in, diligently.pl's `/pricing` stores non-default
+values on 26 plans, and **four of seven client repos fork a renderer for exactly these fields** —
+smbp's `Paragraph` override is 32 lines whose entire difference from core is one class name.
+
+### `advisor_*` is renamed to `cta_card_*` (dashboard#1767) — **breaking**
+
+The four fields v0.41.0 shipped on `hero` as `advisor_image` / `advisor_name` / `advisor_role` /
+`advisor_href` are now `cta_card_image` / `cta_card_title` / `cta_card_subtitle` / `cta_card_href`.
+The rendering is unchanged; only the vocabulary moved.
+
+The old name described one occupant of the slot rather than the slot. What the fields hold is a
+picture, a strong line, a quiet line and a target — a person to talk to, yes, but equally a partner
+mark, an app-store badge or a certification, and an editor filling it with any of those read a form
+asking for a "Role". Worse, the name did not travel: the same pill was wanted on `cta_banner` and on
+the `cta_default` component, and neither could adopt a word that does not describe them.
+
+Config now declares the group once and spreads it into all three, so a CTA card authored on a
+banner and one authored on a hero are the same four keys. The `cta_default` component matters most
+here: a block reaches only a page that HAS a page builder, and the field-driven templates (a
+producer, a product, a category landing) have nowhere to put one — read from the component, they
+all get the same pill, edited once.
+
+**The CSS shortcut names moved with the fields**, since leaving them behind would reintroduce the
+inconsistency the rename removes:
+
+| before | after |
+| --- | --- |
+| `hero-advisor` | `hero-cta-card` |
+| `hero-advisor-photo` | `hero-cta-card-photo` |
+| `hero-advisor-text` | `hero-cta-card-text` |
+| `hero-advisor-name` | `hero-cta-card-title` |
+| `hero-advisor-role` | `hero-cta-card-subtitle` |
+
+#### What a client repo has to do
+
+Stored data is migrated by the dashboard
+(`2026_08_26_140000_rename_hero_advisor_to_cta_card`), including the per-block media collection the
+picture lives in — so nothing has to be re-uploaded and no page loses its photograph. On the
+frontend:
+
+- a repo that only renders core's `hero` needs the pin bump and nothing else;
+- a repo that **overrides** `Hero.astro` or `HeroCtas.astro` must rename the four props it reads;
+- a repo that **styles** `.hero-advisor*` must rename those selectors — `grep -rn "hero-advisor" src tests`
+  before bumping, the check #1759 added for exactly this kind of rename;
+- re-run `pnpm cms:types` after the dashboard is deployed, so `HeroBlock` picks up the new keys.
+
+### `cta_banner` and the `cta_default` component gained the same group
+
+Both now carry `cta_card_*`. Additive: a banner or a component that sets none of them renders
+exactly as before. Core does not yet render the banner's card — a site that wants it reads the
+fields in its own `CtaBanner` override, which is what scandinavian-taste does.
+
+### `paragraph.variant` renders (#1693)
+
+`paragraph` has offered two ways of reading since #1142 — running prose, or a set-apart note for
+formal terms and caveats — and core drew one. An editor picked "Note", the panel saved it, and the
+page was unchanged.
+
+| value | renders |
+| --- | --- |
+| `default` (or absent) | running prose — unchanged, class attribute included |
+| `note` | a tinted box: `surface-alt` fill, 1px border, 12px radius, 24px padding |
+
+**The default is byte-identical.** A paragraph that never set the field still renders exactly
+`class="rich-body"` — the modifier and its painter key are both absent, not inert.
+
+**The seam** is one key. The block emits `is-note` beside `rich-body`, and core paints it through
+`paragraph-variant`; a site retunes the note by redefining that key, exactly like `section-band`.
+The values are core's own neutral tokens, so this introduces no new `--note-*` namespace and no
+brand colour.
+
+### `rich_content` renders its `eyebrow` and its `animation_url` (#1693)
+
+The block's own panel description has promised an eyebrow since July 2026, when the field was added
+backend-first and the renderer deferred to a follow-up that never landed. Three client repos forked
+the component to draw it.
+
+- **`eyebrow`** renders above the heading in the shared `section-eyebrow` treatment, aligned with
+  the heading — `align` is section-header alignment and the eyebrow is part of that cluster. It is
+  drawn inline rather than through `SectionHeader`, because that component has no notion of
+  `heading_level`, which this block declares and uses; routing through it would have traded one
+  dead field for another. The new `rich-eyebrow` key composes `section-eyebrow` and adds the one
+  thing that does not carry over: `SectionHeader` spaces its eyebrow with a flex `gap`, while
+  `.content-inner` is plain block flow.
+- **`animation_url`** emits the contract core already defines — `<div class="section-animation"
+  data-animation-src="…" aria-hidden="true">`, the same element `SectionHeader` gives the eleven
+  blocks that draw a header. **Core still ships no player and makes no third-party request**: a
+  site that mounts nothing gets a sized, empty, decorative box.
+
+Both emit nothing when unset.
+
+### An eyebrow on a dark or brand band is readable (#1693)
+
+**This is the one change here that can alter a page nobody edited.** If a site has an inverted band
+carrying an eyebrow, that label changes colour on this bump.
+
+`--color-eyebrow` was the last text role missing from the band re-maps — v0.37.0 and v0.38.0 added
+every other one. Twelve blocks draw an eyebrow and five hand it to `SectionHeader` inside a band, so
+this was never specific to `rich_content`; that block is only what finally made it visible.
+Measured in a browser on core's own defaults:
+
+| band | before | after |
+| --- | --- | --- |
+| `dark` | brand accent on the dark fill — **4.09:1** at 13px/700, under the 4.5:1 that size needs | 21:1 |
+| `brand` | the palette ships `primary` and `eyebrow` at the **same** default, and the brand band's fill is `bg-primary` — so the label was drawn in the fill's own colour, **contrast 1.0, invisible** | the band's text colour |
+
+The brand band's remaining ratio is a property of `--band-brand-text`, shared with the heading and
+both text roles, and is not addressed here.
+
+**The seam:** `--band-dark-eyebrow` / `--band-brand-eyebrow`, each defaulting to that band's own
+text colour. A site that wants a coloured eyebrow on an inverted band redefines one token rather
+than overriding a component — the same shape as `--band-dark-text-secondary`, which exists because
+a band is a different surface and one token cannot serve both sides of it.
+
+### `rich_content.image` and `.alt` are RETIRED — this one needs action (#1693)
+
+**The only breaking change in this release.** `rich_content` no longer declares an `image` or an
+`alt`. `RichContentBlock` in `types/blocks.ts` loses both keys, so a site whose override
+destructures them stops type-checking on this bump.
+
+A picture beside prose is a **`columns` row holding the prose block and an `image_block`** — the
+same call v0.28.0's backend made for `hero`, and what editors were already authoring by hand. That
+is not a lesser option:
+
+| | carries |
+| --- | --- |
+| `columns` | any block per column, `width: prose`, `mobile_reverse` |
+| `image_block` | its own `alt`, `caption`, `aspectRatio`, `objectFit`, `objectPosition`, `maxWidth` |
+| the two retired fields | a path, and a string |
+
+The layout was left to whichever renderer received them, which is why every repo that forked this
+block answered it differently — and why core never rendered them at all.
+
+**Stored content is converted for you.** The panel migration rewrites each affected block into a
+`columns` row and moves the picture into the `image_block`'s own media collection, atomically: a
+block whose file cannot be moved is left exactly as it was and logged, never half-converted.
+`audit_rich_content_media` (MCP) or `cms:audit-rich-content-media` reports what is left; an empty
+result is the proof it finished.
+
+**What a site must do on this bump:** if its `RichContent` override reads `image`/`alt`, delete
+that branch. Nothing breaks at runtime before you do — the fields simply arrive undefined and the
+override falls through to its no-image path — but `astro check` will fail on the types.
+
+### Notes
+
+**A renderer override is not a shield against ALL of this, and v0.42.0's first draft said it was.**
+It is true of the components: a site that overrides `paragraph` or `rich_content` renders its own,
+so the `variant` / `eyebrow` / `animation_url` work above does not reach it. It is **false of the
+shortcut layer**. A site that happens to use one of the new key names in its own component picks up
+core's definition on this bump — and one already does: `taeles-kebap-astro`'s `RichContent`
+override writes `class="rich-eyebrow"` in its no-image branch, and its own `src/uno.ts` defines
+`rich-heading` and `rich-body` but not that key. It paints nothing today and will paint core's
+eyebrow treatment after the bump. Redefine `rich-eyebrow` in `src/uno.ts` to keep the current look.
+
+smbp's `Paragraph` override can be deleted after this bump, moving its note styling from a
+component to a redefinition of the `paragraph-variant` key.
+
+`reveal` still renders nothing anywhere, for the reason v0.41.0 gave: it needs a scroll observer the
+site layer mounts.
+
 ## v0.41.0 — the `align` select renders, and hero and cards gain the fields sites were forking for
 
 **Six changes ride this tag**, because none of them had been published when the next one landed.
-Every one is a pin bump and nothing else — no config edit, no layout edit — and every one is
-additive: a page that does not use the new field or value renders byte-identical markup.
+Every one is additive in what it RENDERS: a page that does not use the new field or value produces
+byte-identical markup, and none of them needs a config or layout edit.
+
+**One of them renames two class names, though** — `.hero-2col-left` / `.hero-2col-right` become
+`.hero-2col-own` / `.hero-2col-track` (see [that section](#a-heros-own-content-is-a-movable-track-1632)).
+The output is unchanged; a site that *names* the old classes in a stylesheet or an e2e test is not.
+`grep -rn "hero-2col" src tests` before bumping. Everything else here is a pin bump and nothing else.
 
 Five of the six exist because a client repo had already paid for them in a fork. That is the
 through-line worth reading this entry for: `hero` and `cards` were the two blocks sites overrode
@@ -104,6 +292,47 @@ all, and neither could text in the middle of a three-track hero. The Layout toke
 The flag becomes a position: `own_content_slot => true` is replaced by `own_content_track_key`,
 naming a sibling field that holds **which** track the block keeps for itself. Unset or `0` renders
 exactly what shipped before, so there is no migration and no visual change to an existing hero.
+
+**⚠ BREAKING — two class names moved with it.** `left` and `right` stop being true once the block's
+own content can sit in any track, so:
+
+| before | after |
+| --- | --- |
+| `.hero-2col-left` | `.hero-2col-own` |
+| `.hero-2col-right` | `.hero-2col-track` |
+
+**The rendered result is unchanged** — the same `flex-grow` values land on the same two elements, so
+nothing about the page moves. What breaks is anything that *names* the old classes: a site
+stylesheet, or an e2e test.
+
+**Four of the seven client repos named them.** Measured while rolling v0.41.0 out, by grepping each
+clone — an earlier count from `gh api search/code` said one, and its index was stale:
+
+| repo | how it named them | needed a fix |
+| --- | --- | --- |
+| smbp | `tests/e2e/layout-shares.spec.ts` | **yes** — 410 passed, 1 failed |
+| rebelia | the same test | **yes** |
+| raw-operations | the same test | **yes** |
+| diligently.pl | its own forked `Hero.astro` emits **and styles** them | no |
+
+The three tests are the same file, because they come from the same template. Each was two renamed
+selectors; the values they assert did not move.
+
+**diligently.pl is the case worth understanding.** Its fork emits `hero-2col-left` in its own markup
+*and* defines `.hero-2col-left { flex: 1 1 0; text-align: center }` in its own scoped `<style>`. It
+never depended on core's rule, so the rename cannot reach it — its build came out byte-identical.
+
+So the question is not "do you name these classes" but **"do you name them AND let core style
+them"**:
+
+```
+grep -rn "hero-2col" src tests
+```
+
+- no match → nothing to do (scandinavian-taste, taeles-kebap-astro)
+- matches in a test, or in CSS that relies on core's rule → rename to `-own` / `-track`
+- matches in your own component that also styles them itself → nothing to do, but check that the
+  style really is yours
 
 ### `cards.layout` gains `stats` and `bento` (#1692)
 

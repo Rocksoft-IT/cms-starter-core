@@ -1,5 +1,6 @@
 ---
 import type { ParagraphBlock } from '../../types/blocks'
+import { variantClasses } from '../../lib/variant'
 import RichText from '../RichText.astro'
 
 interface Props {
@@ -10,5 +11,15 @@ const { block } = Astro.props
 ---
 
 <div class="section-content">
-  <RichText class="rich-body" html={block.data.body} />
+  {/* The `variant` select (dashboard#1693): `default` is the running prose this block has always
+      been, `note` the set-apart box. `variantClasses` returns [] for the default, so an unmarked
+      paragraph's class attribute stays exactly `rich-body` and renders byte-identically.
+
+      `paragraph-variant` is written here as a LITERAL rather than returned from lib/variant.ts:
+      UnoCSS extracts from `.astro`, never from `lib/*.ts`, so the key has to travel in a template
+      to reach the CSS. See core/uno.core.ts and tests/align.test.ts for the measurement. */}
+  <RichText
+    class={['rich-body', ...variantClasses(block.data.variant, 'paragraph-variant')].join(' ')}
+    html={block.data.body}
+  />
 </div>

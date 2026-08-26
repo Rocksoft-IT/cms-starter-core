@@ -20,10 +20,10 @@ const {
   subheading,
   ctas = [],
   cta_note,
-  advisor_image,
-  advisor_name,
-  advisor_role,
-  advisor_href,
+  cta_card_image,
+  cta_card_title,
+  cta_card_subtitle,
+  cta_card_href,
   columns = [],
   align,
   columns_layout,
@@ -85,7 +85,7 @@ const tracks = [
                 {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
                 <RichText class="heading-h1" html={heading} />
                 {subheading && <RichText class="subhero-text" html={subheading} />}
-                <HeroCtas {ctas} {cta_note} {align} {advisor_image} {advisor_name} {advisor_role} {advisor_href} />
+                <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} />
               </div>
             ) : (
               <div class="hero-2col-track" style={`flex-grow:${track.grow}`}>
@@ -112,7 +112,7 @@ const tracks = [
               <RichText class="heading-h1" html={heading} />
               {subheading && <RichText class="subhero-text" html={subheading} />}
             </div>
-            <HeroCtas {ctas} {cta_note} {align} {advisor_image} {advisor_name} {advisor_role} {advisor_href} />
+            <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} />
           </div>
         </div>
       </div>

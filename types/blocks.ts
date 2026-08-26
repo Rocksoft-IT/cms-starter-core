@@ -66,16 +66,16 @@ export interface HeroBlock {
     ctas?: Array<{ label?: string; href?: string }>
     /** The reassurance line UNDER the buttons ("100% free, no credit card required"). */
     cta_note?: string
-    /** The advisor beside the buttons (dashboard#1711) — a round photo of the person to talk to,
-     *  their name and their role. All four optional and inert without `advisor_name`.
-     *  `advisor_image` is a `media_upload` NOT named `image`, so the resolver publishes it under
-     *  its own key plus an `advisor_image_meta` sibling rather than the historical
+    /** The CTA card beside the buttons (dashboard#1711, renamed from `advisor_*`) — a picture,
+     *  a strong line and a quiet one. All four optional and inert without `cta_card_title`.
+     *  `cta_card_image` is a `media_upload` NOT named `image`, so the resolver publishes it under
+     *  its own key plus an `cta_card_image_meta` sibling rather than the historical
      *  `src`/`src_meta` pair (BlockResolver::resolveMedia). */
-    advisor_image?: string | null
-    advisor_image_meta?: ResponsiveImageMeta
-    advisor_name?: string
-    advisor_role?: string
-    advisor_href?: string
+    cta_card_image?: string | null
+    cta_card_image_meta?: ResponsiveImageMeta
+    cta_card_title?: string
+    cta_card_subtitle?: string
+    cta_card_href?: string
     columns_layout?: string
     columns?: ResolvedColumn[]
     /**
@@ -388,9 +388,6 @@ export interface RichContentBlock {
     heading?: string
     heading_level?: 'default' | 'h1' | 'h2' | 'h3'
     body?: string
-    image?: string | null
-    image_meta?: ResponsiveImageMeta
-    alt?: string
     animation_url?: string
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
@@ -446,6 +443,11 @@ export interface CtaBannerBlock {
     body?: string
     badges?: Array<{ label?: string }>
     ctas?: Array<{ label?: string; href?: string }>
+    src?: string | null
+    src_meta?: ResponsiveImageMeta
+    cta_card_title?: string
+    cta_card_subtitle?: string
+    cta_card_href?: string
     reveal?: 'default' | 'on' | 'off'
   }
 }

@@ -9,7 +9,7 @@ interface Props {
   block: RichContentBlock
 }
 const { block } = Astro.props
-const { anchor_id, align, background, heading_level } = block.data
+const { anchor_id, eyebrow, align, background, heading_level, animation_url } = block.data
 
 // Deep-link target, so a table of contents can point at this block (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
@@ -28,11 +28,33 @@ const Heading = headingTag(heading_level)
 
 <section class:list={['section-content section-band', bandClass, alignModifier]} id={sectionId}>
   <div class="content-inner">
+    {/* The `eyebrow` the block description has promised since the field was added backend-first in
+        2026-07 (context/changes/rich-content-eyebrow), with the renderer deferred to a follow-up
+        that never landed in core — so diligently.pl, taeles-kebap-astro and scandinavian-taste each
+        forked this component to draw it (dashboard#1693).
+
+        Inline rather than through the shared SectionHeader: that component draws a fixed <h2> and
+        knows nothing of `heading_level`, which this block declares and uses. Hero.astro:85 renders
+        its own eyebrow the same way and for the same reason. Aligned with the heading, because
+        `align` is documented as SECTION HEADER alignment and the eyebrow is part of that cluster. */}
+    {eyebrow && <p class:list={['rich-eyebrow', ...alignClasses(align, 'align-text')]}>{eyebrow}</p>}
     {
       block.data.heading && (
         <Heading class:list={['rich-heading', ...alignClasses(align, 'align-text')]}>{block.data.heading}</Heading>
       )
     }
     <RichText class="rich-body" html={block.data.body} />
+    {/* The `animation_url` field, through the contract core already defines (dashboard#1693).
+        `SectionHeader` emits this exact element for the eleven blocks that draw a header, and
+        `PricingTable.astro:88` already passes it — RichContent draws no header, so it emits the
+        element itself rather than gaining a header it does not want.
+
+        CORE SHIPS NO PLAYER, deliberately: it emits the element and the source and stops. Which
+        library animates this — and whether one does at all — is the site's decision. A site that
+        mounts nothing gets a sized, empty, decorative box and no requests, which is why the
+        element is `aria-hidden`. The value is an `asset_url` the backend has already validated
+        against `/^\/[\w\/.-]+\.json$/`, so this does not re-validate what the schema guarantees;
+        `SectionHeader` makes the same call. */}
+    {animation_url && <div class="section-animation" data-animation-src={animation_url} aria-hidden="true" />}
   </div>
 </section>
