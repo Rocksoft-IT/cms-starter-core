@@ -4,6 +4,207 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## v0.41.0 — the `align` select renders, and hero and cards gain the fields sites were forking for
+
+**Six changes ride this tag**, because none of them had been published when the next one landed.
+Every one is a pin bump and nothing else — no config edit, no layout edit — and every one is
+additive: a page that does not use the new field or value renders byte-identical markup.
+
+Five of the six exist because a client repo had already paid for them in a fork. That is the
+through-line worth reading this entry for: `hero` and `cards` were the two blocks sites overrode
+most, and these are the fields those overrides were buying.
+
+### `align` renders on seven blocks (#1643)
+
+`align` shipped on six blocks and was read by **none** of them. An editor picked "Centered", the
+panel saved it, `/api/pages` returned it, and the page was unchanged — the same silent no-op
+`background` was until v0.37.0, and measurably not a field nobody used: 38 blocks on one client
+site and 2 on another store a non-default value today, and that first site had forked six core
+components to read it. `hero` did not offer the field at all, so the one thing an editor could not
+author was a hero whose content is simply centred.
+
+A pin bump and nothing else — no config edit, no layout edit, and no page changes unless an editor
+had already set the field.
+
+#### What renders now
+
+`align` on **`rich_content`**, **`features`**, **`pricing_teaser`**, **`testimonials`**,
+**`cards`**, **`pricing_table`** and — new in this release — **`hero`**:
+
+| value | renders |
+| --- | --- |
+| `default` (or absent) | the block's own design — unchanged |
+| `left` | the section header pushed left |
+| `center` | the section header centred |
+
+**`left` is a real value, not a synonym for `default`.** Core's shared header and its hero both
+centre by design, so "push this one back" is a choice an absent value could never express — which
+is why the token has three states and not two.
+
+**Scope is the section HEADER**, not the whole section: a centred `rich_content` centres its
+heading and leaves its body copy where it was. That is the field's definition, and it matches the
+source these blocks reproduce — a centred heading over prose that stays left.
+
+#### The seam
+
+The block emits `is-align-left` / `is-align-center` on its own `<section>` — the hook a site styles
+against, beside `section-band`'s `is-dark` — and core paints the elements it aligns through three
+new shortcut keys:
+
+| key | sets | on |
+| --- | --- | --- |
+| `align-text` | `text-align` | the header box, `.rich-heading`, the hero's own track |
+| `align-column` | `align-items` | `.section-header`, `.section-header-text`, `.hero-text` |
+| `align-row` | `justify-content` | the hero's button row |
+
+Three and not one because a flex column and a flex row put the horizontal axis in different
+properties. A site retunes any of them by redefining the key (seam 1), exactly like `section-band`.
+
+**Nothing is emitted when the field is unset**, painter classes included, so a page built before
+this release renders byte-identical markup.
+
+**A site that overrides one of these blocks does not get the fix** — it renders its own component,
+and the seven core renderers are what changed here. `reveal`, the sibling token in the same
+registry, still renders nothing anywhere: it needs a scroll observer the site layer mounts, so
+core emitting a class for it would leave the control just as dead as it is now.
+
+### A cards item can name the person in its picture (#1640)
+
+A card row could already carry a picture, and when that picture is a **person** there was nothing
+to say whose it is: `marker` is the eyebrow, `label` the heading, `value` the body, `href` the link,
+and `icon` is a select from a fixed set. So a contact card could show a portrait with the name
+missing — the state `scandinaviantaste.no/kontakt` shipped in.
+
+`caption` sits beside `image`, because that is what it captions. Optional, so every existing card
+row is unchanged. It renders first in the text column, quieter than `card-label`, and it is **not**
+also pushed into the picture's `alt`: the name is real text beside the image, so captioning it
+twice would only make a screen reader say it twice.
+
+The text column carries `card-text` — a naming hook, not a look — so a site can put the name under
+the portrait without writing a selector against an anonymous div.
+
+### A hero can carry an advisor (#1711)
+
+The 2026 redesign puts an advisor pill beside a hero's primary button: a round photo of the person
+the visitor would be talking to, their name, their role. No field carried it, so the client that
+needs it shipped without it.
+
+The fields sit on `hero` alone, in their own group, all optional and all inert on their own — a
+hero that sets none of them renders exactly as it does today, which is every existing hero on every
+client. They are deliberately **not** folded into `hero.ctas`: that list is `$ctaList`, shared with
+`cta_banner`, and widening it would put a photo and a job title on every banner link as well.
+
+### A hero's own content is a movable track (#1632)
+
+A hero with nested columns always drew its own eyebrow / heading / subheading / CTAs in the layout's
+**first** track. The mirror — picture or form left, heading and CTA right — could not be authored at
+all, and neither could text in the middle of a three-track hero. The Layout token cannot express it:
+`1-2` changes the proportions, never the order.
+
+The flag becomes a position: `own_content_slot => true` is replaced by `own_content_track_key`,
+naming a sibling field that holds **which** track the block keeps for itself. Unset or `0` renders
+exactly what shipped before, so there is no migration and no visual change to an existing hero.
+
+### `cards.layout` gains `stats` and `bento` (#1692)
+
+Two new values on the select, emitted as `is-stats` / `is-bento` on the section beside the three
+that were already there:
+
+| value | renders |
+| --- | --- |
+| `tiles` | compact, link-led — unchanged |
+| `cards` | icon, label and value — unchanged, and still the fallback |
+| `steps` | a numbered sequence — unchanged |
+| `stats` | **new** — a row of bare figures |
+| `bento` | **new** — picture-led cards |
+
+They exist because a site was **inferring** them. With no value to pick, scandinavian-taste read
+the intent out of the data: a `tiles` block whose items all lacked an `href` became a dark stat
+band, one where any item carried a link became a bento grid. An editor who linked one of four
+figures silently changed the layout, and both outcomes were valid renders of valid data, so nothing
+could report it.
+
+**These are hooks, not looks.** Core paints none of the five — the difference between cards layouts
+belongs to the site layer, so a site styles `.is-stats` in its own `src/uno.ts` (seam 1). Core ships
+no shortcut key for them, for the same reason it ships none for `is-tiles` (#1035): a shortcut key
+*is* a class name, so a "neutral" one would generate nothing while reading like working style.
+
+`cards` remains the fallback for an absent or unrecognised value, which is what keeps a site pinned
+below this tag safe: it renders the old layout rather than a section with no layout class at all.
+
+### Also in this tag, invisible
+
+`align`'s three shortcut keys gained the reason they are shaped the way they are, plus a test that
+fails the plausible-looking simplification (#1720). No rendered output changes. It is listed because
+the keys look redundant on the cascade and are not — the reason is **extraction**, not specificity.
+
+### Not in this tag
+
+The single-track `columns` Layout (#1679) is **backend-only**: `ColumnLayouts` gained the token and
+core's existing share logic already renders it, so no core file changed but a test. A site gets it
+from the panel with no pin bump at all.
+
+## v0.40.0 — a pricing section names its own presentation, and a columns hero stops dropping its CTAs
+
+Two independent changes ride this tag.
+
+### A hero with columns rendered no CTAs at all (#1647)
+
+`Hero.astro` renders two layouts and `ctas` was written into only one of them. The editor filled
+the field, the panel saved it, the API carried it, and the multi-column hero rendered eyebrow +
+heading + subheading and **nothing else**. The field-coverage gate could not see it — the field name
+IS mentioned, just in the wrong branch — so it took a rendered page to catch, and scandinavian-taste
+had a live hero in exactly that shape whose override hand-rendered the CTA loop.
+
+`HeroCtas.astro` is now rendered from **both** branches, so a third layout cannot lose them again.
+`cta_note` (#1354), which had rendered nowhere at all, renders with them — under the buttons, which
+is the whole reason it exists.
+
+**Core also stopped shipping one client's animations.** It hardcoded the reference site's two Lottie
+JSONs plus an `unpkg.com` `<script>` on every page with a single-column hero. Those files return 200
+on that client's own site and **404 on every other** — measured on two. They arrived as
+Webflow-parity markup that rode along when core was extracted into a package, and removing them
+costs nothing, because the client that uses them overrides `hero` in its own repo.
+
+### A pricing section names its own presentation (#1416)
+
+A seven-entry lookup keyed by `anchor_id`, in a client's forked `PricingTable`, decided per section
+which illustration hangs under the heading, how big the price is set, and what closes the section.
+Nothing rendered wrongly while it stayed; what it cost is that **no editor could reach any of it**,
+and that the map was written twice per section, because the same band appears on the pricing page
+and on its service page.
+
+Measured against the source markup and all 149 of that client's pages, two of the five candidate
+fields turned out not to be fields at all: `descriptionSlot`'s third state is the `wide` layout the
+renderer already knows, and `finePrint` belongs on the **plan**, not the table — the slot follows
+what the note says, and the note lives on the plan.
+
+The section's closing block is now a `body` paragraph plus a real CTA through the shared `$ctaList`,
+replacing a hardcoded English sentence and a hardcoded `/contact`.
+
+## v0.39.0 — a pricing table names its own billing tabs
+
+The billing-toggle buttons took their names from a map hardcoded in the renderer, so a single pair
+had to serve every pricing table on every site. It cannot: the same two billing types read as
+"One-time / Subscription" where products are priced, and as "One-time services / Monthly services"
+where the same work is priced by engagement. Whichever pair core hardcoded was wrong on the other,
+on every build — confirmed on two routes.
+
+`tab_labels` is the per-table override, keyed by `billing_type` exactly like the `tab_icons`
+repeater beside it, so the block gains no new mechanism — just a second instance of one it already
+had.
+
+**The resolution lives in `lib/tab-label.ts`, not inline in the renderer**, and that is the part
+worth knowing if you maintain an override: a client site may register its own `PricingTable`, which
+**replaces** core's renderer rather than extending it. An override that calls the shared helper
+resolves labels identically, blank-row rule included, and `defaults` is a parameter, so a site whose
+own wording differs passes its pair and still inherits the precedence.
+
+Precedence is own label → default pair → raw billing type, joined with `||` and not `??`: a repeater
+row saved with a `billing_type` but a blank label is half-filled input, not a deliberate empty
+caption.
+
+
 ## v0.38.0 — a band derives its readable text, and a section block can be the page H1
 
 Two independent changes ride this tag, because neither had been published when the other landed.

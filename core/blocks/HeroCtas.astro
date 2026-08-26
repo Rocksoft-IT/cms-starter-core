@@ -1,5 +1,6 @@
 ---
-// The hero's call-to-action cluster: its buttons, and the reassurance line under them.
+// The hero's call-to-action cluster: its buttons, the advisor pill beside them, and the
+// reassurance line under them.
 //
 // Extracted because it was the piece that went missing. `Hero.astro` renders two layouts, and
 // `ctas` was written into only one of them — a hero with nested columns dropped its buttons
@@ -13,13 +14,25 @@
 import type { HeroBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
 import { usableCtas } from '../../lib/ctas'
+import { alignClasses } from '../../lib/align'
 
 interface Props {
   ctas?: HeroBlock['data']['ctas']
   cta_note?: string
+  advisor_image?: HeroBlock['data']['advisor_image']
+  advisor_name?: string
+  advisor_role?: string
+  advisor_href?: string
+  /**
+   * The hero's `align` token ($sectionAlign, #1643). The button row is a flex ROW, so its
+   * horizontal axis is `justify-content` — `align-row`, not the `align-column` the stacked
+   * clusters take. The note under the buttons is ordinary text and follows the `align-text` its
+   * parent track carries. See lib/align.ts.
+   */
+  align?: string
 }
 
-const { cta_note } = Astro.props
+const { cta_note, align, advisor_image, advisor_name, advisor_role, advisor_href } = Astro.props
 
 // A row saved with only half its pair is an unfinished input, not an instruction to draw an empty
 // link — the same rule the two other blocks fed by `$ctaList` now follow. See lib/ctas.ts.
@@ -27,13 +40,34 @@ const ctas = usableCtas(Astro.props.ctas)
 ---
 
 {
-  ctas.length > 0 && (
-    <div class="hero-ctas">
+  (ctas.length > 0 || advisor_name) && (
+    <div class:list={['hero-ctas', ...alignClasses(align, 'align-row')]}>
       {ctas.map((cta, i) => (
         <a href={hrefOf(cta.href)} class={i === 0 ? 'btn-primary' : 'btn-outline'}>
           {cta.label}
         </a>
       ))}
+
+      {/* The advisor (dashboard#1711): a round photo of the person to talk to, their name and
+          their role. `advisor_name` alone gates it, so a hero setting none of the four renders
+          exactly as it did before they existed. `hrefOf` returns undefined for an empty field, so
+          the attribute is dropped rather than emitted empty — an <a> with no href is a valid
+          inert placeholder, where href="" would link back to the current page. The photo takes
+          alt="": the link's own text already names the person and their role, so an alt would
+          only make its accessible name say it twice. */}
+      {advisor_name && (
+        <a href={hrefOf(advisor_href)} class="hero-advisor">
+          {advisor_image && (
+            <span class="hero-advisor-photo">
+              <img src={advisor_image} width="40" height="40" alt="" decoding="async" />
+            </span>
+          )}
+          <span class="hero-advisor-text">
+            <strong class="hero-advisor-name">{advisor_name}</strong>
+            {advisor_role && <span class="hero-advisor-role">{advisor_role}</span>}
+          </span>
+        </a>
+      )}
     </div>
   )
 }

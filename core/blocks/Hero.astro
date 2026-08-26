@@ -1,6 +1,7 @@
 ---
 import type { HeroBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
+import { alignClass, alignClasses } from '../../lib/align'
 import RichText from '../RichText.astro'
 import BlockRenderer from '../BlockRenderer.astro'
 import HeroCtas from './HeroCtas.astro'
@@ -13,37 +14,85 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { eyebrow, heading, subheading, ctas = [], cta_note, columns = [], columns_layout } = block.data
+const {
+  eyebrow,
+  heading,
+  subheading,
+  ctas = [],
+  cta_note,
+  advisor_image,
+  advisor_name,
+  advisor_role,
+  advisor_href,
+  columns = [],
+  align,
+  columns_layout,
+  own_content_track,
+  own_content_track_width,
+} = block.data
 
-// Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading
-// occupy the FIRST slot of the chosen layout; each `columns` entry supplies a further slot
-// holding ordinary blocks the editor composed — so "image left, heading right" is authored
-// rather than picked from a fixed set of variants.
+// Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading occupy
+// ONE track of the chosen layout; each `columns` entry supplies a further track holding ordinary
+// blocks the editor composed — so "image left, heading right" is authored rather than picked from
+// a fixed set of variants.
 const multiColumn = columns.length > 0
 
+// WHICH track the hero's own text takes (dashboard#1632). Counted against the columns the API
+// actually EMITTED, not the layout's tracks: the resolver drops an empty authored column and
+// re-states this index against what survived, so placing the text here is a splice and the
+// drop rule stays in one place (BlockResolver::resolveColumns).
+//
+// Clamped anyway, because a hand-authored payload (a fixture, a mock build) is not the resolver.
+const ownIndex = Math.min(Math.max(own_content_track ?? 0, 0), columns.length)
+
 // Track sizing: each column's `width` numerator, falling back to its slot's layout share (see
-// src/lib/layout-shares.ts for the width/layout contract). The hero's own text occupies slot 0
-// of the layout and has no column entry, so column `i` occupies slot `i + 1`.
+// lib/layout-shares.ts for the width/layout contract). The hero's own text has no column entry,
+// so a column before it takes its own slot and one after it takes the next — and its OWN width
+// arrives as `own_content_track_width` rather than being looked up from the layout token, because
+// `ownIndex` counts emitted columns while a layout share is indexed by track. Those agree until
+// an empty column before the own track is dropped.
+// The shared `align` select, which the hero was the one section-level block not to offer
+// (dashboard#1643). Core's hero centres by design, so `center` is the state it already had and
+// `left` is the one an editor could not reach at all — the reason `left` is a real token here and
+// not a synonym for `default`. See lib/align.ts.
+//
+// Three elements carry it, because three axes are involved: the track (`align-text`, inherited by
+// the eyebrow / heading / subheading / note), the text stack (`align-column` — a flex column whose
+// `items-center` would otherwise shrink-wrap them back to the middle) and the button row inside
+// HeroCtas (`align-row`). Absent / `default` emits nothing on any of them.
+const alignModifier = alignClass(align)
+const trackAlign = alignClasses(align, 'align-text')
+
 const layoutShares = parseLayoutShares(columns_layout)
-const textGrow = shareAt(undefined, layoutShares, 0)
+
+const tracks = [
+  ...columns.slice(0, ownIndex).map((column, i) => ({ column, grow: shareAt(column.width, layoutShares, i) })),
+  { column: null, grow: shareAt(own_content_track_width, layoutShares, ownIndex) },
+  ...columns
+    .slice(ownIndex)
+    .map((column, i) => ({ column, grow: shareAt(column.width, layoutShares, ownIndex + i + 1) })),
+]
 ---
 
 {
   multiColumn ? (
-    <section class="section-hero">
+    <section class:list={['section-hero', alignModifier]}>
       <div class="container-hero">
         <div class="hero-2col">
-          <div class="hero-2col-left" style={`flex-grow:${textGrow}`}>
-            {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-            <RichText class="heading-h1" html={heading} />
-            {subheading && <RichText class="subhero-text" html={subheading} />}
-            <HeroCtas {ctas} {cta_note} />
-          </div>
-          {columns.map((column, i) => (
-            <div class="hero-2col-right" style={`flex-grow:${shareAt(column.width, layoutShares, i + 1)}`}>
-              <BlockRenderer blocks={column.blocks} {locale} />
-            </div>
-          ))}
+          {tracks.map((track) =>
+            track.column === null ? (
+              <div class:list={['hero-2col-own', ...trackAlign]} style={`flex-grow:${track.grow}`}>
+                {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
+                <RichText class="heading-h1" html={heading} />
+                {subheading && <RichText class="subhero-text" html={subheading} />}
+                <HeroCtas {ctas} {cta_note} {align} {advisor_image} {advisor_name} {advisor_role} {advisor_href} />
+              </div>
+            ) : (
+              <div class="hero-2col-track" style={`flex-grow:${track.grow}`}>
+                <BlockRenderer blocks={track.column.blocks} {locale} />
+              </div>
+            ),
+          )}
         </div>
       </div>
 
@@ -54,16 +103,16 @@ const textGrow = shareAt(undefined, layoutShares, 0)
       </div>
     </section>
   ) : (
-    <section class="section-hero">
+    <section class:list={['section-hero', alignModifier]}>
       <div class="container-hero">
         <div class="hero-wrapper">
-          <div class="hero-col">
-            <div class="hero-text">
+          <div class:list={['hero-col', ...trackAlign]}>
+            <div class:list={['hero-text', ...alignClasses(align, 'align-column')]}>
               {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
               <RichText class="heading-h1" html={heading} />
               {subheading && <RichText class="subhero-text" html={subheading} />}
             </div>
-            <HeroCtas {ctas} {cta_note} />
+            <HeroCtas {ctas} {cta_note} {align} {advisor_image} {advisor_name} {advisor_role} {advisor_href} />
           </div>
         </div>
       </div>

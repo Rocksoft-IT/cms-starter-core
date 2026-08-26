@@ -52,7 +52,10 @@ describe('schema and renderers stay in step', () => {
     const source = readFileSync(join(BLOCKS_DIR, `${name}.astro`), 'utf8')
     expect(source).toContain("from '../../lib/headingLevel'")
     expect(source).toMatch(/const Heading = headingTag\(heading_level\)/)
-    expect(source).toMatch(/<Heading class="[\w-]+">/)
+    // `class:list` as well as `class`: RichContent's heading gained the `align` modifier in
+    // dashboard#1643, and what this case is about is the TAG being the authored one — pinning the
+    // class attribute's exact form would fail the next block that adds a conditional class.
+    expect(source).toMatch(/<Heading class(?::list)?=/)
     expect(source).not.toMatch(/<h2 class="(rich|promo-split)-heading">/)
   })
 })

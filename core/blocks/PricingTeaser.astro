@@ -6,6 +6,7 @@
 import type { PricingTeaserBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
 
 interface Props {
@@ -13,11 +14,14 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { eyebrow, heading, body, background, cards = [], footer_label, footer_href } = block.data
+const { eyebrow, heading, body, align, background, cards = [], footer_label, footer_href } = block.data
 
 // The shared `background` select — a band modifier the styling layer paints (#1498).
 // See lib/background.ts.
 const bandClass = backgroundClass(background)
+// The shared `align` select (#1643) — the header does the aligning, this is the site hook.
+// See lib/align.ts.
+const alignModifier = alignClass(align)
 
 // `bullets` is a plain textarea: one bullet per non-empty line.
 const bulletLines = (bullets?: string) =>
@@ -27,9 +31,9 @@ const bulletLines = (bullets?: string) =>
     .filter(Boolean)
 ---
 
-<section class:list={['section-pricing-teaser section-band py-16', bandClass]}>
+<section class:list={['section-pricing-teaser section-band py-16', bandClass, alignModifier]}>
   <div class="pricing-teaser-inner">
-    <SectionHeader {eyebrow} {heading} intro={body} />
+    <SectionHeader {eyebrow} {heading} intro={body} {align} />
 
     {
       cards.length > 0 && (

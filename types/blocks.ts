@@ -66,8 +66,44 @@ export interface HeroBlock {
     ctas?: Array<{ label?: string; href?: string }>
     /** The reassurance line UNDER the buttons ("100% free, no credit card required"). */
     cta_note?: string
+    /** The advisor beside the buttons (dashboard#1711) — a round photo of the person to talk to,
+     *  their name and their role. All four optional and inert without `advisor_name`.
+     *  `advisor_image` is a `media_upload` NOT named `image`, so the resolver publishes it under
+     *  its own key plus an `advisor_image_meta` sibling rather than the historical
+     *  `src`/`src_meta` pair (BlockResolver::resolveMedia). */
+    advisor_image?: string | null
+    advisor_image_meta?: ResponsiveImageMeta
+    advisor_name?: string
+    advisor_role?: string
+    advisor_href?: string
     columns_layout?: string
     columns?: ResolvedColumn[]
+    /**
+     * WHICH track the hero draws its own eyebrow / heading / subheading / CTAs in — how a
+     * mirrored hero (picture or form left, heading and CTA right) is authored rather than being
+     * `row-reverse` in one client repo (dashboard#1632). Absent or `0` renders what every hero
+     * rendered before it.
+     *
+     * An index into `columns` AS EMITTED, not into the layout's tracks: the API drops an empty
+     * authored column and re-states this against what survived, so the renderer splices its own
+     * text in at this position and never has to know which columns went missing.
+     */
+    own_content_track?: number
+    /**
+     * The width token of that track ("1/3"). Emitted beside the index because the hero's own
+     * content has no `columns` entry to carry a `width`, and the index above counts EMITTED
+     * columns while a layout share is indexed by track — the two part company as soon as an
+     * empty authored column before the own track is dropped. Absent on a hand-authored payload,
+     * where the layout share is the fallback.
+     */
+    own_content_track_width?: string
+    /**
+     * The shared section-level `align` token (`$sectionAlign`), which the hero was the one
+     * section-level block not to offer (dashboard#1643). `left` is a real value rather than a
+     * synonym for `default`: core's hero centres by design, so pushing it back is the choice an
+     * editor could not otherwise make.
+     */
+    align?: 'default' | 'left' | 'center'
   }
 }
 // Recursive (ADR-0003): a container child may itself be any block, including another container.
@@ -464,7 +500,7 @@ export interface CardsBlock {
     eyebrow?: string
     heading?: string
     intro?: string
-    layout?: 'tiles' | 'cards' | 'steps'
+    layout?: 'tiles' | 'cards' | 'steps' | 'stats' | 'bento'
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
@@ -472,6 +508,7 @@ export interface CardsBlock {
       icon?: 'location' | 'clock' | 'phone' | 'mail' | 'calendar' | 'info' | 'document' | 'folder' | 'download' | 'book'
       image?: string | null
       image_meta?: ResponsiveImageMeta
+      caption?: string
       marker?: string
       label?: string
       value?: string

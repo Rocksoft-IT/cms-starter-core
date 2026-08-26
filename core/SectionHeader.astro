@@ -31,22 +31,42 @@
 // So the contract is the DOM: a `.section-animation` element carrying `data-animation-src`. A site
 // mounts it; a site that does not gets a sized, empty, decorative box and no requests.
 
+import { alignClasses } from '../lib/align'
+
 interface Props {
   eyebrow?: string
   heading?: string
   intro?: string
   /** A JSON animation this site serves (the `$sectionAnimation` field in the block registry). */
   animation?: string
+  /**
+   * The block's `align` token (`$sectionAlign` — `left` / `center`; `default` and absent leave
+   * the header exactly as this component draws it, class attribute included). Every block that
+   * declares the field forwards it here rather than aligning itself: the header IS the cluster
+   * the field is about, and it already lives in one place (#1643).
+   *
+   * `align-text` goes on the outer box — text-align inherits down to the eyebrow, heading and
+   * intro — and `align-column` on BOTH boxes, because each is a flex column whose `items-center`
+   * would otherwise shrink-wrap its children back to the middle whatever text-align says. See
+   * lib/align.ts and the `align-*` shortcuts in core/uno.core.ts.
+   */
+  align?: string
 }
 
-const { eyebrow, heading, intro, animation } = Astro.props
+const { eyebrow, heading, intro, animation, align } = Astro.props
 const hasAction = Astro.slots.has('action')
 ---
 
 {
   (eyebrow || heading || intro || animation || hasAction) && (
-    <div class:list={['section-header', hasAction && 'section-header-with-action']}>
-      <div class="section-header-text">
+    <div
+      class:list={[
+        'section-header',
+        hasAction && 'section-header-with-action',
+        ...alignClasses(align, 'align-text', 'align-column'),
+      ]}
+    >
+      <div class:list={['section-header-text', ...alignClasses(align, 'align-column')]}>
         {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
         {heading && <h2 class="section-heading">{heading}</h2>}
         {intro && <p class="section-intro">{intro}</p>}

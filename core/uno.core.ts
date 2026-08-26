@@ -139,6 +139,54 @@ export const coreShortcuts: Record<string, string> = {
     '[&.is-brand]:bg-primary [&.is-brand]:[color:var(--band-brand-text,#fff)] ' +
     '[&.is-dark]:[background-color:var(--band-dark-bg,#000)] [&.is-dark]:[color:var(--band-dark-text,#fff)]',
 
+  // ── Section header alignment (the shared `align` select) ────────────────────
+  // The `is-align-left` / `is-align-center` modifiers from lib/align.ts (`default` emits
+  // nothing). Seven blocks declare the field and NONE of them read it — an editor picked
+  // "Centered", the panel saved it and the page was unchanged (#1643), the same silent no-op
+  // `background` was until #1498.
+  //
+  // SELF-TARGETING, unlike `section-band`. The band paints the element it sits on, so one
+  // modifier on the <section> is the whole rule; alignment moves a cluster INSIDE the section,
+  // and writing that as `[&.is-align-left_.section-header]:` on the section would make every
+  // rule a descendant selector — which also reaches a nested block's header, where a hero
+  // aligned one way and a block inside it aligned the other resolve by source order rather than
+  // by which one the editor set. So the modifier goes on the aligned element itself, and these
+  // three keys say which axis that element aligns on:
+  //
+  //   align-text    a text box            → text-align, inherited by the eyebrow/heading/intro
+  //   align-column  a flex COLUMN         → align-items (its children's horizontal position)
+  //   align-row     a flex ROW            → justify-content (ditto, main axis)
+  //
+  // Three keys and not one, because a flex column and a flex row put the horizontal axis in
+  // different properties: `justify-center` on a column distributes VERTICALLY, and `items-start`
+  // on a button row would stop the buttons stretching to a shared height. A single bundle would
+  // quietly do both wherever it landed.
+  //
+  // `[&.is-align-x]:` compounds rather than plain utilities — and NOT for the reason `section-band`
+  // gives. Specificity is not what is load-bearing here: UnoCSS puts shortcuts in a layer at -10
+  // and utilities at 0 (`DEFAULT_LAYERS` in @unocss/core), so a bare `text-left` would already beat
+  // the `text-center` these elements carry from their own shortcut. The cascade is not the problem.
+  //
+  // EXTRACTION is. UnoCSS emits a rule only for a class name it finds in scanned source, and the
+  // extractor does not reach `lib/*.ts`. Measured on this tree: a utility name added to
+  // `lib/align.ts` generated no CSS, while the same name in a `.astro` class attribute did. So the
+  // obvious simplification — have `alignClass()` return `text-center` / `justify-start` outright —
+  // puts a class in the HTML that nothing styles. `justify-start` is the case that bites: it occurs
+  // in no `.astro` file anywhere, so a left-aligned hero would keep its buttons centred, silently,
+  // which is the defect #1643 existed to remove.
+  //
+  // The split is the fix. What gets extracted is the KEY below (`align-text`), carried as a literal
+  // by the components; the `is-align-*` half never needs extracting, because these definitions bake
+  // it into the generated selector. A `safelist` is the other way to make the names reachable, and
+  // was rejected for being a hand-maintained list that drifts out of step with the renderers in
+  // silence — the same failure wearing a different hat.
+  //
+  // `packages/cms-starter-core/tests/align.test.ts` generates CSS from the three keys ALONE and
+  // asserts all six rules come out, so this cannot be simplified back without a red test.
+  'align-text': '[&.is-align-left]:text-left [&.is-align-center]:text-center',
+  'align-column': '[&.is-align-left]:items-start [&.is-align-center]:items-center',
+  'align-row': '[&.is-align-left]:justify-start [&.is-align-center]:justify-center',
+
   // ── Hero block ──────────────────────────────────────────────────────────
   // Hero used to nest three arbitrary measures (1080 / 1040 / 990) inside each other. One
   // container is enough: the inner rows sit inside it and centre their own content.
@@ -148,6 +196,24 @@ export const coreShortcuts: Record<string, string> = {
   'hero-col': 'flex flex-col items-stretch text-center gap-8',
   'hero-text': 'flex flex-col items-center gap-3',
   'hero-ctas': 'actions-row',
+  // The advisor pill (dashboard#1711): a round photo of the person to talk to, their name and
+  // their role, standing in the CTA row beside the buttons. Structure only, in core's own
+  // tokens — a site that wants the redesign's dark-hero variant redefines these four keys, the
+  // primary styling seam.
+  //
+  // Deliberately shaped like `team-photo` / `team-name` / `team-role` below rather than a second
+  // vocabulary: a person with a picture and a job title is the same thing in both places, and
+  // the `[&_img]` pattern is what makes the photo fill a round frame whatever its aspect.
+  'hero-advisor':
+    'inline-flex items-center gap-3 no-underline ' +
+    'rounded-full border border-solid border-border p-[6px] pr-6 ' +
+    'transition-colors duration-300 hover:bg-section-bg',
+  'hero-advisor-photo':
+    'flex items-center justify-center shrink-0 w-10 h-10 rounded-full overflow-hidden bg-section-bg ' +
+    '[&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover',
+  'hero-advisor-text': 'flex flex-col text-left leading-[1.25]',
+  'hero-advisor-name': 'font-bold text-[14px] text-text-primary',
+  'hero-advisor-role': 'text-[12px] text-text-secondary',
   // The reassurance line under the buttons ("100% free, no credit card required") — its own field
   // precisely so it sits BELOW the CTA rather than in the subheading above it (dashboard#1354).
   'hero-cta-note': 'text-[14px] text-muted m-0',
@@ -167,8 +233,14 @@ export const coreShortcuts: Record<string, string> = {
   // without the 0 basis the tracks would size to their content first. The stack breakpoint is Uno's
   // `lg` rather than the 991px this inherited from a Webflow export.
   'hero-2col': 'flex flex-row items-center justify-center gap-10 pt-[5vh] pb-[10vh] ' + 'max-lg:flex-col max-lg:gap-12',
-  'hero-2col-left': 'flex-[1_1_0] text-center max-lg:w-full',
-  'hero-2col-right': 'flex-[1_1_0] min-w-0 max-lg:w-full',
+  // `-own` / `-track` rather than `-left` / `-right` (dashboard#1632): the hero's own text is a
+  // track the editor MOVES, so a positional name would be wrong for every mirrored hero.
+  //
+  // `max-lg:order-first` is the one thing the desktop order does not decide. On a phone the row
+  // stacks, and the heading is the page `<h1>` — a mirrored hero that pushed a form above it
+  // would read as a form with a caption. Desktop order is authored; phone order is not.
+  'hero-2col-own': 'flex-[1_1_0] text-center max-lg:w-full max-lg:order-first',
+  'hero-2col-track': 'flex-[1_1_0] min-w-0 max-lg:w-full',
 
   // ── Buttons (button_group block + shared CTAs) ─────────────────────────────
   'btn-primary':
@@ -479,16 +551,23 @@ export const coreShortcuts: Record<string, string> = {
   'team-role': 'mt-1 text-[16px] leading-[1.5] text-text-secondary',
 
   // ── Cards block ──────────────────────────────────────────────────────────
-  // One block, three layouts (context/changes/unify-cards-block/). Core carries what every layout
-  // agrees on — the grid, the media/marker slots, the label/value typography. The DIFFERENCES
-  // between layouts are the site layer's: the renderer emits `is-cards` / `is-tiles` / `is-steps`
-  // on the section purely as a hook to style against.
+  // One block, five layouts (context/changes/unify-cards-block/, then #1692). Core carries what
+  // every layout agrees on — the grid, the media/marker slots, the label/value typography. The
+  // DIFFERENCES between layouts are the site layer's: the renderer emits `is-cards` / `is-tiles` /
+  // `is-steps` / `is-stats` / `is-bento` on the section purely as a hook to style against.
   //
   // Core deliberately ships no per-variant look (#1035). Eight shortcuts used to sit here written
   // as descendant selectors (`'.is-cards .card'`), which a shortcut key cannot be — the key IS a
   // class name — so they generated nothing while reading in the source like working style. Anything
   // needing a real descendant selector is not a shortcut; it belongs in a site stylesheet.
   // `verify:core-styles` now fails on a selector-shaped key so the same silence cannot return.
+  //
+  // So a NEW layout value adds no key here — #1692 added two and this list did not move. There is
+  // no such thing as a "neutral" one: a key is a class name, and one mapping to nothing either
+  // emits nothing or emits an empty rule, which is the #1035 silence wearing a different hat. The
+  // only legal way to paint a modifier from core is the `[&.is-x]:` compound inside a real key, as
+  // `section-band` does — and that IS core holding an opinion, which is exactly what cards does
+  // not do. A site paints these five in its own `src/uno.ts` (seam 1, docs/starter.md).
   'section-cards': 'section-y',
   'cards-inner': 'container-global',
   'cards-grid': 'grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-[18px] list-reset mt-6',
@@ -500,6 +579,10 @@ export const coreShortcuts: Record<string, string> = {
     'shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-[15px]',
   'card-label': 'font-semibold text-text-primary',
   'card-value': 'mt-1 leading-[1.5] text-text-secondary whitespace-pre-line',
+  // Names the person in `card-media` when the picture is a portrait. Quieter than `card-label`
+  // on purpose — the two sit in the same column, and a name typeset like the heading reads as a
+  // second heading. Smaller and secondary is the same treatment Testimonials gives a role line.
+  'card-caption': 'text-[14px] text-text-secondary',
 
   // ── Gallery block ────────────────────────────────────────────────────────
   // Square-ish tiles on an auto-fill grid, so the column count follows the measure instead of

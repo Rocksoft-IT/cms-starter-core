@@ -15,6 +15,7 @@ import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
 import { usableCtas } from '../../lib/ctas'
+import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
 import { tabLabel } from '../../lib/tab-label'
 
@@ -28,6 +29,7 @@ const {
   eyebrow,
   heading,
   body,
+  align,
   background,
   animation_url,
   width,
@@ -76,11 +78,14 @@ const closingCtas = usableCtas(ctas)
 // read "dark" as the client-editable SECONDARY brand color — white text on a white band for a
 // client whose secondary is light. See lib/background.ts.
 const bandClass = backgroundClass(background)
+// The shared `align` select (#1643) — the header does the aligning, this is the site hook.
+// See lib/align.ts.
+const alignModifier = alignClass(align)
 ---
 
-<section id={sectionId} class:list={['section-pricing-table section-band py-20', bandClass]}>
+<section id={sectionId} class:list={['section-pricing-table section-band py-20', bandClass, alignModifier]}>
   <div class={containerClass}>
-    <SectionHeader {eyebrow} {heading} animation={animation_url} />
+    <SectionHeader {eyebrow} {heading} {align} animation={animation_url} />
 
     {
       showTabs && (

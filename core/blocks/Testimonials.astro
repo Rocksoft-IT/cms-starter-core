@@ -8,6 +8,7 @@ import type { TestimonialsBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
+import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
 
 interface Props {
@@ -17,11 +18,14 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { eyebrow, heading, background, layout = 'slider', items = [] } = block.data
+const { eyebrow, heading, align, background, layout = 'slider', items = [] } = block.data
 
 // The shared `background` select — a band modifier the styling layer paints (#1498).
 // See lib/background.ts.
 const bandClass = backgroundClass(background)
+// The shared `align` select (#1643) — the header does the aligning, this is the site hook.
+// See lib/align.ts.
+const alignModifier = alignClass(align)
 
 const hasHeader = Boolean(eyebrow || heading)
 
@@ -47,9 +51,9 @@ function initial(name?: string) {
 
 {
   (hasHeader || items.length > 0) && (
-    <section class:list={['section-testimonials section-band py-16', bandClass]}>
+    <section class:list={['section-testimonials section-band py-16', bandClass, alignModifier]}>
       <div class="container-global">
-        <SectionHeader {eyebrow} {heading} />
+        <SectionHeader {eyebrow} {heading} {align} />
 
         {items.length > 0 && (
           <div class:list={['testimonials-list', isSlider && 'is-slider relative']}>

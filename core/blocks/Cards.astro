@@ -6,6 +6,15 @@
 //   tiles — compact, link-led: the anchor-nav strip and the services menu
 //   cards — icon chip, small label, multi-line value: the fact strip a page opens with
 //   steps — a numbered sequence: marker, title, body
+//   stats — a row of bare figures: a big label with a supporting line, linked or not
+//   bento — picture-led cards, the image carrying the card rather than marking it
+//
+// The last two arrived with #1692, for a reason worth keeping: a client site was drawing both
+// looks already and had no value to key them off, so it read the intent out of the DATA — a
+// `tiles` block whose items all lacked an `href` was a stat band, one where any item had a link
+// was a bento grid. Linking one of four figures changed the layout, and both outcomes were valid
+// renders of valid data, so no gate could see it. The values cost two lines each here; inferring
+// them cost a 406-line fork and a live bug.
 //
 // A field a layout does not use simply does not render. `highlighted` means something to `tiles`
 // and nothing to `steps`; `value` is the point of `cards` and noise on a tile. That is the whole
@@ -14,8 +23,21 @@
 // An `image` beats an `icon`: the two coexist because the merged blocks had two ways to mark an
 // item (an uploaded picture, a glyph from a fixed set) and dropping either would have forced a
 // re-upload or a redraw on every existing instance.
+//
+// `caption` says WHOSE the picture is, for the case where `image` is a person rather than a glyph
+// — a contact card pairing a portrait with the name of whoever answers it. It renders first in the
+// text column: purely additive markup, so it costs no migration note and no re-check on any client
+// (core DOES ship structural changes — see the CHANGELOG's BREAKING sections — but a field this
+// sparsely used does not earn one). Repositioning the name under the portrait is a grid on `.card`
+// and belongs to the site layer, which is why the text column carries `card-text`: without a name
+// on it, that seam would mean writing a selector against an anonymous div.
+//
+// The media slot stays `aria-hidden` with an empty `alt`: the name is real text beside it, so the
+// picture genuinely is decorative and captioning it twice would only make a screen reader say it
+// twice.
 import type { CardsBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
 import { href as hrefOf } from '../../lib/href'
 import { iconPath } from '../../lib/icons'
@@ -27,7 +49,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, intro, layout, background } = block.data
+const { anchor_id, eyebrow, heading, intro, layout, align, background } = block.data
 
 // Also reads the retired `tiles` shape, because this component is registered as the transitional
 // renderer for `nav_tiles` too: content still carries that type until the data migration runs.
@@ -42,10 +64,24 @@ const sectionId = sectionAnchorId(anchor_id)
 // A converted block names its layout. Un-migrated content does not — and it is recognisable by
 // carrying `tiles`, which is exactly what it used to render. Anything else (including a
 // half-authored block) falls back to `cards` so it still renders something coherent.
-const mode = layout === 'tiles' || layout === 'steps' ? layout : Array.isArray(legacyTiles) ? 'tiles' : 'cards'
+//
+// Every value the schema offers has to be named HERE as well as in the class list below. The
+// fallback is what makes that easy to miss: an option added to config/cms.php and not added here
+// does not fail — it lands on `cards` and renders the wrong layout, with the panel offering the
+// choice and the API carrying it. That is the #1498 shape, where a field round-tripped through
+// the whole stack and evaporated at render time with nothing to report it.
+const mode =
+  layout === 'tiles' || layout === 'steps' || layout === 'stats' || layout === 'bento'
+    ? layout
+    : Array.isArray(legacyTiles)
+      ? 'tiles'
+      : 'cards'
 
 // An item earns a slot as long as it carries something to show; a lone icon is not content.
-const entries = items.filter((i) => i?.label || i?.value || i?.marker)
+// `caption` counts: a portrait and the name of the person in it is a whole card on a contact
+// strip, and without this it is the one shape that would be silently dropped for having no
+// label, value or marker.
+const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.caption)
 ---
 
 {
@@ -56,17 +92,28 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker)
         // The shared `background` select — one band modifier the styling layer paints (#1498).
         // See lib/background.ts.
         backgroundClass(background),
+        // The shared `align` select (#1643) — the header does the aligning, this is the site
+        // hook. See lib/align.ts.
+        alignClass(align),
         // Whole literal strings, never a name assembled from the mode at runtime: UnoCSS extracts
         // class names statically from source, so an assembled one generates no CSS at all and the
         // layout silently loses every rule. The styling-contract check catches exactly this.
+        //
+        // Hooks, not looks. Core paints none of these five — see the note in core/uno.core.ts:
+        // the difference BETWEEN cards layouts belongs to the site layer, and core carries only
+        // what every layout agrees on. `stats` and `bento` ship with no shortcut key for the same
+        // reason the other three have none (#1035).
         mode === 'tiles' && 'is-tiles',
         mode === 'cards' && 'is-cards',
         mode === 'steps' && 'is-steps',
+        // #1692 — the two values a client site was inferring from whether an item had a link.
+        mode === 'stats' && 'is-stats',
+        mode === 'bento' && 'is-bento',
       ]}
       id={sectionId}
     >
       <div class="cards-inner">
-        <SectionHeader {eyebrow} {heading} {intro} />
+        <SectionHeader {eyebrow} {heading} {intro} {align} />
 
         <ul class="cards-grid">
           {entries.map((item) => {
@@ -104,7 +151,11 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker)
                     )
                   )}
 
-                  <div>
+                  {/* `card-text` is a naming hook, not a look — core emits it unstyled the way it
+                      emits `is-cards`/`is-tiles`/`is-steps`, so a site can lay the column out
+                      (e.g. put the caption under the portrait) without keying on an unnamed div. */}
+                  <div class="card-text">
+                    {item.caption && <div class="card-caption">{item.caption}</div>}
                     {item.label && <div class="card-label">{item.label}</div>}
                     {item.value && <div class="card-value">{item.value}</div>}
                   </div>

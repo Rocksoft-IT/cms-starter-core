@@ -1,6 +1,7 @@
 ---
 import type { RichContentBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { alignClass, alignClasses } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
 import { headingTag } from '../../lib/headingLevel'
 import RichText from '../RichText.astro'
@@ -8,7 +9,7 @@ interface Props {
   block: RichContentBlock
 }
 const { block } = Astro.props
-const { anchor_id, background, heading_level } = block.data
+const { anchor_id, align, background, heading_level } = block.data
 
 // Deep-link target, so a table of contents can point at this block (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
@@ -16,13 +17,22 @@ const sectionId = sectionAnchorId(anchor_id)
 // The shared `background` select — a band modifier the styling layer paints (#1498).
 // See lib/background.ts.
 const bandClass = backgroundClass(background)
+// The shared `align` select (#1643). This block draws no SectionHeader, so the modifier goes on
+// the heading itself — deliberately NOT on `.rich-body`: the field is section-HEADER alignment,
+// and the source it reproduces centres a heading over prose that stays left. On the <section> it
+// is the hook a site styles against, the same place `bandClass` sits. See lib/align.ts.
+const alignModifier = alignClass(align)
 // Capitalized so Astro treats it as a dynamic tag rather than a literal <headingtag> element.
 const Heading = headingTag(heading_level)
 ---
 
-<section class:list={['section-content section-band', bandClass]} id={sectionId}>
+<section class:list={['section-content section-band', bandClass, alignModifier]} id={sectionId}>
   <div class="content-inner">
-    {block.data.heading && <Heading class="rich-heading">{block.data.heading}</Heading>}
+    {
+      block.data.heading && (
+        <Heading class:list={['rich-heading', ...alignClasses(align, 'align-text')]}>{block.data.heading}</Heading>
+      )
+    }
     <RichText class="rich-body" html={block.data.body} />
   </div>
 </section>
