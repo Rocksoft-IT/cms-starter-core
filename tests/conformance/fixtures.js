@@ -13,25 +13,13 @@
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
-export interface ConformanceLocale {
-  code: string
-  is_default: boolean
-}
-
 /** Only the fields the conformance checks navigate by; a site's own specs assert on the rest. */
-export interface ConformancePage {
-  type: string
-  name?: string | null
-  slug?: string | null
-  path?: string | null
-  blocks?: Array<{ type: string }>
-}
 
-export function fixturesDir(): string {
+export function fixturesDir() {
   return path.join(process.cwd(), 'src', 'fixtures', 'data')
 }
 
-const cache = new Map<string, unknown>()
+const cache = new Map()
 
 /**
  * Reads a fixture file, or THROWS with the path it looked at.
@@ -42,7 +30,7 @@ const cache = new Map<string, unknown>()
  * whose entire premise is "six of seven repos had no coverage and nobody knew", degrading quietly
  * is the one failure mode it must not have.
  */
-function read<T>(file: string): T {
+function read(file) {
   const full = path.join(fixturesDir(), file)
   if (!cache.has(full)) {
     if (!existsSync(full)) {
@@ -52,23 +40,23 @@ function read<T>(file: string): T {
           `src/fixtures/data, and that Playwright's cwd is the repo root.`,
       )
     }
-    cache.set(full, JSON.parse(readFileSync(full, 'utf8')) as T)
+    cache.set(full, JSON.parse(readFileSync(full, 'utf8')))
   }
-  return cache.get(full) as T
+  return cache.get(full)
 }
 
 /**
  * The locale served UNPREFIXED. Every other locale sits under its own prefix, and only this one
  * answers at the bare addresses (`/`, `/kontakt/`) these checks navigate to.
  */
-export function defaultLocale(): string {
-  const locales = read<ConformanceLocale[]>('locales.json')
+export function defaultLocale() {
+  const locales = read('locales.json')
   return locales.find((l) => l.is_default)?.code ?? 'en'
 }
 
 /** The default locale's pages, as `GET /api/pages` returns them. */
-export function pages(): ConformancePage[] {
-  return read<ConformancePage[]>(`pages.${defaultLocale()}.json`)
+export function pages() {
+  return read(`pages.${defaultLocale()}.json`)
 }
 
 /**
@@ -78,10 +66,10 @@ export function pages(): ConformancePage[] {
  * added by hand — and it must be, since it is the page a visitor is likeliest to land on. Sites
  * whose fixtures omit `path` on a page (an unroutable draft) drop out.
  */
-export function routes(): string[] {
+export function routes() {
   const listed = pages()
     .map((p) => p.path)
-    .filter((p): p is string => Boolean(p))
+    .filter((p) => Boolean(p))
   // De-duplicated: the home singleton normally carries `path: null` and is added here, but nothing
   // enforces that — a site whose home fixture spells out '/' would otherwise get the route twice,
   // and every check would run twice under an identical test title.
@@ -95,6 +83,6 @@ export function routes(): string[] {
  * throwing: a site is free not to place a block, and a conformance check must not fail a site for
  * what it legitimately does not use.
  */
-export function routeWithBlock(type: string): string | null {
+export function routeWithBlock(type) {
   return pages().find((p) => p.path && p.blocks?.some((b) => b.type === type))?.path ?? null
 }

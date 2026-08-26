@@ -63,6 +63,10 @@ export interface HeroBlock {
     eyebrow?: string
     heading?: string
     subheading?: string
+    /** Ordinary body copy under the lead (dashboard#1793). `subheading` is the hero's LEAD and
+     *  renders at lead size; a hero that also wants a normal paragraph had to either swamp the
+     *  headline with it or exile it to a `columns` track. */
+    paragraph?: string
     ctas?: Array<{ label?: string; href?: string }>
     /** The reassurance line UNDER the buttons ("100% free, no credit card required"). */
     cta_note?: string

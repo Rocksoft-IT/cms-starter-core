@@ -16,9 +16,9 @@
 // Copying it seven times is what produced that spread: rebelia and raw-operations carry 21 and 22
 // near-identical specs, differing by one file, while kaffemaskin-til-bedrift has four. A site's
 // quality bar should not be a function of the day its repo was forked.
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test } from '@playwright/test'
 import { routes, routeWithBlock } from './fixtures'
-import { exempt, selectorExcluding, type ConformanceCheck } from './exemptions'
+import { exempt, selectorExcluding } from './exemptions'
 
 /**
  * Asserted over every built page, so a regression on a quiet one is as loud as on the home page —
@@ -28,10 +28,10 @@ import { exempt, selectorExcluding, type ConformanceCheck } from './exemptions'
  * exempt (a page overflows, or starts on an `h2`, or carries an image the CMS will not give an
  * `alt` — there is no selector for "this one, deliberately"), so without a route-level opt-out a
  * site with one such page has a suite it cannot make pass, and a suite that cannot pass gets
- * switched off. The route is still listed and still reported as skipped, so the debt stays
+ * switched off. The route is still listed and still reported
  * visible rather than disappearing.
  */
-const eachRoute = (name: string, check: ConformanceCheck, assert: (page: Page, route: string) => Promise<void>) =>
+const eachRoute = (name, check, assert) =>
   test.describe(name, () => {
     const excused = new Set(exempt(check))
     for (const route of routes()) {
@@ -75,7 +75,7 @@ eachRoute('nothing overflows a narrow phone', 'narrowOverflow', async (page, rou
   await strict.setViewportSize({ width: 320, height: 800 })
   await strict.goto(route)
 
-  // A single unwrapped element makes the WHOLE page pan sideways, which on a phone reads as broken
+  // A single unwrapped element makes the WHOLE page pan sideways, which on a phone reads
   // rather than as one wide element — so the document, not the element, is what is asserted.
   const overflow = await strict.evaluate(() => ({
     doc: document.documentElement.scrollWidth,
@@ -95,7 +95,7 @@ eachRoute('images describe themselves and reserve their space', 'imageContract',
         // Without both, the browser cannot reserve the box and the page jumps as photos land.
         //
         // Asked only of an image the CMS actually MEASURED, which `srcset` is the marker for. An
-        // unmeasured one has no dimensions to emit, and core renders it as a plain tag rather than
+        // unmeasured one has no dimensions to emit, and core renders it
         // inventing them — requiring it here would fail that case for having no data rather than
         // for being wrong.
         unsized: img.hasAttribute('srcset') && !(img.hasAttribute('width') && img.hasAttribute('height')),
@@ -148,11 +148,11 @@ eachRoute('no element draws a border nobody asked for', 'border3px', async (page
   const CORE_DELIBERATE_3PX = ['btn-primary', 'btn-outline', 'btn-white']
   const skip = [...CORE_DELIBERATE_3PX, ...exempt('border3px')]
   const offenders = await page.locator('body *').evaluateAll(
-    (els, deliberate: string[]) =>
+    (els, deliberate) =>
       els
         .map((el) => {
           const classes = el.getAttribute('class') ?? ''
-          if (classes.split(/\s+/).some((name: string) => deliberate.includes(name))) return null
+          if (classes.split(/\s+/).some((name) => deliberate.includes(name))) return null
           const c = getComputedStyle(el)
           const sides = ['top', 'right', 'bottom', 'left'].map(
             (s) => parseFloat(c.getPropertyValue(`border-${s}-width`)) || 0,
@@ -181,8 +181,8 @@ test.describe('keyboard', () => {
     // was shut and reported every link in it as "not focusable" — which is the CORRECT behaviour
     // for a closed menu, and a check that flags correct behaviour is a check people switch off.
     const invisible = await page.evaluate(() => {
-      const out: string[] = []
-      for (const el of document.querySelectorAll<HTMLElement>('a[href], button, [tabindex]:not([tabindex="-1"])')) {
+      const out = []
+      for (const el of document.querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])')) {
         const visible = el.checkVisibility?.({
           contentVisibilityAuto: true,
           opacityProperty: true,

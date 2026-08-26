@@ -18,6 +18,7 @@ const {
   eyebrow,
   heading,
   subheading,
+  paragraph,
   ctas = [],
   cta_note,
   cta_card_image,
@@ -85,6 +86,7 @@ const tracks = [
                 {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
                 <RichText class="heading-h1" html={heading} />
                 {subheading && <RichText class="subhero-text" html={subheading} />}
+              {paragraph && <RichText class="hero-paragraph" html={paragraph} />}
                 <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} />
               </div>
             ) : (
@@ -111,6 +113,7 @@ const tracks = [
               {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
               <RichText class="heading-h1" html={heading} />
               {subheading && <RichText class="subhero-text" html={subheading} />}
+              {paragraph && <RichText class="hero-paragraph" html={paragraph} />}
             </div>
             <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} />
           </div>

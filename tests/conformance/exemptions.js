@@ -6,7 +6,7 @@
 // A floor whose escape hatch is easy costs the same, more slowly.
 //
 // So: exemptions are DECLARATIVE, per site, and every one must carry a `reason`. An entry without
-// one is treated as absent and reported, because "someone silenced this and no one knows why" is
+// one is treated, because "someone silenced this and no one knows why" is
 // the state this file exists to prevent. Keep them few and keep them dated in the reason; each is
 // a piece of the floor that site is choosing not to stand on.
 //
@@ -27,23 +27,15 @@
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
-export type ConformanceCheck = 'iframeTitle' | 'border3px' | 'narrowOverflow' | 'headingOutline' | 'imageContract'
+let loaded = null
 
-interface Exemption {
-  /** A CSS selector for `iframeTitle`, a bare class name for `border3px`, a route for the rest. */
-  match: string
-  reason: string
-}
-
-let loaded: Partial<Record<ConformanceCheck, Exemption[]>> | null = null
-
-function all(): Partial<Record<ConformanceCheck, Exemption[]>> {
+function all() {
   if (loaded) return loaded
   const file = path.join(process.cwd(), 'tests', 'conformance.exemptions.json')
   if (!existsSync(file)) return (loaded = {})
 
-  const raw = JSON.parse(readFileSync(file, 'utf8')) as Partial<Record<ConformanceCheck, Exemption[]>>
-  const kept: Partial<Record<ConformanceCheck, Exemption[]>> = {}
+  const raw = JSON.parse(readFileSync(file, 'utf8'))
+  const kept = {}
   for (const [check, entries] of Object.entries(raw)) {
     // JSON has no comments, so an `_`-prefixed key is the usual stand-in — and the file wants
     // prose at the top explaining what an exemption costs. Skipped before the reason check, which
@@ -55,13 +47,13 @@ function all(): Partial<Record<ConformanceCheck, Exemption[]>> {
       // Loud, and on purpose: silently honouring an unexplained exemption is how a floor rots.
       console.warn(`conformance: ignoring ${dropped} exemption(s) under "${check}" with no \`reason\``)
     }
-    if (withReason.length) kept[check as ConformanceCheck] = withReason
+    if (withReason.length) kept[check] = withReason
   }
   return (loaded = kept)
 }
 
 /** The `match` values a site has excused for one check, reasons already validated. */
-export function exempt(check: ConformanceCheck): string[] {
+export function exempt(check) {
   return (all()[check] ?? []).map((e) => e.match)
 }
 
@@ -69,7 +61,7 @@ export function exempt(check: ConformanceCheck): string[] {
  * One CSS selector excluding every exemption for a check, for the DOM-scoped ones.
  * `iframe` with `.video-section iframe` excused becomes `iframe:not(.video-section iframe)`.
  */
-export function selectorExcluding(check: ConformanceCheck, base: string): string {
+export function selectorExcluding(check, base) {
   const skip = exempt(check)
   return skip.length ? `${base}${skip.map((s) => `:not(${s})`).join('')}` : base
 }
