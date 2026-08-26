@@ -1,16 +1,35 @@
 ---
 import type { VideoSectionBlock } from '../../types/blocks'
+import { coreString } from '../ui-strings'
 interface Props {
   block: VideoSectionBlock
+  /** The locale this page is being built for, from core/BlockRenderer.astro. */
+  locale?: string
 }
-const { block } = Astro.props
+const { block, locale } = Astro.props
 ---
 
 <section class="video-section py-16 px-6">
   <div class="max-w-4xl mx-auto">
     {block.data.heading && <h2 class="text-3xl font-bold mb-6">{block.data.heading}</h2>}
     <div class="aspect-video">
-      <iframe src={block.data.video_url} class="w-full h-full rounded-lg" allowfullscreen></iframe>
+      <!--
+        `title` is what a screen reader announces this frame AS. Without it the listener is told
+        that something is embedded and nothing about what (WCAG 2.1 4.1.2) — the state this block
+        shipped in until diligently-dashboard#1791, on every site that renders it.
+
+        The block's own heading is the right name where there is one: two videos on a page would
+        otherwise share the generic fallback and be indistinguishable in a list of frames.
+
+        The fallback comes from core's own string seam, not a literal: it is ANNOUNCED rather than
+        displayed, so an English word here reaches exactly the users who cannot see that it is the
+        wrong language — which is the failure ui-strings.ts was built to close.
+      -->
+      <iframe
+        src={block.data.video_url}
+        title={block.data.heading?.trim() || coreString(locale, 'videoFrame')}
+        class="w-full h-full rounded-lg"
+        allowfullscreen></iframe>
     </div>
     {block.data.body && <p class="mt-6 text-lg">{block.data.body}</p>}
   </div>

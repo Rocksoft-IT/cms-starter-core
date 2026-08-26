@@ -455,7 +455,14 @@ export const coreShortcuts: Record<string, string> = {
   'quote-headline': 'm-0 mb-4 text-[clamp(1.75rem,3vw,2.5rem)] font-bold leading-[1.2]',
   'quote-lede': 'm-0 mb-6 text-[1.125rem] leading-[1.7] text-text-secondary',
   // A leading rule plus oversized type sets the pull-quote apart from prose.
-  'quote-mark': 'm-0 pl-6 border-l-4 border-solid border-primary',
+  //
+  // `border-0` FIRST, exactly as the separators below do it, and it is load-bearing: `border-l-4`
+  // sets only the left width, while `border-solid` — needed to make that edge visible at all —
+  // sets the style on ALL FOUR sides. The other three then fall back to CSS's initial
+  // `border-width: medium`, which is 3px, and the pull-quote draws a full box in the brand colour
+  // instead of a leading rule. Shipped that way on every site rendering a `quote` block until
+  // core's conformance floor caught it (diligently-dashboard#1699 follow-up).
+  'quote-mark': 'm-0 pl-6 border-0 border-l-4 border-solid border-primary',
   'quote-text': 'text-[clamp(1.35rem,2.5vw,1.75rem)] font-medium leading-[1.4] [&_p]:mb-3 [&_p:last-child]:mb-0',
   'quote-cite': 'flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-6 text-[1rem]',
   'quote-attribution': 'font-bold',
@@ -694,9 +701,16 @@ export const coreShortcuts: Record<string, string> = {
   // The outer box is a COLUMN now (#1226): granular mode stacks __top above __panel, so the
   // row-split that used to live here directly moved onto __top, which is the only child in
   // simple mode — same computed layout for every client that never turns granular on.
+  // `border-0` before `border-t`, for the reason spelled out on `quote-mark` above: `border-solid`
+  // sets the style on all four sides, and the three without an explicit width fall back to CSS's
+  // initial `medium` = 3px. A full-width fixed bar then draws a border down both edges and along
+  // the bottom of the viewport. Found by the same conformance check that caught `quote-mark`, but
+  // only on review — this template's fixtures leave consent off, so the banner never renders here
+  // and the check had nothing to look at. It would have surfaced on the first client with consent
+  // enabled.
   'cookie-consent':
     'fixed inset-x-0 bottom-0 z-50 flex flex-col gap-4 ' +
-    'border-t border-solid border-border bg-surface p-5 shadow-[0_-8px_24px_rgb(0_0_0_/_10%)] ' +
+    'border-0 border-t border-solid border-border bg-surface p-5 shadow-[0_-8px_24px_rgb(0_0_0_/_10%)] ' +
     'sm:p-6 ' +
     '[&[hidden]]:hidden',
 

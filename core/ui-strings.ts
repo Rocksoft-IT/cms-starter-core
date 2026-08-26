@@ -34,6 +34,12 @@ export interface CoreStrings {
   nextPhoto: string
   previousTestimonial: string
   nextTestimonial: string
+  /**
+   * The accessible name of the video block's embed when the block carries no heading to use.
+   * An iframe with no name is announced as an unlabelled frame (WCAG 2.1 4.1.2) — and announced
+   * IN ENGLISH is the failure this seam exists to stop, so it is a key rather than a literal.
+   */
+  videoFrame: string
 }
 
 /**
@@ -55,6 +61,7 @@ const BUILT_IN: Record<string, CoreStrings> = {
     nextPhoto: 'Next photo',
     previousTestimonial: 'Previous testimonial',
     nextTestimonial: 'Next testimonial',
+    videoFrame: 'Embedded video',
   },
   pl: {
     galleryZoomNamed: 'Powiększ: {name}',
@@ -65,6 +72,7 @@ const BUILT_IN: Record<string, CoreStrings> = {
     nextPhoto: 'Następne zdjęcie',
     previousTestimonial: 'Poprzednia opinia',
     nextTestimonial: 'Następna opinia',
+    videoFrame: 'Osadzone wideo',
   },
 }
 

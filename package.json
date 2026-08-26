@@ -8,10 +8,18 @@
     "./core/*": "./core/*",
     "./lib/*": "./lib/*",
     "./types/*": "./types/*",
-    "./scripts/*": "./scripts/*"
+    "./scripts/*": "./scripts/*",
+    "./tests/*": "./tests/*",
+    "./package.json": "./package.json"
   },
   "peerDependencies": {
     "astro": "*",
-    "astro-seo": "*"
+    "astro-seo": "*",
+    "@playwright/test": "*"
+  },
+  "peerDependenciesMeta": {
+    "@playwright/test": {
+      "optional": true
+    }
   }
 }
