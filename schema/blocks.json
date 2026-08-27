@@ -1,0 +1,1793 @@
+{
+    "hero": {
+        "label": "Hero",
+        "description": "Page hero: rich heading & subheading, up to two CTAs, an optional CTA card (a picture, a title and a subtitle — the person to talk to, a partner, a badge) and an optional nested column area for composing extra content from any blocks.",
+        "icon": "heroicon-o-megaphone",
+        "groups": {
+            "Content": [
+                "eyebrow",
+                "heading",
+                "subheading",
+                "paragraph"
+            ],
+            "Call to action": [
+                "ctas",
+                "cta_note"
+            ],
+            "CTA card": [
+                "cta_card_image",
+                "cta_card_title",
+                "cta_card_subtitle",
+                "cta_card_href"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "richtext"
+            },
+            "subheading": {
+                "type": "richtext"
+            },
+            "paragraph": {
+                "type": "richtext"
+            },
+            "ctas": {
+                "type": "repeater",
+                "label": "Call to action",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "text"
+                    }
+                }
+            },
+            "cta_note": {
+                "type": "text"
+            },
+            "cta_card_image": {
+                "type": "media_upload",
+                "label": "Image"
+            },
+            "cta_card_title": {
+                "type": "text",
+                "label": "Title"
+            },
+            "cta_card_subtitle": {
+                "type": "text",
+                "label": "Subtitle"
+            },
+            "cta_card_href": {
+                "type": "href",
+                "label": "Target"
+            },
+            "columns_layout": {
+                "type": "select",
+                "default": "1-1",
+                "options": {
+                    "1": "One column (full width)",
+                    "1-1": "Two columns (1:1)",
+                    "2-1": "Two columns (2:1)",
+                    "1-2": "Two columns (1:2)",
+                    "1-1-1": "Three columns (1:1:1)",
+                    "1-1-1-1": "Four columns (1:1:1:1)"
+                }
+            },
+            "own_content_track": {
+                "type": "hidden"
+            },
+            "columns": {
+                "type": "blocks",
+                "layout_key": "columns_layout",
+                "own_content_track_key": "own_content_track"
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "rich_content": {
+        "label": "Rich content",
+        "description": "Generic prose section: an optional eyebrow, a heading and a rich body. For a picture beside the prose, put this block and an Image block in a Columns row — that is what carries the alt text, the crop and the mobile order.",
+        "icon": "heroicon-o-document-text",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "body"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "heading_level",
+                "body"
+            ],
+            "Media": [
+                "animation_url"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "heading_level": {
+                "type": "select",
+                "options": {
+                    "default": "Default (H2)",
+                    "h1": "H1 — this section is the page title",
+                    "h2": "H2",
+                    "h3": "H3"
+                }
+            },
+            "body": {
+                "type": "richtext"
+            },
+            "animation_url": {
+                "type": "asset_url",
+                "pattern": "/^\\/[\\w\\/.-]+\\.json$/",
+                "help": "A JSON animation served by this site, e.g. /documents/animation.json"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "paragraph": {
+        "label": "Paragraph",
+        "description": "The simplest text block: a single rich-text body, no heading or media. Handy inside a column. The variant decides whether it reads as running prose or as a set-apart note.",
+        "icon": "heroicon-o-bars-3-bottom-left",
+        "preview": [
+            "body"
+        ],
+        "fields": {
+            "body": {
+                "type": "richtext"
+            },
+            "variant": {
+                "type": "select",
+                "options": {
+                    "default": "Standard (running prose)",
+                    "note": "Note (set-apart box)"
+                }
+            }
+        }
+    },
+    "button": {
+        "label": "Button",
+        "description": "A single call-to-action button (label, link, style).",
+        "icon": "heroicon-o-cursor-arrow-rays",
+        "preview": [
+            "label",
+            "href"
+        ],
+        "fields": {
+            "label": {
+                "type": "text"
+            },
+            "href": {
+                "type": "text"
+            },
+            "style": {
+                "type": "select",
+                "options": {
+                    "primary": "Primary",
+                    "outline": "Outline"
+                }
+            }
+        }
+    },
+    "heading": {
+        "label": "Heading",
+        "description": "A standalone heading (text + level H1–H4) for structuring a column or section.",
+        "icon": "heroicon-o-hashtag",
+        "fields": {
+            "text": {
+                "type": "text"
+            },
+            "level": {
+                "type": "select",
+                "options": {
+                    "h1": "H1",
+                    "h2": "H2",
+                    "h3": "H3",
+                    "h4": "H4"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "separator": {
+        "label": "Separator",
+        "description": "A horizontal divider with a visual style (default / wide line / dots).",
+        "icon": "heroicon-o-minus",
+        "preview": [
+            "style"
+        ],
+        "fields": {
+            "style": {
+                "type": "select",
+                "options": {
+                    "default": "Default",
+                    "wide": "Wide line",
+                    "dots": "Dots"
+                }
+            }
+        }
+    },
+    "video_section": {
+        "label": "Video section",
+        "description": "Embed a video by URL with an optional heading and body copy.",
+        "icon": "heroicon-o-play-circle",
+        "preview": [
+            "heading",
+            "body"
+        ],
+        "fields": {
+            "video_url": {
+                "type": "asset_url"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "body": {
+                "type": "textarea"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "features": {
+        "label": "Features / steps",
+        "description": "Eyebrow, heading, intro and a repeater of numbered feature steps.",
+        "icon": "heroicon-o-list-bullet",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "intro"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "intro"
+            ],
+            "Steps": [
+                "steps"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
+            },
+            "steps": {
+                "type": "repeater",
+                "fields": {
+                    "number": {
+                        "type": "text"
+                    },
+                    "title": {
+                        "type": "text"
+                    },
+                    "description": {
+                        "type": "richtext"
+                    }
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "cta_banner": {
+        "label": "CTA banner",
+        "description": "Copy-only call-to-action banner: eyebrow, heading, body, optional highlight badges, CTAs and a CTA card (a picture, a title and a subtitle — the person to talk to). Compose an image beside it with a Columns block.",
+        "icon": "heroicon-o-megaphone",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "body"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "body"
+            ],
+            "Badges": [
+                "badges"
+            ],
+            "Call to action": [
+                "ctas"
+            ],
+            "CTA card": [
+                "cta_card_image",
+                "cta_card_title",
+                "cta_card_subtitle",
+                "cta_card_href"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "body": {
+                "type": "textarea"
+            },
+            "badges": {
+                "type": "repeater",
+                "add_label": "Add badge",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    }
+                }
+            },
+            "ctas": {
+                "type": "repeater",
+                "label": "Call to action",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "text"
+                    }
+                }
+            },
+            "cta_card_image": {
+                "type": "media_upload",
+                "label": "Image"
+            },
+            "cta_card_title": {
+                "type": "text",
+                "label": "Title"
+            },
+            "cta_card_subtitle": {
+                "type": "text",
+                "label": "Subtitle"
+            },
+            "cta_card_href": {
+                "type": "href",
+                "label": "Target"
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "promo_split": {
+        "label": "Promo split",
+        "description": "Two-column promo panel — brand-colored side with eyebrow, heading, body and one CTA; a photo bleeding to the edge on the other (reverse flips sides).",
+        "icon": "heroicon-o-rectangle-stack",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "body"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "heading_level",
+                "body"
+            ],
+            "Call to action": [
+                "cta_label",
+                "cta_href"
+            ],
+            "Image": [
+                "image",
+                "alt",
+                "reverse"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "heading_level": {
+                "type": "select",
+                "options": {
+                    "default": "Default (H2)",
+                    "h1": "H1 — this section is the page title",
+                    "h2": "H2",
+                    "h3": "H3"
+                }
+            },
+            "body": {
+                "type": "textarea"
+            },
+            "cta_label": {
+                "type": "text"
+            },
+            "cta_href": {
+                "type": "href"
+            },
+            "image": {
+                "type": "media_upload"
+            },
+            "alt": {
+                "type": "text"
+            },
+            "reverse": {
+                "type": "toggle"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "pricing_teaser": {
+        "label": "Pricing teaser",
+        "description": "Pricing teaser (no price data) — intro copy plus cards that deep-link to /pricing.",
+        "icon": "heroicon-o-banknotes",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "body"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "body"
+            ],
+            "Cards": [
+                "cards"
+            ],
+            "Footer link": [
+                "footer_label",
+                "footer_href"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "body": {
+                "type": "textarea"
+            },
+            "cards": {
+                "type": "repeater",
+                "fields": {
+                    "eyebrow": {
+                        "type": "text"
+                    },
+                    "title": {
+                        "type": "text"
+                    },
+                    "bullets": {
+                        "type": "textarea"
+                    },
+                    "price_label": {
+                        "type": "text"
+                    },
+                    "cta_label": {
+                        "type": "text"
+                    },
+                    "cta_href": {
+                        "type": "href"
+                    }
+                }
+            },
+            "footer_label": {
+                "type": "text"
+            },
+            "footer_href": {
+                "type": "text"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "testimonials": {
+        "label": "Testimonials",
+        "description": "References and orders shared Testimonial items (collection-ref); the API resolves them inline per locale.",
+        "icon": "heroicon-o-chat-bubble-left-right",
+        "ref": "collection",
+        "item_type": "testimonial",
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 1,
+                    "layout": 1
+                }
+            ],
+            "Items": [
+                "items"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "layout": {
+                "type": "select",
+                "options": {
+                    "slider": "Slider",
+                    "single": "Single",
+                    "row": "Row (side by side)"
+                }
+            },
+            "items": {
+                "type": "items",
+                "item_type": "testimonial"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "component_ref": {
+        "label": "Global component",
+        "description": "Embeds a reusable global Component (footer, default CTA, services menu) inline by reference.",
+        "icon": "heroicon-o-puzzle-piece",
+        "ref": "component",
+        "fields": {
+            "component_id": {
+                "type": "component"
+            }
+        }
+    },
+    "section_teaser": {
+        "label": "Section teaser",
+        "description": "Lists the newest items from a chosen section as cards or a list; the API resolves the items inline per locale.",
+        "icon": "heroicon-o-rectangle-stack",
+        "ref": "section",
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                }
+            ],
+            "Source": [
+                "section",
+                "layout",
+                "limit"
+            ],
+            "Labels": [
+                "action_label",
+                "action_href",
+                "item_action_label",
+                "attachments_label"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "section": {
+                "type": "section"
+            },
+            "layout": {
+                "type": "select",
+                "options": {
+                    "cards": "Cards",
+                    "list": "List"
+                }
+            },
+            "limit": {
+                "type": "select",
+                "options": {
+                    "3": "3",
+                    "4": "4",
+                    "6": "6",
+                    "9": "9",
+                    "12": "12"
+                }
+            },
+            "action_label": {
+                "type": "text"
+            },
+            "action_href": {
+                "type": "text"
+            },
+            "item_action_label": {
+                "type": "text"
+            },
+            "attachments_label": {
+                "type": "text"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "documents": {
+        "label": "Documents",
+        "description": "A titled list of downloadable documents from the Files library; each row links to its file.",
+        "icon": "heroicon-o-document-text",
+        "fields": {
+            "heading": {
+                "type": "text"
+            },
+            "icon": {
+                "type": "select",
+                "options": {
+                    "document": "Document",
+                    "folder": "Folder",
+                    "download": "Download",
+                    "info": "Info",
+                    "book": "Book"
+                }
+            },
+            "files": {
+                "type": "document_entries",
+                "upload": {
+                    "accept": [
+                        "application/pdf"
+                    ],
+                    "max_size": 102400
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "cards": {
+        "label": "Cards",
+        "description": "A row of items — icon or image, label, optional value and link — laid out as tiles, cards, numbered steps, bare figures or a picture-led bento grid. Free-form by design: for opening hours as a day/time table use Opening hours, for an address-and-phone section use Contact — those two lay those facts out for you.",
+        "icon": "heroicon-o-squares-2x2",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "intro"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "intro",
+                "layout"
+            ],
+            "Items": [
+                "items"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
+            },
+            "layout": {
+                "type": "select",
+                "options": {
+                    "tiles": "Tiles (compact, link-led)",
+                    "cards": "Cards (icon, label and value)",
+                    "steps": "Steps (numbered sequence)",
+                    "stats": "Stats (a row of bare figures)",
+                    "bento": "Bento (picture-led cards)"
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "items": {
+                "type": "repeater",
+                "upload": {
+                    "field": "image",
+                    "max_size": 10240,
+                    "max_files": 30
+                },
+                "fields": {
+                    "icon": {
+                        "type": "select",
+                        "options": {
+                            "location": "Location",
+                            "clock": "Clock",
+                            "phone": "Phone",
+                            "mail": "Mail",
+                            "calendar": "Calendar",
+                            "info": "Info",
+                            "document": "Document",
+                            "folder": "Folder",
+                            "download": "Download",
+                            "book": "Book"
+                        }
+                    },
+                    "image": {
+                        "type": "image"
+                    },
+                    "caption": {
+                        "type": "text"
+                    },
+                    "marker": {
+                        "type": "text"
+                    },
+                    "label": {
+                        "type": "text"
+                    },
+                    "value": {
+                        "type": "textarea"
+                    },
+                    "href": {
+                        "type": "text"
+                    },
+                    "highlighted": {
+                        "type": "toggle"
+                    }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "gallery": {
+        "label": "Gallery",
+        "description": "A grid of photos with an optional heading and a note beside it. Each image carries its own alt text.",
+        "icon": "heroicon-o-photo",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "note"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "note"
+            ],
+            "Images": [
+                "images"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "note": {
+                "type": "text"
+            },
+            "images": {
+                "type": "repeater",
+                "grid": 2,
+                "upload": {
+                    "field": "image",
+                    "max_size": 10240,
+                    "max_files": 30
+                },
+                "fields": {
+                    "image": {
+                        "type": "image"
+                    },
+                    "alt": {
+                        "type": "text"
+                    }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "faq": {
+        "label": "FAQ",
+        "description": "Question/answer list, rendered as a collapsible accordion (optionally with the first answer already open) or as an always-open list. An optional CTA sits inline beside the heading — for the place people should go when the answer is not here (a client portal, the contact form).",
+        "icon": "heroicon-o-question-mark-circle",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "intro"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "intro"
+            ],
+            "Layout": [
+                "layout",
+                "open_first"
+            ],
+            "Questions": [
+                "items"
+            ],
+            "Call to action": [
+                "cta_label",
+                "cta_href"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
+            },
+            "layout": {
+                "type": "select",
+                "options": {
+                    "accordion": "Accordion (click to expand)",
+                    "list": "List (always open)"
+                }
+            },
+            "open_first": {
+                "type": "toggle"
+            },
+            "cta_label": {
+                "type": "text"
+            },
+            "cta_href": {
+                "type": "href"
+            },
+            "items": {
+                "type": "repeater",
+                "fields": {
+                    "question": {
+                        "type": "text"
+                    },
+                    "answer": {
+                        "type": "richtext"
+                    }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "team": {
+        "label": "Team",
+        "description": "A grid of person cards (photo, name, role) with an optional anchor id.",
+        "icon": "heroicon-o-user-group",
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                }
+            ],
+            "Members": [
+                "members"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "members": {
+                "type": "repeater",
+                "upload": {
+                    "field": "photo",
+                    "max_size": 10240,
+                    "max_files": 30
+                },
+                "fields": {
+                    "name": {
+                        "type": "text"
+                    },
+                    "role": {
+                        "type": "text"
+                    },
+                    "photo": {
+                        "type": "image"
+                    }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "image_block": {
+        "label": "Image",
+        "description": "A single inline image (media upload) with alt, caption, alignment and responsive sizing (global + mobile/desktop overrides).",
+        "icon": "heroicon-o-photo",
+        "preview": [
+            "caption",
+            "alt"
+        ],
+        "fields": {
+            "image": {
+                "type": "media_upload"
+            },
+            "alt": {
+                "type": "text"
+            },
+            "caption": {
+                "type": "text"
+            },
+            "maxWidth": {
+                "type": "text",
+                "placeholder": "e.g. 420px",
+                "datalist": [
+                    "320px",
+                    "420px",
+                    "560px",
+                    "720px",
+                    "100%"
+                ]
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "left": "Left",
+                    "center": "Center",
+                    "right": "Right"
+                }
+            },
+            "aspectRatio": {
+                "type": "text",
+                "placeholder": "e.g. 16/9",
+                "datalist": [
+                    "1/1",
+                    "4/3",
+                    "3/2",
+                    "16/9",
+                    "21/9",
+                    "3/4",
+                    "2/3",
+                    "9/16"
+                ]
+            },
+            "objectFit": {
+                "type": "select",
+                "options": {
+                    "cover": "Cover",
+                    "contain": "Contain",
+                    "fill": "Fill"
+                }
+            },
+            "objectPosition": {
+                "type": "text",
+                "placeholder": "e.g. center",
+                "datalist": [
+                    "center",
+                    "top",
+                    "bottom",
+                    "left",
+                    "right",
+                    "top left",
+                    "top right",
+                    "bottom left",
+                    "bottom right"
+                ]
+            },
+            "maxHeight": {
+                "type": "text",
+                "placeholder": "e.g. 200px",
+                "datalist": [
+                    "200px",
+                    "300px",
+                    "400px",
+                    "500px",
+                    "50vh",
+                    "75vh"
+                ]
+            },
+            "mobileAspectRatio": {
+                "type": "text",
+                "placeholder": "e.g. 16/9",
+                "datalist": [
+                    "1/1",
+                    "4/3",
+                    "3/2",
+                    "16/9",
+                    "21/9",
+                    "3/4",
+                    "2/3",
+                    "9/16"
+                ]
+            },
+            "mobileObjectFit": {
+                "type": "select",
+                "options": {
+                    "cover": "Cover",
+                    "contain": "Contain",
+                    "fill": "Fill"
+                }
+            },
+            "mobileObjectPosition": {
+                "type": "text",
+                "placeholder": "e.g. center",
+                "datalist": [
+                    "center",
+                    "top",
+                    "bottom",
+                    "left",
+                    "right",
+                    "top left",
+                    "top right",
+                    "bottom left",
+                    "bottom right"
+                ]
+            },
+            "mobileMaxHeight": {
+                "type": "text",
+                "placeholder": "e.g. 200px",
+                "datalist": [
+                    "200px",
+                    "300px",
+                    "400px",
+                    "500px",
+                    "50vh",
+                    "75vh"
+                ]
+            },
+            "desktopAspectRatio": {
+                "type": "text",
+                "placeholder": "e.g. 16/9",
+                "datalist": [
+                    "1/1",
+                    "4/3",
+                    "3/2",
+                    "16/9",
+                    "21/9",
+                    "3/4",
+                    "2/3",
+                    "9/16"
+                ]
+            },
+            "desktopObjectFit": {
+                "type": "select",
+                "options": {
+                    "cover": "Cover",
+                    "contain": "Contain",
+                    "fill": "Fill"
+                }
+            },
+            "desktopObjectPosition": {
+                "type": "text",
+                "placeholder": "e.g. center",
+                "datalist": [
+                    "center",
+                    "top",
+                    "bottom",
+                    "left",
+                    "right",
+                    "top left",
+                    "top right",
+                    "bottom left",
+                    "bottom right"
+                ]
+            },
+            "desktopMaxHeight": {
+                "type": "text",
+                "placeholder": "e.g. 200px",
+                "datalist": [
+                    "200px",
+                    "300px",
+                    "400px",
+                    "500px",
+                    "50vh",
+                    "75vh"
+                ]
+            }
+        }
+    },
+    "button_group": {
+        "label": "Button group",
+        "description": "A row of CTA buttons (primary / outline) placed inline in the content flow.",
+        "icon": "heroicon-o-cursor-arrow-rays",
+        "fields": {
+            "buttons": {
+                "type": "repeater",
+                "table": [
+                    "Label",
+                    "Target",
+                    "Style"
+                ],
+                "add_label": "Add button",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "text"
+                    },
+                    "style": {
+                        "type": "select",
+                        "options": {
+                            "primary": "Primary",
+                            "outline": "Outline"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "pricing_table": {
+        "label": "Pricing table",
+        "description": "Selects and orders shared Plan items (collection-ref) as cards; the billing toggle groups them into tabs by billing type, and the width setting gives a four-card set room to breathe.",
+        "icon": "heroicon-o-table-cells",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "body"
+        ],
+        "ref": "collection",
+        "item_type": "plan",
+        "group_by": {
+            "when": "billing_toggle",
+            "key": "billing_type"
+        },
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "body",
+                "animation_url"
+            ],
+            "Plans": [
+                "plans",
+                "width",
+                "description_height",
+                "price_size",
+                "billing_toggle",
+                "tab_icons",
+                "tab_labels"
+            ],
+            "Call to action": [
+                "ctas"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "body": {
+                "type": "textarea"
+            },
+            "animation_url": {
+                "type": "asset_url",
+                "pattern": "/^\\/[\\w\\/.-]+\\.json$/",
+                "help": "A JSON animation served by this site, e.g. /documents/animation.json"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
+                }
+            },
+            "width": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page container)",
+                    "wide": "Wide (room for a fourth card)"
+                }
+            },
+            "description_height": {
+                "type": "select",
+                "options": {
+                    "default": "Default (each blurb sets its own height)",
+                    "fixed": "Fixed (prices line up across the cards)"
+                }
+            },
+            "price_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default",
+                    "small": "Small (a long price stays on one line)"
+                }
+            },
+            "billing_toggle": {
+                "type": "toggle"
+            },
+            "plans": {
+                "type": "items",
+                "item_type": "plan"
+            },
+            "tab_icons": {
+                "type": "repeater",
+                "fields": {
+                    "billing_type": {
+                        "type": "text"
+                    },
+                    "icon_svg": {
+                        "type": "richtext"
+                    }
+                }
+            },
+            "tab_labels": {
+                "type": "repeater",
+                "fields": {
+                    "billing_type": {
+                        "type": "text"
+                    },
+                    "label": {
+                        "type": "text"
+                    }
+                },
+                "help": "Renames the billing-toggle buttons. Leave empty to use the default names."
+            },
+            "ctas": {
+                "type": "repeater",
+                "label": "Call to action",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "text"
+                    }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "highlights": {
+        "label": "Highlights (grouped list)",
+        "description": "Grouped list with free-text values — category cards of priced items, plus optional links and a footnote (menu, price list, package tiers…).",
+        "icon": "heroicon-o-list-bullet",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "footnote"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "footnote"
+            ],
+            "Categories": [
+                "categories"
+            ],
+            "Links": [
+                "links"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "categories": {
+                "type": "repeater",
+                "fields": {
+                    "title": {
+                        "type": "text"
+                    },
+                    "note": {
+                        "type": "text"
+                    },
+                    "items": {
+                        "type": "repeater",
+                        "fields": {
+                            "name": {
+                                "type": "text"
+                            },
+                            "description": {
+                                "type": "text"
+                            },
+                            "price": {
+                                "type": "text"
+                            }
+                        }
+                    }
+                }
+            },
+            "links": {
+                "type": "repeater",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "text"
+                    }
+                }
+            },
+            "footnote": {
+                "type": "textarea"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "quote": {
+        "label": "Quote",
+        "description": "A single inline press/social-proof quote: source tag, headline, lede, pull-quote, attribution, one source link and an image.",
+        "icon": "heroicon-o-newspaper",
+        "preview": [
+            "headline",
+            "quote",
+            "attribution"
+        ],
+        "groups": {
+            "Content": [
+                "source_tag",
+                "headline",
+                "lede",
+                "quote",
+                "attribution"
+            ],
+            "Source link": [
+                "source_link_label",
+                "source_link_href"
+            ],
+            "Image": [
+                "image",
+                "alt"
+            ]
+        },
+        "fields": {
+            "source_tag": {
+                "type": "text",
+                "help": "A small label above the headline saying where this came from, e.g. “Press · Nussbaum Medien”. Plain text — the link to the article is the pair of fields further down."
+            },
+            "headline": {
+                "type": "text",
+                "help": "The headline of the article being quoted — its words, not your own."
+            },
+            "lede": {
+                "type": "text",
+                "help": "The one line that sits under the headline and sets the scene, e.g. “The mayor stopped by in person”."
+            },
+            "quote": {
+                "type": "richtext",
+                "help": "The passage being quoted. It takes more than one paragraph, so a closing thought of your own belongs here as a second paragraph — not in Attribution."
+            },
+            "attribution": {
+                "type": "text",
+                "help": "Who said it, e.g. “Jordan Fields, Lead Engineer”. Not a takeaway or a closing line — those go in the quote above."
+            },
+            "source_link_label": {
+                "type": "text",
+                "help": "The wording of the link to the original, e.g. “Read more on nussbaum.de”."
+            },
+            "source_link_href": {
+                "type": "text",
+                "help": "The full address of the article, starting with https:// — this field is not checked, so a typo here fails silently."
+            },
+            "image": {
+                "type": "image"
+            },
+            "alt": {
+                "type": "text",
+                "help": "What the photo shows, for readers using a screen reader. Describe the picture, do not repeat the headline."
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "hours": {
+        "label": "Opening hours",
+        "description": "Opening-hours contact section — eyebrow, heading, a repeater of day/hours rows and a footnote.",
+        "icon": "heroicon-o-clock",
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "footnote"
+            ],
+            "Opening hours": [
+                "hours"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "hours": {
+                "type": "repeater",
+                "table": [
+                    "Day",
+                    "Hours"
+                ],
+                "add_label": "Add row",
+                "fields": {
+                    "day_label": {
+                        "type": "text"
+                    },
+                    "hours_label": {
+                        "type": "text"
+                    }
+                }
+            },
+            "footnote": {
+                "type": "text"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "map": {
+        "label": "Map embed",
+        "description": "A standalone, composable map embed (GDPR-relevant; a renderer may consent-gate it).",
+        "icon": "heroicon-o-map",
+        "fields": {
+            "heading": {
+                "type": "text"
+            },
+            "map_embed_src": {
+                "type": "url"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "contact": {
+        "label": "Contact",
+        "description": "Contact / NAP block — address, maps link and phone (display + E.164 for tel:).",
+        "icon": "heroicon-o-map-pin",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "address"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                }
+            ],
+            "Details": [
+                "address",
+                "maps_url",
+                "phone_display"
+            ]
+        },
+        "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "address": {
+                "type": "textarea"
+            },
+            "maps_url": {
+                "type": "url"
+            },
+            "phone_display": {
+                "type": "text"
+            },
+            "phone_e164": {
+                "type": "text"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "custom_html": {
+        "label": "Custom HTML",
+        "description": "Escape hatch for third-party markup no other block covers — an embed, an iframe, a widget script. Inserted as-is, so anything put here stops being CMS content: it cannot be edited in the page builder, translated, themed by branding or classified for cookie consent. Do not lay out a page with it — compose it from real blocks instead (get_blocks_schema lists them).",
+        "icon": "heroicon-o-code-bracket",
+        "preview": [
+            "html"
+        ],
+        "fields": {
+            "html": {
+                "type": "code_html"
+            },
+            "full_width": {
+                "type": "toggle"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "columns": {
+        "label": "Columns",
+        "description": "Layout container — pick a column preset and drop any block (except Columns) into each column (depth-1).",
+        "icon": "heroicon-o-view-columns",
+        "preview": [
+            "layout"
+        ],
+        "fields": {
+            "width": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page container)",
+                    "prose": "Prose measure (line up with the text band above)"
+                }
+            },
+            "mobile_reverse": {
+                "type": "toggle"
+            },
+            "layout": {
+                "type": "select",
+                "default": "1-1",
+                "options": {
+                    "1": "One column (full width)",
+                    "1-1": "Two columns (1:1)",
+                    "2-1": "Two columns (2:1)",
+                    "1-2": "Two columns (1:2)",
+                    "1-1-1": "Three columns (1:1:1)",
+                    "1-1-1-1": "Four columns (1:1:1:1)"
+                }
+            },
+            "columns": {
+                "type": "blocks"
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        },
+        "drop_when_empty": true
+    },
+    "tabs": {
+        "label": "Tabs",
+        "description": "Tabbed content: a set of named tabs, each holding its own blocks (text, buttons, images, …). Rendered as an accessible tab strip on the frontend; the tab anchor is derived from its name.",
+        "icon": "heroicon-o-rectangle-group",
+        "fields": {
+            "tabs": {
+                "type": "blocks",
+                "kind": "panels",
+                "row_fields": {
+                    "name": {
+                        "type": "text"
+                    }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        },
+        "drop_when_empty": true
+    }
+}
