@@ -1,0 +1,63 @@
+---
+// Per-client CUSTOM CODE (dashboard #1805) — the raw `<script>`/HTML an admin pastes in the panel
+// (Settings → Custom code), emitted into this page. The escape hatch every third-party widget
+// documents: Chatling, Intercom, Crisp, Calendly, a Meta Pixel. One feature instead of a backend
+// change per vendor.
+//
+// Mount it TWICE, once per placement — `<CustomCode placement="head" />` last in `<head>`, and
+// `<CustomCode placement="body" />` last in `<body>`. No component can render into both places,
+// and the split is what the panel's own "Head / Footer" choice means. Mount it AFTER
+// <ConsentMode/> in the head: the Consent Mode bootstrap must be the first thing to run, and a
+// pasted snippet must never be able to outrun it.
+//
+// It SELF-GATES on the snippet's consent category, resolved in core/customCode.ts:
+//   - `necessary`  → emitted verbatim, right here, on every page.
+//   - `statistics` / `marketing` → emitted INERT inside a <template> and activated only once the
+//     visitor grants that category; on a client with the cookie banner switched off they are not
+//     emitted at all, because there would be no way to ever grant them.
+//
+// Why a <template> and not `<script type="text/plain">`: a real third-party snippet contains its
+// own `</script>`, which would terminate the wrapper early and dump the rest of the vendor's code
+// into the page as markup. `<template>` content is parsed but inert, so a nested <script> survives
+// intact and simply does not run — which is exactly the state a not-yet-consented snippet wants.
+// Activation then has to RE-CREATE each <script> node: a script that was parsed inside a template
+// (or moved with appendChild) is flagged "already started" and will never execute otherwise.
+import { getSiteSettings } from '../lib/api'
+import {
+  CUSTOM_CODE_ACTIVATOR_JS,
+  emitsCustomCodeActivator,
+  resolveCustomCode,
+  warnAboutCustomCode,
+  type CustomCodePlacement,
+} from './customCode'
+
+interface Props {
+  placement: CustomCodePlacement
+}
+
+const { placement } = Astro.props
+
+const settings = await getSiteSettings()
+const resolved = resolveCustomCode(settings, placement)
+
+// One build-log line per placement for the two silent failures: a snippet we refused to ship, and
+// a snippet that ships to everyone before consent.
+warnAboutCustomCode(resolved, placement)
+
+---
+
+{resolved.immediate.map((snippet) => <Fragment set:html={snippet.code} />)}
+
+{
+  resolved.gated.map((snippet) => (
+    <template data-cms-custom-code={snippet.consent} set:html={snippet.code} />
+  ))
+}
+
+{
+  /* Emitted by ONE mount for the whole page, not once per placement — see
+     emitsCustomCodeActivator(). */
+  emitsCustomCodeActivator(settings, placement) && (
+    <script is:inline set:html={CUSTOM_CODE_ACTIVATOR_JS} />
+  )
+}

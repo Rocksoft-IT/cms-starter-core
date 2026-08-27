@@ -571,6 +571,11 @@ export interface SiteSettingsData {
    *  defaults to a plain Accept/Reject choice; meaningless while `enabled` is false. */
   cookie_consent?: { enabled?: boolean; privacy_page_id?: number | null; granular?: boolean }
   integrations?: Record<string, Record<string, string>>
+  /** Per-client CUSTOM CODE — raw `<script>`/HTML the admin pasted in the panel, already filtered
+   *  to the ENABLED rows by CustomScripts::payloadFrom(). Typed loosely on purpose: this is the
+   *  one payload whose contents are operator-authored rather than schema-checked, so
+   *  core/customCode.ts re-validates every field rather than trusting the wire. */
+  custom_scripts?: Array<{ placement?: string; code?: string; consent?: string }>
   /** The client's name, as og:site_name. */
   site_name?: string | null
   /** Site-wide Open Graph fallback image, already flattened to its URL by normalizeApiData. */

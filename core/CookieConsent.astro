@@ -103,7 +103,11 @@ ${CONSENT_SIGNALS_JS}
   // writeCookieConsent() is a POST to the site's own origin since #1470 and so completes later,
   // but the other two steps depend on the VALUE and not on the write, so the banner still closes
   // and the tag is still ungated in the same tick; a write that fails falls back to localStorage.
-  function decide(v){ writeCookieConsent(v); applyCookieConsent(v); close(); }
+  // The fourth step is for anything that is NOT a Google tag: CustomCode.astro holds a
+  // statistics/marketing snippet inert until this fires (#1805). Consent Mode signals reach gtag
+  // through dataLayer, which a pasted third-party snippet knows nothing about.
+  function decide(v){ writeCookieConsent(v); applyCookieConsent(v); notify(v); close(); }
+  function notify(v){ try { document.dispatchEvent(new CustomEvent('cms:consent', { detail: v })); } catch(e) {} }
   var existing = readCookieConsent();
   if (!existing) open();
 
