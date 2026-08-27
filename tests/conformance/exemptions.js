@@ -6,7 +6,7 @@
 // A floor whose escape hatch is easy costs the same, more slowly.
 //
 // So: exemptions are DECLARATIVE, per site, and every one must carry a `reason`. An entry without
-// one is treated, because "someone silenced this and no one knows why" is
+// one is treated as absent and reported, because "someone silenced this and no one knows why" is
 // the state this file exists to prevent. Keep them few and keep them dated in the reason; each is
 // a piece of the floor that site is choosing not to stand on.
 //
@@ -23,10 +23,19 @@
 //     ]
 //   }
 //
+// `match` means a different thing per check, because the checks have different handles:
+//
+//   iframeTitle      a CSS selector, excluded from the query — `.video-section iframe`
+//   border3px        a bare class name — `btn-white`
+//   the other three  a ROUTE — `/privacy-policy/`. Overflow, heading outline and the image
+//                    contract have nothing in the DOM to point at ("this page, deliberately"),
+//                    so the whole route is excused and reported as skipped rather than hidden.
+//
 // No file means no exemptions, which is the state every site should be trying to get back to.
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 
+/** @type {Record<string, Array<{ match: string, reason: string }>> | null} */
 let loaded = null
 
 function all() {
