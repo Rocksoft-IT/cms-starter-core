@@ -14,6 +14,7 @@ import type { DocumentsBlock } from '../../types/blocks'
 import { ICON_PATHS, iconPath } from '../../lib/icons'
 import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: DocumentsBlock
@@ -28,7 +29,9 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { heading, icon, files = [] } = block.data
+const { anchor_id, heading, icon, files = [] } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
 
 const locale = Astro.props.locale ?? defaultLocale
 
@@ -56,7 +59,7 @@ const EXTERNAL_ICON = ICON_PATHS.external
 
 {
   rows.length > 0 && (
-    <section class="documents py-16">
+    <section id={sectionId} class="documents py-16">
       <div class="container-global">
         {hasHeading && (
           <div class="mb-8 flex items-center gap-3">

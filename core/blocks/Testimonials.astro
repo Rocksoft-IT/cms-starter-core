@@ -10,6 +10,7 @@ import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: TestimonialsBlock
@@ -18,7 +19,9 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { eyebrow, heading, align, background, layout = 'slider', items = [] } = block.data
+const { anchor_id, eyebrow, heading, align, background, layout = 'slider', items = [] } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
 
 // The shared `background` select — a band modifier the styling layer paints (#1498).
 // See lib/background.ts.
@@ -51,7 +54,7 @@ function initial(name?: string) {
 
 {
   (hasHeader || items.length > 0) && (
-    <section class:list={['section-testimonials section-band py-16', bandClass, alignModifier]}>
+    <section id={sectionId} class:list={['section-testimonials section-band py-16', bandClass, alignModifier]}>
       <div class="container-global">
         <SectionHeader {eyebrow} {heading} {align} />
 

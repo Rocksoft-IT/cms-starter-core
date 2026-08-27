@@ -7,18 +7,21 @@
 // a bare link that isn't focusable never reads as broken.
 import type { ContactBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: ContactBlock
 }
 
 const { block } = Astro.props
-const { eyebrow, heading, address, maps_url, phone_display, phone_e164 } = block.data
+const { anchor_id, eyebrow, heading, address, maps_url, phone_display, phone_e164 } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
 
 const phoneText = phone_display || phone_e164
 ---
 
-<section class="section-contact">
+<section id={sectionId} class="section-contact">
   <div class="container-global py-16">
     <SectionHeader {eyebrow} {heading} />
 

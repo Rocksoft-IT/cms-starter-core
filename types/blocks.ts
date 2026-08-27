@@ -27,6 +27,9 @@ export interface ResolvedColumn {
 export interface ColumnsBlock {
   type: 'columns'
   data: {
+    /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
+     *  because codegen skips this interface — see the note above it. */
+    anchor_id?: string
     layout: string
     columns: ResolvedColumn[]
     /**
@@ -60,6 +63,9 @@ export interface ColumnsBlock {
 export interface HeroBlock {
   type: 'hero'
   data: {
+    /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
+     *  because codegen skips this interface — see the note above it. */
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     subheading?: string
@@ -128,6 +134,9 @@ export interface TabPanel {
 export interface TabsBlock {
   type: 'tabs'
   data: {
+    /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
+     *  because codegen skips this interface — see the note above it. */
+    anchor_id?: string
     tabs: TabPanel[]
   }
 }
@@ -153,6 +162,9 @@ export interface TestimonialsItem {
 export interface TestimonialsBlock {
   type: 'testimonials'
   data: {
+    /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
+     *  because codegen skips this interface — see the note above it. */
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     layout?: 'slider' | 'single'
@@ -311,6 +323,9 @@ export interface SectionTeaserItem {
 export interface SectionTeaserBlock {
   type: 'section_teaser'
   data: {
+    /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
+     *  because codegen skips this interface — see the note above it. */
+    anchor_id?: string
     eyebrow?: string
     heading?: string
     layout?: 'cards' | 'list'
@@ -387,7 +402,6 @@ export interface ResponsiveImageMeta {
 export interface RichContentBlock {
   type: 'rich_content'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     heading_level?: 'default' | 'h1' | 'h2' | 'h3'
@@ -396,6 +410,7 @@ export interface RichContentBlock {
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
+    anchor_id?: string
   }
 }
 
@@ -411,7 +426,7 @@ export interface ButtonBlock {
 
 export interface HeadingBlock {
   type: 'heading'
-  data: { text?: string; level?: 'h1' | 'h2' | 'h3' | 'h4' }
+  data: { text?: string; level?: 'h1' | 'h2' | 'h3' | 'h4'; anchor_id?: string }
 }
 
 export interface SeparatorBlock {
@@ -421,13 +436,12 @@ export interface SeparatorBlock {
 
 export interface VideoSectionBlock {
   type: 'video_section'
-  data: { video_url?: string; heading?: string; body?: string }
+  data: { video_url?: string; heading?: string; body?: string; anchor_id?: string }
 }
 
 export interface FeaturesBlock {
   type: 'features'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     intro?: string
@@ -435,13 +449,13 @@ export interface FeaturesBlock {
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
+    anchor_id?: string
   }
 }
 
 export interface CtaBannerBlock {
   type: 'cta_banner'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     body?: string
@@ -453,6 +467,7 @@ export interface CtaBannerBlock {
     cta_card_subtitle?: string
     cta_card_href?: string
     reveal?: 'default' | 'on' | 'off'
+    anchor_id?: string
   }
 }
 
@@ -469,6 +484,7 @@ export interface PromoSplitBlock {
     src_meta?: ResponsiveImageMeta
     alt?: string
     reverse?: boolean
+    anchor_id?: string
   }
 }
 
@@ -491,18 +507,23 @@ export interface PricingTeaserBlock {
     background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
+    anchor_id?: string
   }
 }
 
 export interface DocumentsBlock {
   type: 'documents'
-  data: { heading?: string; icon?: 'document' | 'folder' | 'download' | 'info' | 'book'; files?: DocumentEntry[] }
+  data: {
+    heading?: string
+    icon?: 'document' | 'folder' | 'download' | 'info' | 'book'
+    files?: DocumentEntry[]
+    anchor_id?: string
+  }
 }
 
 export interface CardsBlock {
   type: 'cards'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     intro?: string
@@ -521,24 +542,24 @@ export interface CardsBlock {
       href?: string
       highlighted?: boolean
     }>
+    anchor_id?: string
   }
 }
 
 export interface GalleryBlock {
   type: 'gallery'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     note?: string
     images?: Array<{ image?: string | null; image_meta?: ResponsiveImageMeta; alt?: string }>
+    anchor_id?: string
   }
 }
 
 export interface FaqBlock {
   type: 'faq'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     intro?: string
@@ -547,16 +568,17 @@ export interface FaqBlock {
     cta_label?: string
     cta_href?: string
     items?: Array<{ question?: string; answer?: string }>
+    anchor_id?: string
   }
 }
 
 export interface TeamBlock {
   type: 'team'
   data: {
-    anchor_id?: string
     eyebrow?: string
     heading?: string
     members?: Array<{ name?: string; role?: string; photo?: string | null; photo_meta?: ResponsiveImageMeta }>
+    anchor_id?: string
   }
 }
 
@@ -601,6 +623,7 @@ export interface HighlightsBlock {
     }>
     links?: Array<{ label?: string; href?: string }>
     footnote?: string
+    anchor_id?: string
   }
 }
 
@@ -617,6 +640,7 @@ export interface QuoteBlock {
     image?: string | null
     image_meta?: ResponsiveImageMeta
     alt?: string
+    anchor_id?: string
   }
 }
 
@@ -627,12 +651,13 @@ export interface HoursBlock {
     heading?: string
     hours?: Array<{ day_label?: string; hours_label?: string }>
     footnote?: string
+    anchor_id?: string
   }
 }
 
 export interface MapBlock {
   type: 'map'
-  data: { heading?: string; map_embed_src?: string }
+  data: { heading?: string; map_embed_src?: string; anchor_id?: string }
 }
 
 export interface ContactBlock {
@@ -644,12 +669,13 @@ export interface ContactBlock {
     maps_url?: string
     phone_display?: string
     phone_e164?: string
+    anchor_id?: string
   }
 }
 
 export interface CustomHtmlBlock {
   type: 'custom_html'
-  data: { html?: string; full_width?: boolean }
+  data: { html?: string; full_width?: boolean; anchor_id?: string }
 }
 
 export type Block =

@@ -13,13 +13,14 @@ import type { QuoteBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import { href as hrefOf } from '../../lib/href'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: QuoteBlock
 }
 
 const { block } = Astro.props
-const {
+const { anchor_id,
   source_tag,
   headline,
   lede,
@@ -32,12 +33,14 @@ const {
   alt = '',
 } = block.data
 
+const sectionId = sectionAnchorId(anchor_id)
+
 // A source link needs an href; the label falls back to the href so a URL-only field still renders.
 const hasSourceLink = Boolean(source_link_href)
 const sourceLinkText = source_link_label || source_link_href
 ---
 
-<section class="section-quote">
+<section id={sectionId} class="section-quote">
   <div class:list={['quote-inner', { 'quote-has-image': image }]}>
     {
       image && (

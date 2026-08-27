@@ -5,6 +5,7 @@ import { alignClass, alignClasses } from '../../lib/align'
 import RichText from '../RichText.astro'
 import BlockRenderer from '../BlockRenderer.astro'
 import HeroCtas from './HeroCtas.astro'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: HeroBlock
@@ -14,7 +15,7 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const {
+const { anchor_id,
   eyebrow,
   heading,
   subheading,
@@ -31,6 +32,8 @@ const {
   own_content_track,
   own_content_track_width,
 } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
 
 // Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading occupy
 // ONE track of the chosen layout; each `columns` entry supplies a further track holding ordinary
@@ -77,7 +80,7 @@ const tracks = [
 
 {
   multiColumn ? (
-    <section class:list={['section-hero', alignModifier]}>
+    <section id={sectionId} class:list={['section-hero', alignModifier]}>
       <div class="container-hero">
         <div class="hero-2col">
           {tracks.map((track) =>
@@ -105,7 +108,7 @@ const tracks = [
       </div>
     </section>
   ) : (
-    <section class:list={['section-hero', alignModifier]}>
+    <section id={sectionId} class:list={['section-hero', alignModifier]}>
       <div class="container-hero">
         <div class="hero-wrapper">
           <div class:list={['hero-col', ...trackAlign]}>

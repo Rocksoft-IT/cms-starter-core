@@ -9,6 +9,7 @@
 // navigation. Colours/fonts come from brand CSS vars, so a client palette rethemes it at build.
 import type { TabsBlock } from '../../types/blocks'
 import BlockRenderer from '../BlockRenderer.astro'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: TabsBlock
@@ -18,6 +19,8 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
+
+const sectionId = sectionAnchorId(block.data.anchor_id)
 
 // Keep only real tabs (a named tab, or one with content). `anchor` is server-derived; fall back
 // to the index so ids stay unique even on a hand-authored payload that omitted it.
@@ -35,7 +38,7 @@ const gid =
 
 {
   tabs.length > 0 && (
-    <section class="section-tabs" data-tabs>
+    <section id={sectionId} class="section-tabs" data-tabs>
       <div class="tabs-inner">
         <div class="tablist" role="tablist">
           {tabs.map((t, i) => (

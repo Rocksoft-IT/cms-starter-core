@@ -10,6 +10,7 @@
 import type { ColumnsBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import BlockRenderer from '../BlockRenderer.astro'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: ColumnsBlock
@@ -19,6 +20,8 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
+
+const sectionId = sectionAnchorId(block.data.anchor_id)
 
 // Track sizing: each column's `width` numerator, falling back to its slot's `layout` share (see
 // src/lib/layout-shares.ts for the width/layout contract). Falling back BEFORE dropping empties
@@ -49,7 +52,7 @@ const measure = block.data.width === 'prose' ? 'var(--layout-container-prose)' :
 const reverse = block.data.mobile_reverse === true
 ---
 
-<section class="section-columns">
+<section id={sectionId} class="section-columns">
   <div
     class:list={['columns-grid', reverse && 'columns-reverse-mobile']}
     style={[`--cols: ${template};`, measure && `--columns-measure: ${measure};`].filter(Boolean).join(' ')}

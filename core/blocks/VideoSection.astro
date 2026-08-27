@@ -1,15 +1,18 @@
 ---
 import type { VideoSectionBlock } from '../../types/blocks'
 import { coreString } from '../ui-strings'
+import { sectionAnchorId } from '../../lib/anchor'
 interface Props {
   block: VideoSectionBlock
   /** The locale this page is being built for, from core/BlockRenderer.astro. */
   locale?: string
 }
 const { block, locale } = Astro.props
+
+const sectionId = sectionAnchorId(block.data.anchor_id)
 ---
 
-<section class="video-section py-16 px-6">
+<section id={sectionId} class="video-section py-16 px-6">
   <div class="max-w-4xl mx-auto">
     {block.data.heading && <h2 class="text-3xl font-bold mb-6">{block.data.heading}</h2>}
     <div class="aspect-video">

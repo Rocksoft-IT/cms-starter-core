@@ -7,18 +7,21 @@
 // collapses to nothing when there are no rows and no heading.
 import type { HoursBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: HoursBlock
 }
 
 const { block } = Astro.props
-const { eyebrow, heading, hours = [], footnote } = block.data
+const { anchor_id, eyebrow, heading, hours = [], footnote } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
 
 const rows = hours.filter((row) => row.day_label || row.hours_label)
 ---
 
-<section class="section-hours">
+<section id={sectionId} class="section-hours">
   <div class="container-global py-16">
     <SectionHeader {eyebrow} {heading} />
 

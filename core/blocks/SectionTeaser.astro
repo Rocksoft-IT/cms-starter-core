@@ -12,6 +12,7 @@ import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: SectionTeaserBlock
@@ -28,7 +29,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const {
+const { anchor_id,
   eyebrow,
   heading,
   layout = 'cards',
@@ -38,6 +39,8 @@ const {
   item_action_label,
   attachments_label,
 } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
 
 const locale = Astro.props.locale ?? defaultLocale
 const hasHeader = Boolean(eyebrow || heading)
@@ -97,7 +100,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
 
 {
   (hasHeader || items.length > 0) && (
-    <section class:list={['section-teaser py-16', isList && 'is-list']}>
+    <section id={sectionId} class:list={['section-teaser py-16', isList && 'is-list']}>
       <div class="container-global">
         <SectionHeader {eyebrow} {heading} />
 
