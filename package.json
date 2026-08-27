@@ -15,10 +15,18 @@
   "peerDependencies": {
     "astro": "*",
     "astro-seo": "*",
-    "@playwright/test": "*"
+    "@playwright/test": "*",
+    "pixelmatch": "*",
+    "pngjs": "*"
   },
   "peerDependenciesMeta": {
     "@playwright/test": {
+      "optional": true
+    },
+    "pixelmatch": {
+      "optional": true
+    },
+    "pngjs": {
       "optional": true
     }
   }
