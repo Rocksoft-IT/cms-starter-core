@@ -11,11 +11,16 @@ const { block } = Astro.props
 const sectionId = sectionAnchorId(block.data.anchor_id)
 // Render the authored level (h2-h4); default h2. Capitalized so Astro treats it as a dynamic tag.
 const Tag = block.data.level ?? 'h2'
+// The kicker above the headline (dashboard#1857). NOT routed through SectionHeader: that component
+// emits a fixed <h2>, and an authorable h1-h4 is this block's whole point — the same call Hero.astro
+// made, for the same reason. `.section-eyebrow` is the shared shortcut, so it reads as one family.
+const eyebrow = block.data.eyebrow
 ---
 
 <section id={sectionId} class="section-content">
   {/* The band carries rhythm, the child carries the measure — see uno.core.ts (dashboard#1852). */}
   <div class="content-inner">
+    {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
     <Tag class="rich-heading">{block.data.text}</Tag>
   </div>
 </section>

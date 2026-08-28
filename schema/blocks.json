@@ -228,7 +228,19 @@
         "label": "Heading",
         "description": "A standalone heading (text + level H1–H4) for structuring a column or section.",
         "icon": "heroicon-o-hashtag",
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "text": 2
+                },
+                "level"
+            ]
+        },
         "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
             "text": {
                 "type": "text"
             },
@@ -1782,6 +1794,70 @@
                     "name": {
                         "type": "text"
                     }
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        },
+        "drop_when_empty": true
+    },
+    "carousel": {
+        "label": "Carousel",
+        "description": "A set of slides shown one at a time, with arrows and dots once there is more than one. Each slide holds its own blocks and an optional full-width background photo — a slide may be a whole Hero, so a rotating hero is authored here rather than built in code. Works as the first block of a page and in the middle of one.",
+        "icon": "heroicon-o-rectangle-stack",
+        "fields": {
+            "slides": {
+                "type": "blocks",
+                "kind": "panels",
+                "allow_hero": true,
+                "labels": {
+                    "panels": "Slides",
+                    "content": "Slide content",
+                    "add_panel": "Add slide",
+                    "add_block": "Add block to slide"
+                },
+                "row_fields": {
+                    "name": {
+                        "type": "text"
+                    },
+                    "image": {
+                        "type": "image"
+                    },
+                    "image_alt": {
+                        "type": "text"
+                    }
+                }
+            },
+            "autoplay": {
+                "type": "toggle",
+                "default": true
+            },
+            "interval": {
+                "type": "select",
+                "default": "6",
+                "options": {
+                    "4": "4 seconds",
+                    "6": "6 seconds",
+                    "8": "8 seconds"
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
                 }
             },
             "anchor_id": {

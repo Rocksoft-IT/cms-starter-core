@@ -1,0 +1,249 @@
+---
+// Core carousel block (dashboard#1838) — an ordered set of slides, one shown at a time. Each slide
+// holds its own blocks (rendered recursively through BlockRenderer, so a `columns` layout — or a
+// whole `hero`, which no other container may hold — Just Works) plus its own full-bleed background
+// picture.
+//
+// The track is a SCROLL-SNAP container, not a transformed strip. That choice is what makes the
+// no-JavaScript state honest: every slide stays reachable by scrolling or swiping, where a
+// translated strip would leave slides 2..n unreachable and the controls inert. It also means a
+// swipe needs no code at all — the browser does it — and the script's job shrinks to moving the
+// scroll position, keeping the dots in step and running autoplay.
+//
+// Progressive enhancement, the same contract Tabs.astro keeps: the first slide is rendered and
+// visible server-side, and the controls are hidden until the script marks the section ready, so a
+// page with no JavaScript never shows a button that does nothing.
+import type { CarouselBlock } from '../../types/blocks'
+import BlockRenderer from '../BlockRenderer.astro'
+import { sectionAnchorId } from '../../lib/anchor'
+import { alignClass } from '../../lib/align'
+import { backgroundClass } from '../../lib/background'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
+import { coreString } from '../ui-strings'
+
+interface Props {
+  block: CarouselBlock
+  /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
+   *  way down (core/BlockRenderer.astro). */
+  locale?: string
+}
+
+const { block, locale } = Astro.props
+const { anchor_id, slides = [], autoplay, interval, background, align } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
+// The shared section-level tokens, exactly as the banded blocks read them (lib/background.ts,
+// lib/align.ts). A slide with its own photograph paints over the band; one without keeps it.
+const bandClass = backgroundClass(background)
+const alignModifier = alignClass(align)
+
+// Keep only slides that render something. `anchor` is server-derived; fall back to the index so
+// ids stay unique even on a hand-authored payload that omitted it (the same guard Tabs applies).
+const items = (slides ?? [])
+  .map((slide, i) => ({
+    name: slide.name ?? '',
+    anchor: slide.anchor || `slide-${i + 1}`,
+    image: slide.image ?? null,
+    imageMeta: slide.image_meta,
+    imageAlt: slide.image_alt ?? '',
+    blocks: slide.blocks ?? [],
+  }))
+  .filter((slide) => slide.image !== null || slide.blocks.length > 0)
+
+// One slide is not a carousel: no chrome, no script, no rotation — the same rule Testimonials
+// applies to its slider layout. The section still renders, so a carousel an editor has only begun
+// filling in shows what is there.
+const isCarousel = items.length > 1
+
+// A group id unique to this block instance (a page may carry several carousels).
+const gid =
+  items
+    .map((slide) => slide.anchor)
+    .join('-')
+    .slice(0, 40) || 'carousel'
+
+// Seconds, as the select stores them. Absent means the registry default; anything unparseable
+// means the same, so a hand-authored payload cannot produce a zero-delay carousel.
+const seconds = Number(interval) > 0 ? String(Number(interval)) : '6'
+
+const arrows = [
+  { step: -1, label: coreString(locale, 'previousSlide'), path: 'M15 18l-6-6 6-6' },
+  { step: 1, label: coreString(locale, 'nextSlide'), path: 'M9 18l6-6-6-6' },
+]
+---
+
+{
+  items.length > 0 && (
+    <section
+      id={sectionId}
+      class:list={['section-carousel section-band', bandClass, alignModifier]}
+      data-carousel={isCarousel ? '' : undefined}
+      data-autoplay={autoplay === false ? 'off' : 'on'}
+      data-interval={seconds}
+      role="group"
+      aria-roledescription="carousel"
+    >
+      {/* tabindex: a scrollable region must be reachable by keyboard, or the slides past the first
+          are unreachable without a pointer. The arrow keys are handled below so a key press lands
+          on a slide boundary rather than scrolling by an arbitrary step. */}
+      <div class="carousel-track" data-carousel-track tabindex="0">
+        {items.map((slide, i) => (
+          <div
+            class="carousel-slide"
+            id={`slide-${gid}-${slide.anchor}`}
+            role="group"
+            aria-roledescription="slide"
+            aria-label={
+              slide.name || coreString(locale, 'slidePosition', { n: String(i + 1), total: String(items.length) })
+            }
+          >
+            {slide.image && (
+              <>
+                <img
+                  class="carousel-bg"
+                  src={slide.image}
+                  alt={slide.imageAlt}
+                  loading={i === 0 ? 'eager' : 'lazy'}
+                  fetchpriority={i === 0 ? 'high' : undefined}
+                  {...responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed)}
+                />
+                {/* The scrim is what keeps text over a photograph readable. A token rather than a
+                    fixed colour, so a site retunes (or removes) it without overriding the block —
+                    the component-level seam `--hero-c1` established. */}
+                <span class="carousel-scrim" aria-hidden="true" />
+              </>
+            )}
+            <div class="carousel-content">
+              <BlockRenderer blocks={slide.blocks} {locale} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isCarousel && (
+        <div class="carousel-controls">
+          {arrows.map((arrow) => (
+            <button
+              type="button"
+              class:list={['carousel-arrow', arrow.step < 0 ? 'is-prev' : 'is-next']}
+              data-slide-step={arrow.step}
+              aria-label={arrow.label}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d={arrow.path} />
+              </svg>
+            </button>
+          ))}
+
+          <div class="carousel-dots">
+            {items.map((slide, i) => (
+              <button
+                type="button"
+                class="carousel-dot"
+                data-slide-to={i}
+                aria-current={i === 0 ? 'true' : 'false'}
+                aria-label={slide.name || coreString(locale, 'goToSlide', { n: String(i + 1) })}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </section>
+  )
+}
+
+{
+  /* Only a real carousel ships any JS (the conditional is:inline pattern Testimonials.astro uses;
+     a bundled <script> is hoisted onto every page whether or not this branch renders). Instances
+     beyond the first are no-ops via the data-carousel-ready guard, which is also the flag the
+     stylesheet reads to reveal the controls. */
+  isCarousel && (
+    <script
+      is:inline
+      set:html={`document.querySelectorAll('[data-carousel]').forEach(function (root) {
+        if (root.dataset.carouselReady) return
+        var track = root.querySelector('[data-carousel-track]')
+        if (!track) return
+        root.dataset.carouselReady = '1'
+
+        var slides = Array.prototype.slice.call(track.children)
+        var dots = Array.prototype.slice.call(root.querySelectorAll('[data-slide-to]'))
+        var motion = window.matchMedia('(prefers-reduced-motion: reduce)')
+        var wants = root.dataset.autoplay !== 'off'
+        var wait = (Number(root.dataset.interval) || 6) * 1000
+        var timer = null
+        var current = 0
+
+        function sync() {
+          dots.forEach(function (dot, i) { dot.setAttribute('aria-current', i === current ? 'true' : 'false') })
+        }
+
+        function goTo(index) {
+          current = ((index % slides.length) + slides.length) % slides.length
+          // Reduced motion means no animation, not no carousel: the slide still changes, it just
+          // arrives instead of sliding.
+          track.scrollTo({ left: current * track.clientWidth, behavior: motion.matches ? 'auto' : 'smooth' })
+          sync()
+        }
+
+        function stop() { clearInterval(timer); timer = null }
+
+        function start() {
+          stop()
+          if (wants && !motion.matches) timer = setInterval(function () { goTo(current + 1) }, wait)
+        }
+
+        // A swipe IS a scroll here, so the scroll position — not a counter — is the truth about
+        // which slide is showing.
+        track.addEventListener('scroll', function () {
+          window.requestAnimationFrame(function () {
+            var index = Math.round(track.scrollLeft / track.clientWidth)
+            if (index !== current && index >= 0 && index < slides.length) { current = index; sync() }
+          })
+        }, { passive: true })
+
+        root.querySelectorAll('[data-slide-step]').forEach(function (button) {
+          button.addEventListener('click', function () { goTo(current + Number(button.dataset.slideStep)); start() })
+        })
+
+        dots.forEach(function (dot, i) {
+          dot.addEventListener('click', function () { goTo(i); start() })
+        })
+
+        root.addEventListener('keydown', function (event) {
+          if (event.key === 'ArrowRight') goTo(current + 1)
+          else if (event.key === 'ArrowLeft') goTo(current - 1)
+          else if (event.key === 'Home') goTo(0)
+          else if (event.key === 'End') goTo(slides.length - 1)
+          else return
+          event.preventDefault()
+          start()
+        })
+
+        // Autoplay must never move the thing somebody is reading or operating.
+        root.addEventListener('pointerenter', stop)
+        root.addEventListener('pointerleave', start)
+        root.addEventListener('focusin', stop)
+        root.addEventListener('focusout', function (event) { if (!root.contains(event.relatedTarget)) start() })
+        motion.addEventListener('change', start)
+
+        // Tick only while the carousel is actually on screen.
+        new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) { entry.isIntersecting ? start() : stop() })
+        }).observe(root)
+
+        sync()
+      })`}
+    />
+  )
+}

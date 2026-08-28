@@ -64,4 +64,9 @@ export const IMAGE_SIZES = {
   halfPanel: '(min-width: 768px) 50vw, 100vw',
   /** An image spanning the content measure, which is most of a wide viewport but not all of it. */
   contentWidth: '(min-width: 1024px) 75vw, 100vw',
+  /**
+   * A picture that really is the full viewport width: a carousel slide's background, which bleeds
+   * past every container by design. No breakpoints, because there is no narrower state to describe.
+   */
+  fullBleed: '100vw',
 } as const

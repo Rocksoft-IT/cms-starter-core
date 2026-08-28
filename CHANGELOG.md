@@ -25,7 +25,72 @@ floor** — it is present and silent there.
 
 **v0.48.0 is empty.** It carries nothing a client can use; see its entry.
 
-## Unreleased
+## v0.51.0 — a carousel block, and an eyebrow on the heading block
+
+### A carousel block, and one container may finally hold a hero (dashboard#1838)
+
+New `carousel` block: an ordered set of slides, one shown at a time, each holding its own blocks
+and its own background picture. It renders wherever a block can go — the first block of a page or
+mid-page — which is what a `slides` repeater on `hero` could never have done, since `hero` is
+barred from every container. That is the one rule this ships an exception to: a slide of a
+**top-level** carousel may hold a whole `hero`, so a rotating hero keeps its real typography, CTAs
+and CTA card instead of a copy of five of its fields (dashboard#1838).
+
+`core/blocks/Carousel.astro` is new. Progressive enhancement, same contract as `Tabs.astro`: every
+slide is a real element in a **scroll-snap track**, not a transformed strip, so with no JavaScript
+every slide stays reachable by scrolling and a swipe is the browser's own gesture, not code. Arrows
+and dots appear, and the ~1 KB inline script ships, only once `slides.length > 1` — a one-slide
+carousel is a plain section. Autoplay (the block's own `autoplay`/`interval` fields) pauses on
+hover, on keyboard focus and off screen, and never runs at all under `prefers-reduced-motion`.
+
+**A fix that reaches this package, not the site layer, on purpose.** Building the rotating-hero
+fixture surfaced a real bug: `blocksCarryHeading()` — which of a page's blocks already put an
+`<h1>` on it, so the layout knows whether to add its own — only looked inside `columns`/`tabs` and
+only one level deep, so a hero in a carousel slide got a SECOND `<h1>`, the layout's fallback
+outranking the authored one. The fix (adding `slides`, and making the walk recursive under
+ADR-0003) is not a template file — it used to live at `src/lib/page-title.ts`, a **site-layer**
+file "Update starter" cannot touch. It has moved into this package as `lib/page-title.ts`; the
+site file is now a one-line re-export, so a site's own imports need no change, but this is the
+last time this class of bug fixes itself only in newly generated repos.
+
+**Wiring required for a repo that already carries `src/lib/page-title.ts`** (every repo generated
+before this tag): replace its content with the re-export —
+
+```ts
+export { blocksCarryHeading } from '@rocksoft/cms-starter-core/lib/page-title'
+```
+
+— on the same `starter-update` branch as the pin bump. Skipping this keeps the OLD bug: a rotating
+hero on that client still ships two `<h1>`s until the file is swapped, even though the pin is
+current.
+
+### The `heading` block gets an eyebrow (dashboard#1857)
+
+**Visible on any site whose editors fill the new field; inert everywhere else.** `heading` was the
+last section-shaped block with no `eyebrow` — the other thirteen all carry one. So a band that pairs
+a small label with a headline had one string for two, and the label won: on scandinavian-taste's
+home the `<h2>` holds "Våre produsenter" and the real headline was simply dropped. That is the same
+content-destroying workaround the hero's eyebrow closed in dashboard#1509, not a cosmetic gap.
+
+`Heading.astro` now renders `{eyebrow && <p class="section-eyebrow">{eyebrow}</p>}` above the
+heading, and the field is `data.eyebrow` on `HeadingBlock`. It is **not** routed through
+`SectionHeader.astro`, for the reason the hero recorded: that component emits a fixed `<h2>`, and an
+authorable h1–h4 is this block's entire point. It reuses `section-eyebrow` so it reads as one family
+with the ten blocks already using it, which also means a site that has retuned that key gets the new
+eyebrow already in its own voice.
+
+**The second half is per-client and this bump does not do it.** A site whose component keys a layout
+off the heading's literal TEXT — scandinavian-taste's `src/project/blocks/Heading.astro` matches
+`text === 'våre produsenter'` to open a white band — keeps that matcher until its own repo drops it
+in favour of the real field. Until then, renaming that heading in the panel still silently drops the
+band.
+
+## v0.50.0 — the footer defaults to styled, populated and present
+
+Published as v0.50.0 (dashboard#1867 pinned the template to it). Its entries were written
+under "Unreleased" and the tag was cut before anyone relabelled them, so they are filed here
+now — a heading that says "Unreleased" above shipped code is the one thing this file exists
+to prevent.
 
 ### The footer stops being unstyled, and stops being absent (dashboard#1852)
 
@@ -63,6 +128,7 @@ brand name — in the same wrapper, so one set of styles paints all three states
 its own. Both now wrap in `content-inner` like `RichContent`, i.e. `container-narrow` (900px)
 instead of full-bleed. A site that had compensated for the old behaviour in its own CSS should
 check those two blocks after the bump.
+
 
 ## v0.49.0 — a client can paste an embed without a developer
 

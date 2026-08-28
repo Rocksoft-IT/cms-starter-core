@@ -40,6 +40,12 @@ export interface CoreStrings {
    * IN ENGLISH is the failure this seam exists to stop, so it is a key rather than a literal.
    */
   videoFrame: string
+  /** The carousel's arrows, and the dot that jumps to one slide. */
+  previousSlide: string
+  nextSlide: string
+  goToSlide: string
+  /** Announced on each slide, so a screen reader knows where it is in the set. */
+  slidePosition: string
 }
 
 /**
@@ -62,6 +68,10 @@ const BUILT_IN: Record<string, CoreStrings> = {
     previousTestimonial: 'Previous testimonial',
     nextTestimonial: 'Next testimonial',
     videoFrame: 'Embedded video',
+    previousSlide: 'Previous slide',
+    nextSlide: 'Next slide',
+    goToSlide: 'Go to slide {n}',
+    slidePosition: 'Slide {n} of {total}',
   },
   pl: {
     galleryZoomNamed: 'Powiększ: {name}',
@@ -73,6 +83,10 @@ const BUILT_IN: Record<string, CoreStrings> = {
     previousTestimonial: 'Poprzednia opinia',
     nextTestimonial: 'Następna opinia',
     videoFrame: 'Osadzone wideo',
+    previousSlide: 'Poprzedni slajd',
+    nextSlide: 'Następny slajd',
+    goToSlide: 'Przejdź do slajdu {n}',
+    slidePosition: 'Slajd {n} z {total}',
   },
 }
 

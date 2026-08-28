@@ -35,6 +35,9 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   // hand-authored in src/types/blocks.ts. Renders a grid, delegating children back to BlockRenderer.
   columns: () => import('./blocks/Columns.astro'),
   tabs: () => import('./blocks/Tabs.astro'),
+  // Carousel — the second `panels`-kind nesting block (dashboard#1838). Like Tabs it delegates each
+  // slide's children back to BlockRenderer; unlike every other container, a slide may hold a `hero`.
+  carousel: () => import('./blocks/Carousel.astro'),
   pricing_teaser: () => import('./blocks/PricingTeaser.astro'),
   highlights: () => import('./blocks/Highlights.astro'),
   // Documents — a titled list of downloadable files from the Files library; the API resolves each

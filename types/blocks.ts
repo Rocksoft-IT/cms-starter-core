@@ -118,7 +118,9 @@ export interface HeroBlock {
 }
 // Recursive (ADR-0003): a container child may itself be any block, including another container.
 // Depth is bounded at runtime (Blocks::NESTING_CAP = 2), not in the type. `HeroBlock` stays
-// excluded — a page hero is never a column/panel child (it's a top-level, full-width block).
+// excluded — a page hero is never a COLUMN's or a TAB's child (it's a top-level, full-width
+// block). The one container that does admit it is a carousel slide, which is full-width itself:
+// see `CarouselSlide.blocks`, typed `Block` rather than this (dashboard#1838).
 export type ColumnChild = Exclude<Block, HeroBlock>
 
 // `tabs` is a `panels`-kind nesting block (#894, ADR-0003): a set of named tabs, each holding
@@ -138,6 +140,46 @@ export interface TabsBlock {
      *  because codegen skips this interface — see the note above it. */
     anchor_id?: string
     tabs: TabPanel[]
+  }
+}
+
+// `carousel` is the second `panels`-kind nesting block (dashboard#1838): an ordered set of slides
+// of which one shows at a time. Like a tab, a slide carries an authored `name` and a server-derived
+// per-locale `anchor`; unlike one it also carries its own background picture, because a rotating
+// hero needs a different photograph per slide and `hero` has carried no image field since #669.
+export interface CarouselSlide {
+  name?: string
+  anchor?: string
+  /** The slide's full-width background, already absolutized by the API; absent when unset. */
+  image?: string | null
+  image_meta?: ResponsiveImageMeta
+  /** Optional by design: a photograph behind a heading is usually decorative, and an invented
+   *  alt reads worse to a screen reader than an empty one. */
+  image_alt?: string
+  /**
+   * `Block`, not `ColumnChild`: a slide is a full-width page region rather than a narrow track, so
+   * it is the ONE container that may hold a `hero` — which is what makes a rotating hero content
+   * instead of three heroes' worth of CSS in a client repo. The backend admits it only for a
+   * top-level carousel (Blocks::panelsAllowsHero); a nested one offers no nesting block at all, so
+   * the bound is the cap's, not this type's.
+   */
+  blocks: Block[]
+}
+
+export interface CarouselBlock {
+  type: 'carousel'
+  data: {
+    /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
+     *  because codegen skips this interface — see the note above it. */
+    anchor_id?: string
+    slides: CarouselSlide[]
+    /** Rotate on its own. Absent means ON — the registry's default — and `prefers-reduced-motion`
+     *  overrides it in the renderer either way. */
+    autoplay?: boolean
+    /** Seconds between slides, as the select stores them: '4' | '6' | '8', default '6'. */
+    interval?: string
+    background?: string
+    align?: 'default' | 'left' | 'center'
   }
 }
 
@@ -426,7 +468,7 @@ export interface ButtonBlock {
 
 export interface HeadingBlock {
   type: 'heading'
-  data: { text?: string; level?: 'h1' | 'h2' | 'h3' | 'h4'; anchor_id?: string }
+  data: { eyebrow?: string; text?: string; level?: 'h1' | 'h2' | 'h3' | 'h4'; anchor_id?: string }
 }
 
 export interface SeparatorBlock {
@@ -709,3 +751,4 @@ export type Block =
   | PricingTableBlock
   | ColumnsBlock
   | TabsBlock
+  | CarouselBlock

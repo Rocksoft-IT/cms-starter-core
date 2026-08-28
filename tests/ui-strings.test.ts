@@ -17,6 +17,10 @@ const KEYS = [
   'nextPhoto',
   'previousTestimonial',
   'nextTestimonial',
+  'previousSlide',
+  'nextSlide',
+  'goToSlide',
+  'slidePosition',
 ] as const satisfies readonly (keyof CoreStrings)[]
 
 describe('coreString()', () => {

@@ -437,6 +437,34 @@ export const coreShortcuts: Record<string, string> = {
     '[.is-slider_&]:transition-transform [.is-slider_&]:duration-500',
   'testimonial-slide': '[.is-slider_&]:w-full [.is-slider_&]:shrink-0',
 
+  // ── Carousel block ──────────────────────────────────────────────────────────
+  // A scroll-snap track, not a transformed strip: the slides stay reachable by scroll and swipe
+  // with no JavaScript at all, and the browser owns the gesture. The scrollbar is hidden because
+  // the dots and arrows already say where you are — the scroller itself is the mechanism, not the
+  // control.
+  'section-carousel': 'relative overflow-hidden',
+  'carousel-track':
+    'flex w-full [scroll-snap-type:x_mandatory] overflow-x-auto ' +
+    '[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ' +
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
+  'carousel-slide': 'relative w-full shrink-0 [scroll-snap-align:start] flex flex-col justify-center',
+  // The picture sits behind the slide's blocks, cropped to whatever height the tallest slide sets.
+  'carousel-bg': 'absolute inset-0 w-full h-full object-cover',
+  // Contrast for text over a photograph. A token so a site can retune or remove it (the
+  // component-level seam, like --hero-c1) without overriding the block.
+  'carousel-scrim': 'absolute inset-0 [background:var(--carousel-scrim,rgba(0,0,0,0.35))]',
+  'carousel-content': 'relative w-full',
+  // Hidden until the script marks the section ready: a control that cannot work must not be shown.
+  'carousel-controls': 'hidden [[data-carousel-ready]_&]:block',
+  'carousel-arrow':
+    'absolute top-1/2 -translate-y-1/2 z-1 w-11 h-11 flex items-center justify-center ' +
+    'rounded-[8px] border-none cursor-pointer bg-text-primary text-body ' +
+    '[&.is-prev]:left-4 [&.is-next]:right-4',
+  'carousel-dots': 'absolute bottom-4 left-0 right-0 z-1 flex justify-center gap-2',
+  'carousel-dot':
+    'w-3 h-3 p-0 rounded-full border-none cursor-pointer bg-text-primary opacity-40 ' +
+    '[&[aria-current="true"]]:opacity-100 [&[aria-current="true"]]:bg-primary',
+
   // ── Tabs block ──────────────────────────────────────────────────────────────
   // The selected state rides `[aria-selected='true']` rather than a class: the tab strip's source
   // of truth is the ARIA attribute the script already maintains, so styling it directly keeps the
