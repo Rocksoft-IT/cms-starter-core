@@ -4,6 +4,192 @@ Client sites pin this package by git tag (`package.json`:
 `git+https://github.com/Rocksoft-IT/cms-starter-core.git#v0.6.0`), so a bump is a deliberate act —
 this file is what tells you what the bump changes.
 
+## Reading v0.43.0 → v0.49.0 together
+
+Seven tags in eleven hours, backfilled here after the fact. Three things a reader coming from
+v0.42.0 needs before the individual entries:
+
+**Three of them need a per-client edit, not just a pin bump.** The conformance floor (v0.43.0),
+the VRT harness (v0.46.0) and custom code (v0.49.0) all ship code that runs only once the repo
+mounts or registers it. **The template is already wired** — `frontend/`'s `playwright.config.ts`,
+`playwright.vrt.config.ts` and `Layout.astro` carry all three — so a client provisioned from here
+is born correct. An **existing** repo is not: the panel writes a repo's tree once, at provisioning.
+That is the [Core capability needs per-client wiring](../../../docs/agents/frontend-and-fleet.md)
+case, and the order per repo is unchanged: **bump the pin first, wire second, both on the same
+`starter-update` branch** — the wiring imports modules the older pin does not have.
+
+**The conformance floor did not work on any client until v0.45.0.** v0.43.0 shipped it as
+TypeScript, which Playwright's Node loader refuses to strip under `node_modules`; v0.44.0 converted
+it and v0.45.0 fixed the ESM extensions it needed. **Do not pin to v0.43.0 or v0.44.0 for the
+floor** — it is present and silent there.
+
+**v0.48.0 is empty.** It carries nothing a client can use; see its entry.
+
+## Unreleased
+
+### The footer stops being unstyled, and stops being absent (dashboard#1852)
+
+Three changes to `Footer.astro`, and one of them is visible on every existing site the moment the
+pin moves.
+
+**It now has a default look.** `Footer.astro` emitted `.site-footer`, `.footer-inner`,
+`.footer-columns`, `.footer-links` and friends and painted none of them, deferring to a site
+stylesheet — `src/styles/site.css` — that the starter ships EMPTY. So every generated repo rendered
+a black-on-white column of browser-default bullet lists flush against the viewport edge. The paint
+is now `coreShortcuts` entries, exactly the treatment `cookie-consent__*` already has and for the
+reason its own comment gives: a component that ships no CSS leaves a fresh client with a bare
+unstyled bar. Every value is a palette token, so it inherits a client's brand unedited and inverts
+on a dark theme. **A site overrides any of those keys in its own `src/uno.ts`** — site keys win on
+collision, no `!important`.
+
+**It reads the footer MENU.** Columns come from the `footer` component's `footer_links` as before,
+and *failing that* from `GET /api/menus/{cmsConfig.menus.footer}` — a menu group becomes a column,
+its children the links, a top-level leaf a link in the unlabelled column. `footer_links` keeps
+precedence, so a client that filled it in sees no change. This is not a new idea: smbp's own
+`Footer.astro` has always driven its columns off `getMenu('footer')` while core knew only the
+component, so the two halves of the fleet did one thing two ways. The `menus.footer` config seam and
+the `menus.footer.json` fixture already existed and had no reader.
+
+**It no longer self-gates to nothing.** Neither source exists until an editor creates it, so a
+freshly provisioned site had no footer at all. With neither, the component now renders a copyright
+line — `© <year> <site name>`, from `seo.siteName`, which provisioning stamps with the client's
+brand name — in the same wrapper, so one set of styles paints all three states.
+
+### `section-content` blocks get the measure v0.3.0 moved to `content-inner`
+
+**Visible on any site using the `heading` or `paragraph` block.** v0.3.0 took the container off
+`section-content` and moved it to `content-inner`; `RichContent` was migrated and `Heading` and
+`Paragraph` were not, so their text ran edge to edge on any site whose stylesheet had no opinion of
+its own. Both now wrap in `content-inner` like `RichContent`, i.e. `container-narrow` (900px)
+instead of full-bleed. A site that had compensated for the old behaviour in its own CSS should
+check those two blocks after the bump.
+
+## v0.49.0 — a client can paste an embed without a developer
+
+Per-client custom code: an admin pastes raw `<script>`/HTML into the panel, it is stored on the
+client and served by `GET /api/site-settings`, and the build emits it.
+
+Core gains `core/CustomCode.astro` and `core/customCode.ts`, with `lib/api.ts` carrying the values
+through. The snippets are sanitised and placed, not trusted verbatim — that is what the 245 lines
+of `customCode.ts` and its 214 lines of tests are for.
+
+**Wiring required.** The component has to be mounted where the snippets belong:
+
+```astro
+import CustomCode from '@rocksoft/cms-starter-core/core/CustomCode.astro'
+…
+<CustomCode placement="head" />   <!-- in <head> -->
+<CustomCode placement="body" />   <!-- last in <body> -->
+```
+
+`CookieConsent.astro` moved with it, so a site that mounts consent should re-read that section
+rather than assume its old shape.
+
+## v0.48.0 — nothing
+
+Cut from a pin-bump merge commit nine minutes after v0.47.0, so its tree is v0.47.0's tree. **No
+core file differs between them.** A site already on v0.47.0 gains nothing by moving to v0.48.0;
+a site below it should simply go past both.
+
+It is recorded rather than skipped because a gap in the sequence reads as a lost entry, and
+"there is nothing here" is the useful thing to know.
+
+## v0.47.0 — every section-level block can be linked to
+
+`anchor_id` was **copy-pasted into eight block definitions** instead of declared once, so in-page
+navigation worked on exactly those eight. Roughly fifteen section-level blocks an editor would
+reasonably link to — a hero, a contact band, a tabbed panel, a columns row — could not be linked to
+at all (#1775).
+
+`config/cms.php` already stated the intended model: a field named `anchor_id`, `background`, `align`
+or `reveal` lands in every block's collapsed **Advanced** section, because it means the same thing
+wherever it appears (`Blocks::ADVANCED_FIELDS`). Three of the four were declared once. This one was
+not.
+
+The rule for which blocks get it is structural, not taste: **every block whose renderer emits a root
+`<section>`**, because that is the element an id can address. A pin bump and nothing else — a block
+with no `anchor_id` set emits no id, exactly as before.
+
+## v0.46.0 — the visual-regression harness ships with core
+
+It existed in **one client repo of seven**, while the `vrt-workflow` skill documented it as though
+every repo had it (#1798). Now `packages/cms-starter-core/tests/vrt/` carries the spec and the route
+list, resolved the way the conformance floor is.
+
+Beyond "the old site we replaced", it takes a **static prototype** as the reference: serve a repo of
+HTML locally, point `OLD_BASE_URL` at it, and a port becomes a loop with a number in it — scaffold,
+write the UnoCSS, `test:vrt`, read the percentage, iterate.
+
+`OLD_BASE_URL` has **no default**: one client's production host as a shared default is how a shared
+harness starts lying on the other six.
+
+**Wiring required** — `playwright.vrt.config.ts` and a `routes.ts` with one entry per distinct
+layout, not per page. It is a report, not a gate: the new build is a rewrite, not a byte-for-byte
+port, so it surfaces drift for a human to read.
+
+## v0.45.0 — the floor actually runs now
+
+Two corrections to v0.44.0's conversion, **both found by running the suite from a client repo rather
+than from this tree** — which is the only place either could show up.
+
+1. **ESM needs the extension.** `from './fixtures'` resolves under TypeScript and does not in plain
+   ESM. The suite was discovered in scandinavian-taste — `Total: 236 tests in 1 file`, the mechanism
+   working — and then died on `Cannot find module '.../conformance/fixtures'`.
+2. The regex used to strip `as T` casts also stripped the word "as" out of prose comments.
+
+Fix 1 was verified by patching the installed package in place **before** releasing anything; the
+same 236 tests then collected and ran.
+
+## v0.44.0 — the conformance suite becomes JavaScript, and two fields land
+
+**The floor could not run on any client as shipped in v0.43.0.** Pinning scandinavian-taste to it
+and adding the conformance project produced:
+
+```
+Error: Stripping types is currently unsupported for files under node_modules,
+       for ".../tests/conformance/quality.spec.ts"
+Total: 0 tests in 0 files
+```
+
+Node refuses to strip types from `.ts` under `node_modules`. The rest of the package is unaffected
+because Astro and Vite compile it — this is Playwright's Node-based loader specifically. So
+`tests/conformance/` is plain JavaScript, and anything else core ships for a client to *execute*
+must be too.
+
+Riding the same tag, two field additions, each closing a gap that failed silently:
+
+- **`feature_cards` gains an `icon` select.** Which glyph sits in a card's tinted square is per-card
+  data; the drawing is not, so the field holds a **name** — raw `<svg>` in a text field is
+  unthemeable and an injection hole. The vocabulary is a census, not a guess: 127 cards across 26
+  machines drew 18 glyphs, of which two clocks, two bolts and two screens differ by a stroke
+  invisible at 22px. Folded, that is the fifteen offered. Optional; a card without one still renders.
+- **`hero` gains `paragraph`.** `subheading` is the hero's LEAD, sized to carry the headline. A hero
+  that also wanted ordinary body copy could only pour it into the lead, where it renders at lead size.
+
+## v0.43.0 — the quality floor ships with core
+
+Counted across all seven client repos: the floor existed in **one**. The defect that started it — a
+pill 18px wider than a 320px viewport — would have been invisible on the other six, and the template
+had no such checks either, so a client provisioned that morning was born with 29 specs covering
+core's renderers and nothing covering whether its own pages fit on a phone.
+
+`packages/cms-starter-core/tests/conformance/` asserts engine properties, not design ones, across
+five checks — `narrowOverflow`, `headingOutline`, `imageContract`, `iframeTitle`, `border3px` — plus
+focus visibility on interactive elements. Per-site escapes go in `tests/conformance.exemptions.json`,
+where **every entry must carry a `reason`**; one without is ignored and warned about, because an
+unexplained silence is what the file exists to prevent. Core's own deliberate cases are known to the
+checks, so a site never re-declares them. The template ships **no** exemptions, and that is the state
+to aim for.
+
+Reasoning: [`0004-conformance-floor-ships-with-core.md`](../../../context/discovery/decisions/0004-conformance-floor-ships-with-core.md).
+
+**Expect red on first wiring, and that is not a regression.** Run against 24 pages of a live site,
+it found two real defects on its first outing (`scandinavian-taste#101`): the phone could pan
+sideways, and every page opened its outline on an `h4`.
+
+**But see v0.44.0 and v0.45.0 — as shipped here the suite collects zero tests.** Wire it at v0.45.0
+or later.
+
 ## v0.42.0 — the declared-but-unrendered fields are settled, and the advisor pill becomes a CTA card
 
 **Seven changes ride this tag, and two of them are breaking.** Read those two first — everything

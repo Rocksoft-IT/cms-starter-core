@@ -295,6 +295,14 @@ export const coreShortcuts: Record<string, string> = {
   'section-buttons': 'py-8 container-narrow actions-row',
 
   // ── Rich content block ───────────────────────────────────────────────────────
+  // THE PAIR IS THE RULE, and every caller has to honour both halves: `section-content` is a
+  // full-bleed band carrying vertical rhythm and NO measure, and the measure goes on an inner
+  // `content-inner`. v0.3.0 moved it here from the band ("`section-content` | No longer carries the
+  // container; the measure moved to `content-inner`") and migrated RichContent; Heading, Paragraph
+  // and the starter's two page types were left putting their content straight inside the band, so
+  // their text ran edge to edge on any site whose stylesheet had no opinion (dashboard#1852). Put
+  // the container back on `section-content` and RichContent double-nests at 90% of 90%, and a band
+  // background stops being full-bleed — which is why the fix is at the call sites, not here.
   'section-content': 'section-y',
   'content-inner': 'container-narrow',
 
@@ -788,6 +796,45 @@ export const coreShortcuts: Record<string, string> = {
   // including this one, and the category rows above DO want that stretch (so their own
   // `justify-between` header has the full width to split across).
   'cookie-consent__allow-selection': 'self-start',
+
+  // ── Site footer (Footer.astro, dashboard#1852) ─────────────────────────────
+  // Same decision as the consent banner above, for the same reason and one step later. Footer.astro
+  // emits semantic class hooks and no visual CSS, and the site layer it defers to — `src/styles/
+  // site.css` — ships EMPTY, so `.site-footer` et al. had no rule anywhere in a generated repo:
+  // every provisioned site ended in a black-on-white column of browser-default bullet lists at the
+  // viewport edge. "The client will write it" is not a default, it is a bill, and it was being sent
+  // to every client at once. Measured before this landed: raw-operations' `site.css` was still the
+  // verbatim 4-line "intentionally empty" comment, while rebelia had paid the bill by hand.
+  //
+  // Here rather than in the starter's site.css because site files are copied ONCE, at provisioning,
+  // and never re-synced (dashboard#1694) — a fix there reaches future clients only, and leaves the
+  // live ones that actually have this defect with it forever. A core shortcut reaches them all on
+  // the next pin bump, and a site still overrides any key below in its own src/uno.ts, where site
+  // keys win on collision with no !important.
+  //
+  // Every value is a palette token, so the footer inherits a client's brand with no edit at all —
+  // and inverts correctly on a dark-themed one, which a literal could not.
+  'site-footer':
+    'section-y bg-surface-alt border-0 border-t border-solid border-border ' +
+    'text-text-secondary text-[0.95rem] leading-relaxed footer-anchors',
+  // Its own key rather than more classes on `site-footer`, so a site that wants a different band
+  // redefines one and keeps the other — the split `cookie-consent__link` already has. Descendant
+  // selectors because the anchors come from CMS data, not from a class core can put on them.
+  'footer-anchors':
+    '[&_a]:text-text-primary [&_a:hover]:text-primary [&_a:hover]:underline ' +
+    '[&_a:focus-visible]:text-primary [&_a:focus-visible]:underline',
+  'footer-inner': 'container-global grid gap-8',
+  'footer-brand': 'max-h-12 w-auto justify-self-start',
+  'footer-columns': 'grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-x-8 gap-y-6',
+  'footer-column-heading': 'text-heading font-semibold mb-2',
+  'footer-links': 'list-reset [&>li+li]:mt-1.5',
+  // The last register in the footer, and it gets the hairline rather than a heading it has no room
+  // for. Core renders each social link's label as the bare provider key (`facebook`), so the
+  // capital belongs here — a site that wants icons redefines this key against `[data-social]`.
+  'footer-social': 'list-reset flex flex-wrap gap-4 pt-6 border-0 border-t border-solid border-border [&_a]:capitalize',
+  // `company_text` is CMS rich text — one or more <p>, which the site's global.css resets to
+  // `margin: 0`, so consecutive paragraphs would collide without this.
+  'footer-legal': '[&>p+p]:mt-2',
 }
 
 /**

@@ -14,5 +14,8 @@ const Tag = block.data.level ?? 'h2'
 ---
 
 <section id={sectionId} class="section-content">
-  <Tag class="rich-heading">{block.data.text}</Tag>
+  {/* The band carries rhythm, the child carries the measure — see uno.core.ts (dashboard#1852). */}
+  <div class="content-inner">
+    <Tag class="rich-heading">{block.data.text}</Tag>
+  </div>
 </section>

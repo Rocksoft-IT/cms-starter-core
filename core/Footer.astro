@@ -1,17 +1,37 @@
 ---
-// Core site footer — a global CMS component (GET /api/components/footer), rendered once by the
-// layout the way Navbar renders the header. Like Navbar it SELF-GATES: no active `footer`
-// component (404) → getFooter resolves null → nothing renders. A failed request rejects instead,
-// which the .catch below turns into the same nothing — the difference is that a failure is not
-// memoized, so it costs this page's footer rather than the whole build's.
+// Core site footer, rendered once by the layout the way Navbar renders the header.
 //
-// Structure only. This core renderer emits semantic class hooks and NO visual CSS — each client
-// frontend styles `.site-footer` et al. in its own stylesheet (the core-structure / client-style
-// seam). Mirror CtaBanner.astro (semantic classes), not MainFeatures.astro (inline utilities).
-import { getFooter } from '../lib/api'
-import type { FooterLink } from '../lib/api'
+// It draws from TWO CMS sources, in this order, and that is the point of dashboard#1852:
+//
+//   1. the `footer` global component (GET /api/components/footer) — logo, company text, an explicit
+//      `footer_links` list with its own column names, and the social URLs;
+//   2. failing that, the footer MENU (GET /api/menus/{cmsConfig.menus.footer}) — the same menu the
+//      panel manages beside the header one, with a group as a column and its children as links.
+//
+// Source 2 is new here and is not a new idea: smbp's hand-written `src/components/Footer.astro`
+// has always driven its columns off `getMenu('footer')`, while this renderer knew only source 1.
+// Two mechanisms for one thing, and the starter used the one smbp does not — so the next client
+// wrote a third. The starter even shipped a `menus.footer.json` fixture and a `menus.footer` config
+// seam that nothing consumed. This is that seam finally having a reader.
+//
+// And unlike Navbar it does NOT self-gate to nothing. Neither source exists until an editor creates
+// it, so gating on them meant a freshly provisioned site shipped with no footer at all, for as long
+// as nobody noticed. With neither, this falls back to the minimum a page owes its reader — a
+// copyright line — in the same wrapper the other two render into, so one set of styles paints all
+// three and there is no second code path to keep in step.
+//
+// A failed request rejects rather than resolving null, which the .catch below turns into the next
+// source down; the difference is that a failure is not memoized, so it costs this page's footer
+// content rather than the whole build's.
+//
+// Structure only, still: this renderer emits semantic class hooks and no scoped CSS. What changed
+// in #1852 is that the hooks now have a neutral default look, as `coreShortcuts` entries in
+// core/uno.core.ts — the same treatment the cookie banner got, and for the same reason. A site
+// overrides any of those keys in its own src/uno.ts.
+import { getFooter, getMenu } from '../lib/api'
+import { getEffectiveConfig } from './effectiveConfig'
+import { footerColumns } from '../lib/footer'
 import RichText from './RichText.astro'
-import { href as hrefOf } from '../lib/href'
 
 interface Props {
   /** The locale of the page this footer renders on — drives the per-locale content fetch. */
@@ -22,14 +42,20 @@ const { locale = 'en' } = Astro.props
 
 const footer = await getFooter(locale).catch(() => null)
 
-// Group the flat link list into explicit columns, preserving first-seen column order. An empty
-// `column` groups under one unlabelled column (heading omitted below).
-const columns = new Map<string, FooterLink[]>()
-for (const link of footer?.footer_links ?? []) {
-  const key = link.column ?? ''
-  if (!columns.has(key)) columns.set(key, [])
-  columns.get(key)!.push(link)
-}
+// `getEffectiveConfig` is memoized per build and every route has already resolved it — the catch-all
+// awaits it in `getStaticPaths`, before any page renders — so both reads below are free.
+const { menus, seo } = await getEffectiveConfig()
+
+// The link columns, from `footer_links` if it names any and from the footer menu otherwise. The
+// derivation — precedence, the group/leaf mapping, an external link's target and rel — lives in
+// lib/footer.ts, where it is testable without a build; here it is one call.
+//
+// The menu is fetched only when the first source came up empty, and `getMenu` is memoized per
+// key+locale, so this is one request per locale for the whole build rather than one per page.
+const columns = footerColumns(
+  footer?.footer_links,
+  (footer?.footer_links?.length ?? 0) > 0 ? null : await getMenu(menus.footer, locale).catch(() => null),
+)
 
 // Social links: only the URLs the editor filled in, in a fixed order. `data-social` lets a
 // client style/icon each one without the core hardcoding any glyph.
@@ -40,48 +66,67 @@ const socials = (
     ['instagram', footer?.instagram_url],
   ] as [string, string | undefined][]
 ).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1].trim() !== '')
+
+// The last resort, and the only thing that renders when the CMS carries no footer at all.
+// `seo.siteName` rather than site-settings alone because it falls back to the site config's own
+// value, which provisioning stamps with the client's brand name (dashboard#826) — so this reads
+// correctly on a repo whose panel site-settings are still empty. A client that has named itself
+// nowhere gets `© <year>`.
+const hasContent = Boolean(footer?.logo?.url || footer?.company_text || columns.length > 0 || socials.length > 0)
+const siteName = seo.siteName?.trim()
+const copyright = `© ${new Date().getFullYear()}${siteName ? ` ${siteName}` : ''}`
 ---
 
-{
-  footer && (
-    <footer class="site-footer">
-      <div class="footer-inner">
-        {footer.logo?.url && <img class="footer-brand" src={footer.logo.url} alt={footer.logo.alt ?? ''} />}
+<footer class="site-footer">
+  <div class="footer-inner">
+    {footer?.logo?.url && <img class="footer-brand" src={footer.logo.url} alt={footer.logo.alt ?? ''} />}
 
-        {footer.company_text && <RichText class="footer-legal" html={footer.company_text} />}
+    {footer?.company_text && <RichText class="footer-legal" html={footer.company_text} />}
 
-        {columns.size > 0 && (
-          <div class="footer-columns">
-            {[...columns].map(([heading, links]) => (
-              <nav class="footer-column">
-                {heading && <p class="footer-column-heading">{heading}</p>}
-                <ul class="footer-links">
-                  {links.map(
-                    (link) =>
-                      link.href && (
-                        <li>
-                          <a href={hrefOf(link.href)}>{link.label ?? link.href}</a>
-                        </li>
-                      ),
-                  )}
-                </ul>
-              </nav>
-            ))}
-          </div>
-        )}
+    {
+      columns.length > 0 && (
+        <div class="footer-columns">
+          {columns.map(({ heading, links }) => (
+            <nav class="footer-column">
+              {heading && <p class="footer-column-heading">{heading}</p>}
+              <ul class="footer-links">
+                {links.map((link) => (
+                  <li>
+                    <a href={link.href} target={link.target} rel={link.rel}>
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
+        </div>
+      )
+    }
 
-        {socials.length > 0 && (
-          <ul class="footer-social">
-            {socials.map(([name, url]) => (
-              <li>
-                <a href={url} data-social={name} target="_blank" rel="noopener noreferrer">
-                  {name}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-    </footer>
-  )
-}
+    {
+      socials.length > 0 && (
+        <ul class="footer-social">
+          {socials.map(([name, url]) => (
+            <li>
+              <a href={url} data-social={name} target="_blank" rel="noopener noreferrer">
+                {name}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+
+    {
+      !hasContent && (
+        /* A <div> around a <p>, because that is what RichText emits for `company_text`. Core paints
+           nothing here — `footer-legal` only spaces consecutive paragraphs, and this branch has
+           one — so the class is carried purely as the seam a site overrides. */
+        <div class="footer-legal">
+          <p>{copyright}</p>
+        </div>
+      )
+    }
+  </div>
+</footer>

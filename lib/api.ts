@@ -539,8 +539,9 @@ export function getFooter(locale = 'en'): Promise<FooterData | null> {
 // This one used to swallow every error into `null`, which read as "no footer" and could not be
 // cached: a build that hiccupped once would have pinned a footerless site. The 404 is separated out
 // (that IS the answer — no footer component — and it caches), and anything else rejects, evicts,
-// and reaches the renderer, which still self-gates. So the failure mode is unchanged for callers
-// and no longer contagious.
+// and reaches the renderer. Since #1852 the renderer no longer self-gates on this: a rejection
+// means "no footer COMPONENT", and it falls through to the footer menu and then to a copyright
+// line — so a transient API failure costs this page's footer content, never the footer itself.
 const footerByLocale = new Map<string, Promise<FooterData | null>>()
 
 async function fetchFooter(locale: string): Promise<FooterData | null> {
@@ -552,6 +553,14 @@ async function fetchFooter(locale: string): Promise<FooterData | null> {
     if (error instanceof ApiError && error.status === 404) return null
     throw error
   }
+}
+
+/** One repeatable contact fact from site settings — a branch office, a second phone number, the
+ *  sales mailbox as opposed to the service one. `label` is optional and often absent: a branch
+ *  earns a name ("Avdeling Bergen"), a second e-mail usually does not. */
+export interface ContactEntry {
+  label?: string | null
+  value: string
 }
 
 /** Site-wide settings (GET /api/site-settings). Only the fields the frontend consumes are typed
@@ -578,6 +587,15 @@ export interface SiteSettingsData {
   custom_scripts?: Array<{ placement?: string; code?: string; consent?: string }>
   /** The client's name, as og:site_name. */
   site_name?: string | null
+  /** REPEATABLE contact facts (dashboard #1856) — a company with four branch offices, or a sales
+   *  and a service number, which the singular `email`/`phone`/`address` cannot express. Always all
+   *  three keys on the wire, empty lists for a client that has filled none; optional HERE for the
+   *  same reason `search_visible` is — a mock build or a panel deployed before the field existed.
+   *
+   *  The singular fields above stay authoritative for a surface that shows one of each, and the
+   *  backend fills an empty one from the first entry of its kind, so a site reading only those
+   *  keeps working when a client moves its addresses in here. */
+  contacts?: Partial<Record<'addresses' | 'phones' | 'emails', ContactEntry[]>>
   /** Site-wide Open Graph fallback image, already flattened to its URL by normalizeApiData. */
   default_og_image?: string | null
   /** The client's public site origin, as configured in the panel. */
