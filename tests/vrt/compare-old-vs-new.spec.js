@@ -29,6 +29,13 @@ import path from 'node:path'
 import { PNG } from 'pngjs'
 import pixelmatch from 'pixelmatch'
 import { loadRoutes, ROUTES_FILE } from './routes.js'
+import {
+  scrollThroughPage,
+  dismissConsent,
+  NEW_CONSENT_ROOT,
+  NEW_CONSENT_REJECT,
+  withTrailingSlash,
+} from '../shared/page-prep.js'
 
 // NO DEFAULT, deliberately. diligently.pl's copy defaulted this to its own production host, which
 // is how a shared harness starts lying on the other six sites — a run with a forgotten env var
@@ -59,7 +66,7 @@ const { routes: ALL_ROUTES, oldDismiss: OLD_DISMISS } = loadRoutes()
 // strip types (../conformance/README.md). Importing it would make the whole suite `0 tests in 0
 // files` in every client repo. A route list holds bare internal paths, so the narrow form is
 // enough — but keep the two in step if the trailing-slash convention ever changes.
-const newUrl = (routePath) => `${NEW_BASE_URL}${routePath.endsWith('/') ? routePath : `${routePath}/`}`
+const newUrl = (routePath) => withTrailingSlash(NEW_BASE_URL, routePath)
 
 // Desktop by default; override for a mobile pass, e.g. VRT_WIDTH=430 VRT_HEIGHT=932.
 const VIEWPORT = {
@@ -91,60 +98,6 @@ if (ROUTE_FILTER?.length && !ROUTES.length) {
 // and gone on the next install.
 const outDir = path.join(process.cwd(), 'test-results', 'vrt')
 mkdirSync(outDir, { recursive: true })
-
-/**
- * Scrolls the whole page once, then returns to the top.
- *
- * Reference sites and this build both animate elements in via an IntersectionObserver, so a
- * `fullPage` screenshot taken without ever scrolling captures most of the page still in its
- * pre-reveal state — which reads as "a huge blank gap" in the artefact, not as an obvious
- * animation issue.
- */
-async function scrollThroughPage(page) {
-  await page.evaluate(async () => {
-    const step = window.innerHeight
-    for (let y = 0; y < document.body.scrollHeight; y += step) {
-      window.scrollTo(0, y)
-      await new Promise((r) => setTimeout(r, 120))
-    }
-    window.scrollTo(0, 0)
-  })
-  await page.waitForTimeout(300) // let the final reveal transitions settle before screenshotting
-}
-
-/**
- * Clicks a consent banner away, warning rather than failing if it does not go.
- *
- * A modal covering the viewport makes the comparison meaningless, but its absence is equally
- * normal — a static prototype has no banner, and a fresh load is not guaranteed to show one every
- * time. So this never fails a route; it says what it could not dismiss and moves on, which is
- * visible in the run output next to a percentage that will then look wrong.
- *
- * `probe` is a selector whose absence means "this site has no banner at all, stop waiting". Only
- * the new side can have one: core's banner is server-rendered, so it is in the DOM at load or it
- * is never coming. A third-party script on the reference side injects its dialog asynchronously
- * AFTER `networkidle`, so there is nothing to probe there and the wait has to be paid.
- *
- * Without the probe, a site with no consent configured pays the full timeout on every route for a
- * locator that can never match — measured at 10s a route against the starter's own build.
- */
-async function dismissConsent(page, selector, label, { timeout, probe = null }) {
-  if (!selector) return
-  if (probe && (await page.locator(probe).count()) === 0) return
-  try {
-    await page.locator(selector).first().click({ timeout })
-    await page.waitForTimeout(300) // the banner animates out; capturing mid-fade is its own diff
-  } catch (e) {
-    console.warn(`[vrt] ${label}: consent banner not dismissed via \`${selector}\` — ${e.message}`)
-  }
-}
-
-// This build's banner is core's own, so core knows the handle — a data attribute rather than the
-// button's text, which is per-locale and would silently stop matching on a site that is not in
-// English. The container starts `hidden` and the inline script reveals it, so the click waits on
-// `:not([hidden])` rather than racing it.
-const NEW_CONSENT_ROOT = '[data-cookie-consent]'
-const NEW_CONSENT_REJECT = `${NEW_CONSENT_ROOT}:not([hidden]) [data-cookie-consent-reject]`
 
 for (const route of ROUTES) {
   test(`${route.name}: visual diff old vs new`, async ({ browser }) => {
@@ -182,11 +135,12 @@ for (const route of ROUTES) {
         // it (`old_dismiss` in the route list) and a run against a prototype names nothing.
         // Generous timeout, and no probe: Cookiebot and its kin inject their dialog asynchronously
         // AFTER `networkidle`, so its absence right now proves nothing and the wait has to be paid.
-        dismissConsent(oldPage, OLD_DISMISS, `${route.name}: reference`, { timeout: 15_000 }),
+        dismissConsent(oldPage, OLD_DISMISS, `${route.name}: reference`, { timeout: 15_000, tool: 'vrt' }),
         // Rejected rather than accepted, to match the most privacy-preserving choice above.
         dismissConsent(newPage, NEW_CONSENT_REJECT, `${route.name}: new build`, {
           timeout: 10_000,
           probe: NEW_CONSENT_ROOT,
+          tool: 'vrt',
         }),
       ])
 
