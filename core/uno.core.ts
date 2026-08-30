@@ -446,8 +446,26 @@ export const coreShortcuts: Record<string, string> = {
   'carousel-track':
     'flex w-full [scroll-snap-type:x_mandatory] overflow-x-auto ' +
     '[scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ' +
-    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary',
-  'carousel-slide': 'relative w-full shrink-0 [scroll-snap-align:start] flex flex-col justify-center',
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ' +
+    // Crossfade: a stack, not a scroller. Every slide occupies the SAME grid cell
+    // (`grid-template-areas: "stack"` paired with each slide's own `grid-area: stack` below), so
+    // the row's height comes from whichever slide is tallest — no JS-measured height needed —
+    // instead of a flex row nobody scrolls.
+    '[[data-crossfade]_&]:grid [[data-crossfade]_&]:[grid-template-areas:"stack"] ' +
+    '[[data-crossfade]_&]:overflow-visible',
+  'carousel-slide':
+    'relative w-full shrink-0 [scroll-snap-align:start] flex flex-col justify-center ' +
+    '[[data-crossfade]_&]:[grid-area:stack] [[data-crossfade]_&]:opacity-0 ' +
+    '[[data-crossfade]_&]:transition-opacity [[data-crossfade]_&]:duration-700 ' +
+    '[[data-crossfade]_&]:motion-reduce:transition-none ' +
+    // `aria-hidden="false"` is the script's one flag for "this is the current slide" — see
+    // Carousel.astro — so it doubles as the fade's visibility switch. Only meaningful under
+    // `[data-crossfade]`: outside it the attribute is never set, so this never matches.
+    //
+    // No `pointer-events` pair here: `inert` on the non-active slide (Carousel.astro) already
+    // blocks pointer interaction, focus and find-in-page in one attribute — a CSS copy of the
+    // same rule would just be a second mechanism claiming the same job.
+    '[&[aria-hidden="false"]]:opacity-100',
   // The picture sits behind the slide's blocks, cropped to whatever height the tallest slide sets.
   'carousel-bg': 'absolute inset-0 w-full h-full object-cover',
   // Contrast for text over a photograph. A token so a site can retune or remove it (the

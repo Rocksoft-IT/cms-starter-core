@@ -1842,6 +1842,14 @@
                     "8": "8 seconds"
                 }
             },
+            "transition": {
+                "type": "select",
+                "default": "scroll",
+                "options": {
+                    "scroll": "Scroll (swipe/scroll-snap — slides carry different content)",
+                    "crossfade": "Crossfade (fade in place — a rotating background behind fixed content)"
+                }
+            },
             "background": {
                 "type": "select",
                 "options": {

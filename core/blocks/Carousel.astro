@@ -13,6 +13,12 @@
 // Progressive enhancement, the same contract Tabs.astro keeps: the first slide is rendered and
 // visible server-side, and the controls are hidden until the script marks the section ready, so a
 // page with no JavaScript never shows a button that does nothing.
+//
+// `transition: 'crossfade'` swaps that scroll-snap track for a stack (uno.core.ts's
+// `[data-crossfade]` rules): every slide shares one grid cell and fades in place instead of
+// panning. That is for the OTHER shape of carousel — identical content repeated per slide, only
+// the photo behind it changing (a static hero heading over a rotating background) — where panning
+// would read as the text glitching sideways. See the field's comment in config/cms.php.
 import type { CarouselBlock } from '../../types/blocks'
 import BlockRenderer from '../BlockRenderer.astro'
 import { sectionAnchorId } from '../../lib/anchor'
@@ -29,7 +35,13 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { anchor_id, slides = [], autoplay, interval, background, align } = block.data
+const { anchor_id, slides = [], autoplay, interval, transition, background, align } = block.data
+
+// `crossfade` is for the OTHER shape of carousel: identical content repeated per slide, only the
+// photo behind it changing (a static hero heading over a rotating background) — see the field's
+// comment in config/cms.php. Everything else about the block stays the same; this only changes how
+// a slide change is presented.
+const isCrossfade = transition === 'crossfade'
 
 const sectionId = sectionAnchorId(anchor_id)
 // The shared section-level tokens, exactly as the banded blocks read them (lib/background.ts,
@@ -80,19 +92,39 @@ const arrows = [
       data-carousel={isCarousel ? '' : undefined}
       data-autoplay={autoplay === false ? 'off' : 'on'}
       data-interval={seconds}
+      data-crossfade={isCrossfade ? '' : undefined}
       role="group"
       aria-roledescription="carousel"
     >
       {/* tabindex: a scrollable region must be reachable by keyboard, or the slides past the first
           are unreachable without a pointer. The arrow keys are handled below so a key press lands
-          on a slide boundary rather than scrolling by an arbitrary step. */}
-      <div class="carousel-track" data-carousel-track tabindex="0">
-        {items.map((slide, i) => (
+          on a slide boundary rather than scrolling by an arbitrary step. Crossfade has nothing to
+          scroll, so it gets no scroll-region tab stop. */}
+      <div class="carousel-track" data-carousel-track tabindex={isCrossfade ? undefined : '0'}>
+        {items.map((slide, i) => {
+          // One condition, not `i === 0` and `i !== 0` spelled out separately on the two
+          // attributes below — that duplication is exactly how the pair could drift apart.
+          const isHidden = isCrossfade && i !== 0
+          return (
+          // `aria-hidden` doubles as the crossfade's own visibility switch (`carousel-slide`'s
+          // `[&[aria-hidden="false"]]:opacity-100` in uno.core.ts) — one flag instead of an
+          // `aria-hidden` + `.is-active` pair that could drift apart. Absent entirely in scroll
+          // mode: there every slide is reachable and none should be announced as hidden.
+          //
+          // `inert` rides alongside it rather than `aria-hidden` alone: a crossfade slide's
+          // content is typically a whole Hero, CTA buttons included, and `aria-hidden="true"` on
+          // an ancestor of a FOCUSABLE element is a real violation, not a lint nicety — the
+          // control stays reachable by Tab even though it is invisible. `inert` removes it from
+          // focus, pointer interaction and find-in-page in one attribute (and implies the
+          // `aria-hidden` semantics itself in every current browser; the explicit attribute above
+          // stays for older assistive tech that does not yet read `inert`).
           <div
             class="carousel-slide"
             id={`slide-${gid}-${slide.anchor}`}
             role="group"
             aria-roledescription="slide"
+            aria-hidden={isCrossfade ? (isHidden ? 'true' : 'false') : undefined}
+            inert={isHidden || undefined}
             aria-label={
               slide.name || coreString(locale, 'slidePosition', { n: String(i + 1), total: String(items.length) })
             }
@@ -117,7 +149,8 @@ const arrows = [
               <BlockRenderer blocks={slide.blocks} {locale} />
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       {isCarousel && (
@@ -181,6 +214,7 @@ const arrows = [
         var motion = window.matchMedia('(prefers-reduced-motion: reduce)')
         var wants = root.dataset.autoplay !== 'off'
         var wait = (Number(root.dataset.interval) || 6) * 1000
+        var isCrossfade = root.dataset.crossfade !== undefined
         var timer = null
         var current = 0
 
@@ -188,11 +222,30 @@ const arrows = [
           dots.forEach(function (dot, i) { dot.setAttribute('aria-current', i === current ? 'true' : 'false') })
         }
 
+        // aria-hidden is both the announce state and (via uno.core.ts) the fade's own visibility
+        // switch, so flipping it is most of a crossfade slide's transition; inert goes with it so
+        // a hidden slide's own CTAs drop out of the tab order instead of sitting there invisible
+        // but still reachable by keyboard.
+        function setSlideVisible(slide, visible) {
+          slide.setAttribute('aria-hidden', visible ? 'false' : 'true')
+          slide.toggleAttribute('inert', !visible)
+        }
+
         function goTo(index) {
-          current = ((index % slides.length) + slides.length) % slides.length
-          // Reduced motion means no animation, not no carousel: the slide still changes, it just
-          // arrives instead of sliding.
-          track.scrollTo({ left: current * track.clientWidth, behavior: motion.matches ? 'auto' : 'smooth' })
+          var next = ((index % slides.length) + slides.length) % slides.length
+          if (isCrossfade) {
+            // Only the slide leaving and the one arriving ever change — not a pass over every
+            // slide, most of which are already in the state they are being set back to.
+            if (next !== current) {
+              setSlideVisible(slides[current], false)
+              setSlideVisible(slides[next], true)
+            }
+          } else {
+            // Reduced motion means no animation, not no carousel: the slide still changes, it just
+            // arrives instead of sliding.
+            track.scrollTo({ left: next * track.clientWidth, behavior: motion.matches ? 'auto' : 'smooth' })
+          }
+          current = next
           sync()
         }
 

@@ -178,6 +178,11 @@ export interface CarouselBlock {
     autoplay?: boolean
     /** Seconds between slides, as the select stores them: '4' | '6' | '8', default '6'. */
     interval?: string
+    /** How a slide change is presented. `scroll` (default) is a real scroll-snap track — right for
+     *  slides with DIFFERENT content. `crossfade` fades in place instead of panning — right for
+     *  identical content repeated per slide (a static heading over a rotating background photo),
+     *  where panning would read as the text glitching sideways. See config/cms.php on the block. */
+    transition?: 'scroll' | 'crossfade'
     background?: string
     align?: 'default' | 'left' | 'center'
   }
