@@ -5,6 +5,7 @@ import { alignClass, alignClasses } from '../../lib/align'
 import RichText from '../RichText.astro'
 import BlockRenderer from '../BlockRenderer.astro'
 import HeroCtas from './HeroCtas.astro'
+import HeroBackground from './HeroBackground.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
@@ -31,9 +32,17 @@ const { anchor_id,
   columns_layout,
   own_content_track,
   own_content_track_width,
+  background_image,
+  background_image_meta,
+  background_image_alt,
 } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
+
+// The one styling seam a background photo publishes (dashboard#1925): a site targets
+// `.section-hero.has-bg` to add a scrim, flip the text colour or set a minimum height. Core
+// itself paints no such rule — see HeroBackground.astro for why.
+const hasBg = Boolean(background_image)
 
 // Optional multi-column hero (diligently-dashboard#570). The hero's own heading/subheading occupy
 // ONE track of the chosen layout; each `columns` entry supplies a further track holding ordinary
@@ -80,7 +89,7 @@ const tracks = [
 
 {
   multiColumn ? (
-    <section id={sectionId} class:list={['section-hero', alignModifier]}>
+    <section id={sectionId} class:list={['section-hero', alignModifier, hasBg && 'has-bg']}>
       <div class="container-hero">
         <div class="hero-2col">
           {tracks.map((track) =>
@@ -101,14 +110,10 @@ const tracks = [
         </div>
       </div>
 
-      {/* Honeycomb + radial-gradient background */}
-      <div class="absolute inset-0 -z-1 pointer-events-none">
-        <div class="hero-bg-honeycomb" />
-        <div class="hero-gradient-overlay" />
-      </div>
+      <HeroBackground {background_image} {background_image_meta} {background_image_alt} />
     </section>
   ) : (
-    <section id={sectionId} class:list={['section-hero', alignModifier]}>
+    <section id={sectionId} class:list={['section-hero', alignModifier, hasBg && 'has-bg']}>
       <div class="container-hero">
         <div class="hero-wrapper">
           <div class:list={['hero-col', ...trackAlign]}>
@@ -123,23 +128,7 @@ const tracks = [
         </div>
       </div>
 
-      {/* Honeycomb + radial-gradient background */}
-      <div class="absolute inset-0 -z-1 pointer-events-none">
-        <div class="hero-bg-honeycomb" />
-        <div class="hero-gradient-overlay" />
-      </div>
+      <HeroBackground {background_image} {background_image_meta} {background_image_alt} />
     </section>
   )
 }
-
-<style>
-  @layer core {
-    /* Home hero: two distinct amber honeycomb tints (matches webflow). Deliberately NOT mapped to a
-       single brand token — themeable via the dedicated --hero-c1/--hero-c2 seam instead, which is
-       why this is the one rule the block keeps. */
-    .hero-bg-honeycomb {
-      --c1: var(--hero-c1, #fff9e6);
-      --c2: var(--hero-c2, #ffefd2);
-    }
-  }
-</style>

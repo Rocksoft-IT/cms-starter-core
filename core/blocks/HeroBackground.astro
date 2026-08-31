@@ -1,0 +1,67 @@
+---
+// The hero's decorative background layer — a photograph when the block carries one, else core's
+// own honeycomb + gradient wash (dashboard#1925).
+//
+// Extracted for the same reason HeroCtas.astro was: `Hero.astro` renders two branches (a plain
+// hero and a multi-column one), and this layer used to be written into both — the shape that let
+// `cta_note` go missing from one of them before. One component rendered from both branches is
+// what stops that happening to the background too.
+//
+// It lives in `core/blocks/` rather than beside the other shared components on purpose: the
+// field-coverage gate follows delegates only into `blocks/` and `lib/`, so a hero helper anywhere
+// else would make `background_image` read as unrendered on a block that renders it fine.
+import type { HeroBlock } from '../../types/blocks'
+import { responsiveImageAttrs, IMAGE_SIZES } from '../../lib/image'
+
+interface Props {
+  background_image?: HeroBlock['data']['background_image']
+  background_image_meta?: HeroBlock['data']['background_image_meta']
+  background_image_alt?: string
+}
+
+const { background_image, background_image_meta, background_image_alt } = Astro.props
+---
+
+<div class="absolute inset-0 -z-1 pointer-events-none">
+  {
+    background_image ? (
+      // The hero's own photograph, drawn full-bleed. `alt` is always present — empty is the
+      // correct, meaningful value for a decorative picture (the conformance floor requires the
+      // ATTRIBUTE, not a non-empty string) — and it is the likely LCP element, so it loads eager
+      // and high-priority rather than the lazy/no-priority default every other in-block image
+      // gets.
+      //
+      // DELIBERATELY no scrim, no text-colour change here: every client site has its own
+      // stylesheet, and contrast over a photograph is that site's decision, not core's. The
+      // `has-bg` modifier on the section (see Hero.astro) is the whole styling seam a site hooks
+      // into for that — `.section-hero.has-bg { ... }` in the SITE's own CSS.
+      <img
+        class="hero-bg"
+        src={background_image}
+        alt={background_image_alt ?? ''}
+        loading="eager"
+        fetchpriority="high"
+        {...responsiveImageAttrs(background_image_meta, IMAGE_SIZES.fullBleed)}
+      />
+    ) : (
+      // Core's own default decoration — unchanged from before this field existed, and exactly
+      // what a hero with no background image keeps rendering.
+      <>
+        <div class="hero-bg-honeycomb" />
+        <div class="hero-gradient-overlay" />
+      </>
+    )
+  }
+</div>
+
+<style>
+  @layer core {
+    /* Home hero: two distinct amber honeycomb tints (matches webflow). Deliberately NOT mapped to a
+       single brand token — themeable via the dedicated --hero-c1/--hero-c2 seam instead, which is
+       why this is the one rule the block keeps. */
+    .hero-bg-honeycomb {
+      --c1: var(--hero-c1, #fff9e6);
+      --c2: var(--hero-c2, #ffefd2);
+    }
+  }
+</style>

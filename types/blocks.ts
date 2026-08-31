@@ -114,6 +114,14 @@ export interface HeroBlock {
      * editor could not otherwise make.
      */
     align?: 'default' | 'left' | 'center'
+    /** The hero's own background photo (dashboard#1925), drawn full-bleed by `HeroBackground.astro`.
+     *  A `media_upload` NOT named `image`, so the resolver publishes it under its own key plus a
+     *  `background_image_meta` sibling rather than the historical `src`/`src_meta` pair — same
+     *  contract as `cta_card_image` above. The scrim / text-colour over it is deliberately NOT
+     *  core's call: a site targets `.section-hero.has-bg` for that. */
+    background_image?: string | null
+    background_image_meta?: ResponsiveImageMeta
+    background_image_alt?: string
   }
 }
 // Recursive (ADR-0003): a container child may itself be any block, including another container.

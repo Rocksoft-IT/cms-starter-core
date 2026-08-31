@@ -243,6 +243,12 @@ export const coreShortcuts: Record<string, string> = {
   'hero-2col-own': 'flex-[1_1_0] text-center max-lg:w-full max-lg:order-first',
   'hero-2col-track': 'flex-[1_1_0] min-w-0 max-lg:w-full',
 
+  // The hero's own background photo (dashboard#1925), positioned exactly like `carousel-bg`
+  // below — both are a full-bleed picture sitting behind a section's content. No scrim rule
+  // ships alongside it: `section-hero.has-bg` (see HeroBackground.astro) is the seam a SITE
+  // styles for contrast, crop or a minimum height; core only positions the pixels.
+  'hero-bg': 'absolute inset-0 w-full h-full object-cover',
+
   // ── Buttons (button_group block + shared CTAs) ─────────────────────────────
   'btn-primary':
     'inline-flex items-center justify-center gap-2 ' +

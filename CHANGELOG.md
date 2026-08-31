@@ -25,6 +25,29 @@ floor** — it is present and silent there.
 
 **v0.48.0 is empty.** It carries nothing a client can use; see its entry.
 
+## Unreleased
+
+### A background photo on `hero` itself (dashboard#1925)
+
+`hero` gains `background_image` / `background_image_meta` / `background_image_alt` (a
+`media_upload` field, resolved and scoped exactly like `cta_card_image`) and `HeroBackground.astro`
+draws it full-bleed behind the block, replacing the honeycomb/gradient default only when a picture
+is set. The rendered `<section>` gains a `has-bg` class when it does.
+
+**No per-client wiring needed** — a pin bump is enough. Unlike the carousel block (v0.51.0), this
+does not add a new block TYPE a site has to opt into; it adds two fields to a block every site
+already renders, and a hero with neither set is byte-for-byte unchanged.
+
+**The styling seam, and why core ships none of it.** `.section-hero.has-bg` is the whole contract:
+a site adds its own scrim, text-colour flip, crop or minimum height by targeting that class in its
+own stylesheet. Core paints no scrim, because every client site has its own — the same reasoning
+`carousel`'s `carousel-scrim` token exists for LOCALLY, on a block that already had one from the
+day it shipped. `hero` is the block every site's `/` route uses, so an opinionated default here
+would restyle the fleet's homepages on the next pin bump; a bare seam does not.
+
+Before this, a hero background was only reachable by wrapping the hero in a one-slide `carousel`
+(v0.51.0) — undiscoverable, and not what an editor reaching for "Hero" expects.
+
 ## v0.51.0 — a carousel block, and an eyebrow on the heading block
 
 ### A carousel block, and one container may finally hold a hero (dashboard#1838)

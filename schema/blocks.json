@@ -19,6 +19,10 @@
                 "cta_card_title",
                 "cta_card_subtitle",
                 "cta_card_href"
+            ],
+            "Background": [
+                "background_image",
+                "background_image_alt"
             ]
         },
         "fields": {
@@ -69,6 +73,14 @@
             "cta_card_href": {
                 "type": "href",
                 "label": "Target"
+            },
+            "background_image": {
+                "type": "media_upload",
+                "label": "Background image"
+            },
+            "background_image_alt": {
+                "type": "text",
+                "label": "Alternative text"
             },
             "columns_layout": {
                 "type": "select",
