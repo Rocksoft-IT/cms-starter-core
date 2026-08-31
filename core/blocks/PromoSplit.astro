@@ -10,20 +10,21 @@ import { href as hrefOf } from '../../lib/href'
 import { headingTag } from '../../lib/headingLevel'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: PromoSplitBlock
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, heading_level, body, cta_label, cta_href, src, src_meta, alt = '', reverse } = block.data
+const { anchor_id, eyebrow, heading, heading_level, body, cta_label, cta_href, src, src_meta, alt = '', reverse, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 // Capitalized so Astro treats it as a dynamic tag rather than a literal <headingtag> element.
 const Heading = headingTag(heading_level)
 ---
 
-<section id={sectionId} class="section-promo-split">
+<section id={sectionId} class:list={['section-promo-split section-band', backgroundClass(background)]}>
   <div class="promo-split-inner">
     <div class:list={['promo-split-panel', src && 'md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]']}>
       <div class="promo-split-content">

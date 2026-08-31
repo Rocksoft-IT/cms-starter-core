@@ -6,13 +6,14 @@ import type { HighlightsBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: HighlightsBlock
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, categories = [], links = [], footnote } = block.data
+const { anchor_id, eyebrow, heading, categories = [], links = [], footnote, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -20,7 +21,7 @@ const groups = categories.filter((c) => c.title || (c.items ?? []).length > 0)
 const linkRows = links.filter((link) => link.label && link.href)
 ---
 
-<section id={sectionId} class="section-highlights py-16">
+<section id={sectionId} class:list={['section-highlights section-band py-16', backgroundClass(background)]}>
   <div class="highlights-inner">
     <SectionHeader {eyebrow} {heading} />
 
@@ -28,7 +29,7 @@ const linkRows = links.filter((link) => link.label && link.href)
       groups.map((category) => (
         <div class="mb-10 last:mb-0">
           {(category.title || category.note) && (
-            <div class="flex items-baseline justify-between gap-4 border-b border-gray-200 pb-2 mb-4">
+            <div class="flex items-baseline justify-between gap-4 border-b border-border pb-2 mb-4">
               {category.title && <h3 class="font-bold text-[22px] leading-[1.3]">{category.title}</h3>}
               {category.note && <p class="text-[14px] text-text-secondary">{category.note}</p>}
             </div>

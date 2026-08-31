@@ -44,7 +44,7 @@ const bulletLines = (bullets?: string) =>
           {cards.map((card) => {
             const lines = bulletLines(card.bullets)
             return (
-              <div class="surface-light border border-gray-200 rounded-[16px] p-8 flex flex-col bg-white">
+              <div class="surface-light border border-border rounded-[16px] p-8 flex flex-col bg-white">
                 <div class="flex flex-col gap-2 mb-4">
                   {card.eyebrow && (
                     <p class="text-[16px] leading-[1.2] uppercase text-text-secondary">{card.eyebrow}</p>

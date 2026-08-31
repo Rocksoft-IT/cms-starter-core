@@ -30,6 +30,10 @@ export interface ColumnsBlock {
     /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
      *  because codegen skips this interface — see the note above it. */
     anchor_id?: string
+    /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
+     *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
+     *  note above it. */
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     layout: string
     columns: ResolvedColumn[]
     /**
@@ -66,6 +70,10 @@ export interface HeroBlock {
     /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
      *  because codegen skips this interface — see the note above it. */
     anchor_id?: string
+    /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
+     *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
+     *  note above it. */
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     eyebrow?: string
     heading?: string
     subheading?: string
@@ -147,6 +155,10 @@ export interface TabsBlock {
     /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
      *  because codegen skips this interface — see the note above it. */
     anchor_id?: string
+    /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
+     *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
+     *  note above it. */
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     tabs: TabPanel[]
   }
 }
@@ -381,6 +393,10 @@ export interface SectionTeaserBlock {
     /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
      *  because codegen skips this interface — see the note above it. */
     anchor_id?: string
+    /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
+     *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
+     *  note above it. */
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     eyebrow?: string
     heading?: string
     layout?: 'cards' | 'list'
@@ -481,7 +497,13 @@ export interface ButtonBlock {
 
 export interface HeadingBlock {
   type: 'heading'
-  data: { eyebrow?: string; text?: string; level?: 'h1' | 'h2' | 'h3' | 'h4'; anchor_id?: string }
+  data: {
+    eyebrow?: string
+    text?: string
+    level?: 'h1' | 'h2' | 'h3' | 'h4'
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    anchor_id?: string
+  }
 }
 
 export interface SeparatorBlock {
@@ -491,7 +513,13 @@ export interface SeparatorBlock {
 
 export interface VideoSectionBlock {
   type: 'video_section'
-  data: { video_url?: string; heading?: string; body?: string; anchor_id?: string }
+  data: {
+    video_url?: string
+    heading?: string
+    body?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    anchor_id?: string
+  }
 }
 
 export interface FeaturesBlock {
@@ -521,6 +549,7 @@ export interface CtaBannerBlock {
     cta_card_title?: string
     cta_card_subtitle?: string
     cta_card_href?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
   }
@@ -539,6 +568,7 @@ export interface PromoSplitBlock {
     src_meta?: ResponsiveImageMeta
     alt?: string
     reverse?: boolean
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -572,6 +602,7 @@ export interface DocumentsBlock {
     heading?: string
     icon?: 'document' | 'folder' | 'download' | 'info' | 'book'
     files?: DocumentEntry[]
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -608,6 +639,7 @@ export interface GalleryBlock {
     heading?: string
     note?: string
     images?: Array<{ image?: string | null; image_meta?: ResponsiveImageMeta; alt?: string }>
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -623,6 +655,7 @@ export interface FaqBlock {
     cta_label?: string
     cta_href?: string
     items?: Array<{ question?: string; answer?: string }>
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -633,6 +666,7 @@ export interface TeamBlock {
     eyebrow?: string
     heading?: string
     members?: Array<{ name?: string; role?: string; photo?: string | null; photo_meta?: ResponsiveImageMeta }>
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -678,6 +712,7 @@ export interface HighlightsBlock {
     }>
     links?: Array<{ label?: string; href?: string }>
     footnote?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -695,6 +730,7 @@ export interface QuoteBlock {
     image?: string | null
     image_meta?: ResponsiveImageMeta
     alt?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -706,13 +742,19 @@ export interface HoursBlock {
     heading?: string
     hours?: Array<{ day_label?: string; hours_label?: string }>
     footnote?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
 
 export interface MapBlock {
   type: 'map'
-  data: { heading?: string; map_embed_src?: string; anchor_id?: string }
+  data: {
+    heading?: string
+    map_embed_src?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    anchor_id?: string
+  }
 }
 
 export interface ContactBlock {
@@ -724,13 +766,19 @@ export interface ContactBlock {
     maps_url?: string
     phone_display?: string
     phone_e164?: string
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
 
 export interface CustomHtmlBlock {
   type: 'custom_html'
-  data: { html?: string; full_width?: boolean; anchor_id?: string }
+  data: {
+    html?: string
+    full_width?: boolean
+    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    anchor_id?: string
+  }
 }
 
 export type Block =

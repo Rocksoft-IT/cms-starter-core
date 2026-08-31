@@ -7,6 +7,7 @@ import BlockRenderer from '../BlockRenderer.astro'
 import HeroCtas from './HeroCtas.astro'
 import HeroBackground from './HeroBackground.astro'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: HeroBlock
@@ -32,6 +33,7 @@ const { anchor_id,
   columns_layout,
   own_content_track,
   own_content_track_width,
+  background,
   background_image,
   background_image_meta,
   background_image_alt,
@@ -89,7 +91,7 @@ const tracks = [
 
 {
   multiColumn ? (
-    <section id={sectionId} class:list={['section-hero', alignModifier, hasBg && 'has-bg']}>
+    <section id={sectionId} class:list={['section-hero section-band', backgroundClass(background), alignModifier, hasBg && 'has-bg']}>
       <div class="container-hero">
         <div class="hero-2col">
           {tracks.map((track) =>
@@ -113,7 +115,7 @@ const tracks = [
       <HeroBackground {background_image} {background_image_meta} {background_image_alt} />
     </section>
   ) : (
-    <section id={sectionId} class:list={['section-hero', alignModifier, hasBg && 'has-bg']}>
+    <section id={sectionId} class:list={['section-hero section-band', backgroundClass(background), alignModifier, hasBg && 'has-bg']}>
       <div class="container-hero">
         <div class="hero-wrapper">
           <div class:list={['hero-col', ...trackAlign]}>

@@ -3,11 +3,19 @@ import type { CtaBannerBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
 import { usableCtas } from '../../lib/ctas'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 interface Props {
   block: CtaBannerBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, body, badges = [], anchor_id } = block.data
+const { eyebrow, heading, body, badges = [], anchor_id, background } = block.data
+
+// `?? 'dark'`, where the other seven banded blocks fall through to no modifier at all. This block
+// was black before it had the field (#1933), and every banner already published carries no
+// `background` key — so the absent case has to keep meaning the black band, or the next build
+// turns every existing client's closing CTA into a page-ground one. `default` stays reachable; an
+// editor picking it is saying so deliberately.
+const bandClass = backgroundClass(background ?? 'dark')
 
 // Half-filled rows dropped rather than drawn as an empty link — see lib/ctas.ts.
 const ctas = usableCtas(block.data.ctas)
@@ -16,7 +24,7 @@ const ctas = usableCtas(block.data.ctas)
 const sectionId = sectionAnchorId(anchor_id)
 ---
 
-<section class="section-cta" id={sectionId}>
+<section class:list={['section-cta section-band', bandClass]} id={sectionId}>
   <div class="cta-inner">
     <div class="cta-content">
       {

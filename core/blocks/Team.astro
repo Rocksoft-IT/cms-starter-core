@@ -7,6 +7,7 @@
 //    is collapsed to hyphens so the value is a usable URL fragment; Astro escapes the attribute.
 import type { TeamBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
 
@@ -15,7 +16,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, members = [] } = block.data
+const { anchor_id, eyebrow, heading, members = [], background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -27,7 +28,7 @@ function initial(name?: string) {
 }
 ---
 
-<section class="section-team" id={sectionId}>
+<section class:list={['section-team section-band', backgroundClass(background)]} id={sectionId}>
   <div class="team-inner">
     <SectionHeader {eyebrow} {heading} />
 
@@ -36,7 +37,7 @@ function initial(name?: string) {
         <ul class="team-grid">
           {cards.map((member) => (
             <li class="team-card">
-              <div class="team-photo">
+              <div class="team-photo surface-light">
                 {member.photo ? (
                   <img
                     src={member.photo}

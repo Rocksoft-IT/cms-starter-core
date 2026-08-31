@@ -10,6 +10,7 @@
 import type { TabsBlock } from '../../types/blocks'
 import BlockRenderer from '../BlockRenderer.astro'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: TabsBlock
@@ -38,7 +39,11 @@ const gid =
 
 {
   tabs.length > 0 && (
-    <section id={sectionId} class="section-tabs" data-tabs>
+    <section
+      id={sectionId}
+      class:list={['section-tabs section-band', backgroundClass(block.data.background)]}
+      data-tabs
+    >
       <div class="tabs-inner">
         <div class="tablist" role="tablist">
           {tabs.map((t, i) => (

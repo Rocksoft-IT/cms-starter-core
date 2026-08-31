@@ -32,6 +32,7 @@
 // one of them can occupy at a time.
 import type { GalleryBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
@@ -43,7 +44,7 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { anchor_id, eyebrow, heading, note, images = [] } = block.data
+const { anchor_id, eyebrow, heading, note, images = [], background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 const tiles = images.filter((i) => i?.image)
@@ -67,7 +68,7 @@ const nextLabel = t('nextPhoto')
 
 {
   tiles.length > 0 && (
-    <section class="section-gallery" id={sectionId}>
+    <section class:list={['section-gallery section-band', backgroundClass(background)]} id={sectionId}>
       <div class="gallery-inner">
         <SectionHeader {eyebrow} {heading}>
           {note && (

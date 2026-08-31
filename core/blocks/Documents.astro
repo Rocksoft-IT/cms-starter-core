@@ -15,6 +15,7 @@ import { ICON_PATHS, iconPath } from '../../lib/icons'
 import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: DocumentsBlock
@@ -29,7 +30,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, heading, icon, files = [] } = block.data
+const { anchor_id, heading, icon, files = [], background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -59,7 +60,7 @@ const EXTERNAL_ICON = ICON_PATHS.external
 
 {
   rows.length > 0 && (
-    <section id={sectionId} class="documents py-16">
+    <section id={sectionId} class:list={['documents section-band py-16', backgroundClass(background)]}>
       <div class="container-global">
         {hasHeading && (
           <div class="mb-8 flex items-center gap-3">
@@ -96,7 +97,7 @@ const EXTERNAL_ICON = ICON_PATHS.external
                   target="_blank"
                   rel="noopener noreferrer"
                   {...(isFile ? { download: '' } : {})}
-                  class="flex items-center gap-4 rounded-[12px] border border-gray-200 bg-section-bg p-4 transition-colors hover:border-primary"
+                  class="surface-light flex items-center gap-4 rounded-[12px] border border-border bg-section-bg p-4 transition-colors hover:border-primary"
                   aria-label={label}
                 >
                   <svg

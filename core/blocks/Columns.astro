@@ -11,6 +11,7 @@ import type { ColumnsBlock } from '../../types/blocks'
 import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import BlockRenderer from '../BlockRenderer.astro'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: ColumnsBlock
@@ -52,7 +53,7 @@ const measure = block.data.width === 'prose' ? 'var(--layout-container-prose)' :
 const reverse = block.data.mobile_reverse === true
 ---
 
-<section id={sectionId} class="section-columns">
+<section id={sectionId} class:list={['section-columns section-band', backgroundClass(block.data.background)]}>
   <div
     class:list={['columns-grid', reverse && 'columns-reverse-mobile']}
     style={[`--cols: ${template};`, measure && `--columns-measure: ${measure};`].filter(Boolean).join(' ')}

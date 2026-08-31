@@ -23,12 +23,24 @@
 import type { FaqBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 import { href as hrefOf } from '../../lib/href'
 interface Props {
   block: FaqBlock
 }
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, intro, layout, open_first, cta_label, cta_href, items = [] } = block.data
+const {
+  anchor_id,
+  eyebrow,
+  heading,
+  intro,
+  layout,
+  open_first,
+  cta_label,
+  cta_href,
+  items = [],
+  background,
+} = block.data
 
 // Deep-link target (#1416) — not to be confused with `groupName` below, which names the
 // accordion's exclusive group: that one is derived from the heading and must exist on every
@@ -56,7 +68,7 @@ const slug = (heading ?? 'section')
 const groupName = `faq-${slug || 'section'}`
 ---
 
-<section class="section-faq" id={sectionId}>
+<section class:list={['section-faq section-band', backgroundClass(background)]} id={sectionId}>
   <div class="faq-inner">
     {
       (eyebrow || heading || intro || hasCta) && (
@@ -69,7 +81,7 @@ const groupName = `faq-${slug || 'section'}`
             </div>
             {hasCta && (
               <a
-                class="faq-action"
+                class="faq-action surface-light"
                 href={hrefOf(cta_href)}
                 target={ctaExternal ? '_blank' : undefined}
                 rel={ctaExternal ? 'noopener noreferrer' : undefined}
@@ -100,13 +112,13 @@ const groupName = `faq-${slug || 'section'}`
       {
         items.map((item, index) =>
           isList ? (
-            <li class="faq-item faq-item-static">
+            <li class="faq-item faq-item-static surface-light">
               <h3 class="faq-question">{item.question}</h3>
               <RichText class="faq-answer" html={item.answer} />
             </li>
           ) : (
             <li>
-              <details name={groupName} class="faq-item" open={index === 0 && open_first}>
+              <details name={groupName} class="faq-item surface-light" open={index === 0 && open_first}>
                 <summary class="faq-summary">
                   <span class="faq-question">{item.question}</span>
                   <span class="faq-chevron" aria-hidden="true">

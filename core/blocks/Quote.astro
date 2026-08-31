@@ -14,6 +14,7 @@ import RichText from '../RichText.astro'
 import { href as hrefOf } from '../../lib/href'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: QuoteBlock
@@ -31,6 +32,7 @@ const { anchor_id,
   image,
   image_meta,
   alt = '',
+  background,
 } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
@@ -40,7 +42,7 @@ const hasSourceLink = Boolean(source_link_href)
 const sourceLinkText = source_link_label || source_link_href
 ---
 
-<section id={sectionId} class="section-quote">
+<section id={sectionId} class:list={['section-quote section-band', backgroundClass(background)]}>
   <div class:list={['quote-inner', { 'quote-has-image': image }]}>
     {
       image && (

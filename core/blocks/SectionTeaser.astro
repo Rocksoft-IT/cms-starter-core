@@ -13,6 +13,7 @@ import { formatDate } from '../format'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: SectionTeaserBlock
@@ -38,6 +39,7 @@ const { anchor_id,
   action_href,
   item_action_label,
   attachments_label,
+  background,
 } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
@@ -100,7 +102,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
 
 {
   (hasHeader || items.length > 0) && (
-    <section id={sectionId} class:list={['section-teaser py-16', isList && 'is-list']}>
+    <section id={sectionId} class:list={['section-teaser section-band py-16', backgroundClass(background), isList && 'is-list']}>
       <div class="container-global">
         <SectionHeader {eyebrow} {heading} />
 
@@ -114,7 +116,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
               const date = formatDate(item.date, locale)
               const lead = nonEmpty(item.lead)
               return (
-                <article class="flex flex-col overflow-hidden rounded-[16px] border border-gray-200 bg-section-bg">
+                <article class="surface-light flex flex-col overflow-hidden rounded-[16px] border border-border bg-section-bg">
                   {img && (
                     <a href={href} class="block aspect-[16/9] overflow-hidden" tabindex="-1" aria-hidden="true">
                       <img
@@ -168,7 +170,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
                 <li>
                   <a
                     href={href}
-                    class="flex items-center gap-4 rounded-[12px] border border-gray-200 bg-section-bg p-4 transition-colors hover:border-primary"
+                    class="surface-light flex items-center gap-4 rounded-[12px] border border-border bg-section-bg p-4 transition-colors hover:border-primary"
                   >
                     {badge && (
                       <span class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[10px] bg-text-primary leading-none text-white">

@@ -1,17 +1,18 @@
 ---
 import type { CustomHtmlBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: CustomHtmlBlock
 }
 const { block } = Astro.props
-const { anchor_id, html, full_width } = block.data
+const { anchor_id, html, full_width, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 ---
 
-<section id={sectionId} class="section-custom-html py-8">
+<section id={sectionId} class:list={['section-custom-html section-band py-8', backgroundClass(background)]}>
   {
     /* set:html is intentionally unsanitized — admin is trusted and scripts must be preserved.
       Projects with untrusted editors can opt into sanitization using the sanitize-html dependency. */

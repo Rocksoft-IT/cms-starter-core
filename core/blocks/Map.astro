@@ -6,20 +6,21 @@
 import type { MapBlock } from '../../types/blocks'
 import MapEmbed from '../MapEmbed.astro'
 import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: MapBlock
 }
 
 const { block } = Astro.props
-const { anchor_id, heading, map_embed_src } = block.data
+const { anchor_id, heading, map_embed_src, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 ---
 
 {
   (heading || map_embed_src) && (
-    <section id={sectionId} class="section-map">
+    <section id={sectionId} class:list={['section-map section-band', backgroundClass(background)]}>
       <div class="container-global py-16">
         {heading && <h2 class="section-heading mb-6 text-text-primary">{heading}</h2>}
         <MapEmbed src={map_embed_src} title={heading ?? 'Map'} />

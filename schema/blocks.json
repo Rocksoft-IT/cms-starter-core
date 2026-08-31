@@ -110,6 +110,16 @@
                     "center": "Centered"
                 }
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -265,6 +275,16 @@
                     "h4": "H4"
                 }
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -305,6 +325,16 @@
             },
             "body": {
                 "type": "textarea"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
             },
             "anchor_id": {
                 "type": "text"
@@ -469,6 +499,16 @@
                 "type": "href",
                 "label": "Target"
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "reveal": {
                 "type": "select",
                 "options": {
@@ -543,6 +583,16 @@
             },
             "reverse": {
                 "type": "toggle"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
             },
             "anchor_id": {
                 "type": "text"
@@ -786,6 +836,16 @@
             "attachments_label": {
                 "type": "text"
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -816,6 +876,16 @@
                         "application/pdf"
                     ],
                     "max_size": 102400
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
                 }
             },
             "anchor_id": {
@@ -990,6 +1060,16 @@
                     }
                 }
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1061,6 +1141,16 @@
                     }
                 }
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1105,6 +1195,16 @@
                     "photo": {
                         "type": "image"
                     }
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
                 }
             },
             "anchor_id": {
@@ -1555,6 +1655,16 @@
             "footnote": {
                 "type": "textarea"
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1622,6 +1732,16 @@
                 "type": "text",
                 "help": "What the photo shows, for readers using a screen reader. Describe the picture, do not repeat the headline."
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1669,6 +1789,16 @@
             "footnote": {
                 "type": "text"
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1684,6 +1814,16 @@
             },
             "map_embed_src": {
                 "type": "url"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
             },
             "anchor_id": {
                 "type": "text"
@@ -1731,6 +1871,16 @@
             "phone_e164": {
                 "type": "text"
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1749,6 +1899,16 @@
             },
             "full_width": {
                 "type": "toggle"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
             },
             "anchor_id": {
                 "type": "text"
@@ -1788,6 +1948,16 @@
             "columns": {
                 "type": "blocks"
             },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1806,6 +1976,16 @@
                     "name": {
                         "type": "text"
                     }
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "brand": "Brand",
+                    "dark": "Dark"
                 }
             },
             "anchor_id": {

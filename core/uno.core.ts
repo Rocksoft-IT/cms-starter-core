@@ -582,9 +582,9 @@ export const coreShortcuts: Record<string, string> = {
   // Tier illustration. Full card width, its own aspect kept — these are drawings sized by the
   // designer, so no crop and no fixed height; the margin below matches the card's own gap.
   'pricing-plan-image': 'block w-full h-auto mb-2',
-  'pricing-card': 'bg-white text-text-primary rounded-[16px] p-7 flex flex-col gap-4 border border-gray-200',
+  'pricing-card': 'bg-white text-text-primary rounded-[16px] p-7 flex flex-col gap-4 border border-border',
   'pricing-chip':
-    'self-start text-[11px] font-bold tracking-[0.12em] uppercase text-text-secondary border border-gray-200 rounded-full px-3 py-1',
+    'self-start text-[11px] font-bold tracking-[0.12em] uppercase text-text-secondary border border-border rounded-full px-3 py-1',
   'pricing-badge': 'self-start text-[12px] font-semibold bg-primary text-button-primary-text rounded-full px-3 py-1',
   'pricing-price': 'text-[36px] font-bold leading-[1.1]',
   // `price_size: small` — a step down from the price's own size, and never wrapping. Which
@@ -718,22 +718,31 @@ export const coreShortcuts: Record<string, string> = {
     'relative h-[200px] rounded-[14px] overflow-hidden border border-solid border-border ' +
     '[&_img]:w-full [&_img]:h-full [&_img]:object-cover',
   // ── CTA banner block ──────────────────────────────────────────────────────
-  'section-cta': 'bg-black text-white py-20',
+  // The fill is the shared band's now, not this block's (#1933). `section-band` + the `is-dark`
+  // the renderer defaults to resolve to `background-color: #000; color: #fff` — the two
+  // declarations that used to be spelled `bg-black text-white` here — so an existing banner is
+  // byte-identical, while a light band finally has somewhere to come from.
+  'section-cta': 'section-band py-20',
   'cta-content': 'flex flex-col gap-4 text-center',
   'cta-actions': 'actions-row mt-8',
   'cta-badges': 'flex flex-wrap justify-center gap-2',
-  // Optional highlight tags (`badges` repeater) — a brand-neutral pill that reads on the dark CTA
-  // background. It used to pulse on a self-contained keyframe; a shared engine has no business
-  // animating a client's badge, so the motion is gone rather than tokenized.
+  // Optional highlight tags (`badges` repeater). The pill was white-on-`white/12`, which is only a
+  // pill on a dark fill; `currentColor` says the same thing in a way that survives the band —
+  // 40%/12% of whatever the band set the text to. It used to pulse on a self-contained keyframe; a
+  // shared engine has no business animating a client's badge, so the motion is gone rather than
+  // tokenized.
   'cta-badge':
-    'inline-block px-3 py-1 rounded-full border border-solid border-white/40 ' +
-    'bg-white/12 text-white text-xs font-bold uppercase tracking-[0.03em]',
+    'inline-block px-3 py-1 rounded-full border border-solid ' +
+    '[border-color:color-mix(in_srgb,currentColor_40%,transparent)] ' +
+    '[background-color:color-mix(in_srgb,currentColor_12%,transparent)] ' +
+    'text-xs font-bold uppercase tracking-[0.03em]',
   'cta-inner': 'container-prose text-center',
-  // On the dark banner the label stays white, as CtaBanner's markup rendered it before the
-  // shortcut existed; the treatment itself is the shared one.
-  'cta-eyebrow': 'eyebrow text-white mb-4',
+  // `text-white` and `text-gray-300` were the dark band's values written as literals. The role
+  // tokens carry the same two colours there (`--band-dark-eyebrow` falls back to #fff,
+  // `--band-dark-text-secondary` IS #b3b3b3 = gray-300) and follow the band everywhere else.
+  'cta-eyebrow': 'eyebrow mb-4',
   'cta-heading': 'font-brand font-bold text-[36px] leading-[1.2] mb-4',
-  'cta-body': 'text-[18px] text-gray-300 mb-8',
+  'cta-body': 'text-[18px] text-text-secondary mb-8',
   'btn-primary-white':
     'inline-flex items-center justify-center ' +
     'bg-primary text-black border-[3px] border-primary rounded-[8px] ' +

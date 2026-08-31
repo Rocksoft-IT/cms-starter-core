@@ -176,6 +176,16 @@
     --color-border: var(--band-dark-border, rgb(255 255 255 / 14%));
   }
 
+  /*
+   * KNOWN LIMIT, recorded here because #1939 put this band within reach of another seventeen
+   * blocks: `is-brand` is a SOLID `primary` fill, so a brand-coloured ACCENT on it — the pull
+   * quote's `border-primary` rule, a `text-primary` link, the documents heading's icon — paints
+   * primary on primary and disappears. It cannot be fixed by re-mapping `--color-primary` here:
+   * `[&.is-brand]:bg-primary` reads that same property on this same element, so the band would
+   * erase its own fill. A site whose brand band needs visible accents redefines those component
+   * keys in its own `src/uno.ts`; the durable answer is #1940, which is about `brand` meaning a
+   * solid fill at all when the name reads as a wash.
+   */
   .section-band.is-brand {
     --color-heading: var(--band-brand-text, #fff);
     --color-text-primary: var(--band-brand-text, #fff);
@@ -186,11 +196,20 @@
   }
 
   /*
-   * …and an opaque LIGHT card inside an inverted band gets the light roles back. Four core surfaces
-   * need this (`features-card`, the testimonial figure, the pricing_teaser card, `pricing-card`):
-   * they paint their own light background, so the band's inherited `color` and re-mapped tokens
-   * would otherwise land light-on-light — the same unreadable-band bug this change fixes, moved
-   * one level in. A rule on the descendant beats inheritance from the band whatever the layer.
+   * …and an opaque LIGHT card inside an inverted band gets the light roles back. Every core surface
+   * that paints its own light background needs this — `features-card`, the testimonial figure, the
+   * pricing_teaser card, `pricing-card`, and since #1939 the FAQ item and its action pill, the
+   * section_teaser card and row, the documents row and the team photo frame. Without it the band's
+   * inherited `color` and re-mapped tokens land light-on-light — the same unreadable-band bug this
+   * mechanism exists to fix, moved one level in. A rule on the descendant beats inheritance from
+   * the band whatever the layer.
+   *
+   * The rule for adding a block: if an element inside a section paints an opaque fill of its own
+   * (`bg-surface`, `bg-section-bg`, `bg-white`), it is a light card and wears this class. If it is
+   * transparent, it belongs to the band and must read its colours from the role tokens above —
+   * which is why #1939 also replaced this block set's last `border-gray-200` / `border-black/8`
+   * hairlines with `border-border`: a literal neutral cannot follow a band, and the role token
+   * already resolves to the same hairline on a light one.
    */
   .section-band:is(.is-dark, .is-brand) .surface-light {
     color: var(--band-text-base);
@@ -199,5 +218,29 @@
     --color-text-secondary: var(--band-text-secondary-base);
     --color-muted: var(--band-text-secondary-base);
     --color-border: var(--band-border-base);
+  }
+
+  /*
+   * The CTA banner's button, on the bands the banner only gained in #1933. `btn-white` is white
+   * fill / black label / white border with a hover that goes transparent-on-white — a pill that
+   * exists only because this banner was always dark. Left alone on a light band it is a white
+   * pill on near-white with a hover that erases it entirely: not merely off-brand, invisible.
+   *
+   * A rule here rather than a second button shortcut, for the reason the block has no `align`
+   * either: the CTA's button is not a new treatment, it is the SAME button answering to the band
+   * it sits on. `btn-white` stays the dark-band spelling and is untouched, so nothing already
+   * published moves; only the two light bands this block can newly be given are re-pointed at the
+   * brand button every other light surface on the site already uses.
+   */
+  .section-cta:is(.is-light, .is-muted) .btn-white {
+    border-color: var(--color-button-primary, #3b5aff);
+    background-color: var(--color-button-primary, #3b5aff);
+    color: var(--color-button-primary-text, #fff);
+  }
+
+  .section-cta:is(.is-light, .is-muted) .btn-white:hover {
+    border-color: var(--color-button-primary, #3b5aff);
+    background-color: transparent;
+    color: var(--color-button-primary, #3b5aff);
   }
 }

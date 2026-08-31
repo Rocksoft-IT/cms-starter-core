@@ -27,6 +27,41 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### Every block whose renderer emits a root `<section>` now takes the band (dashboard#1939)
+
+`background` was declared on eight blocks and absent from seventeen others — `hero`, `heading`,
+`video_section`, `promo_split`, `section_teaser`, `documents`, `gallery`, `faq`, `team`,
+`highlights`, `quote`, `hours`, `map`, `contact`, `custom_html`, `columns` and `tabs`. All
+seventeen now declare it and render it, which is `anchor_id`'s rule (v0.50.0 / dashboard#1775)
+applied to the field it was written against: **a block gets the band when its root element is a
+`<section>`.** The backend holds it as a closed list from both directions (`BlockBackgroundTest`),
+so the next block cannot ship with one and not the other.
+
+**No per-client wiring needed, and no visual change** — a pin bump is enough. `default` and an
+absent value emit no modifier, so every page published before this renders byte-for-byte as it
+did; the field only starts doing something when an editor picks a value in the panel's collapsed
+**Advanced** section, where it lands automatically by name.
+
+**What DID move, inside the band mechanism.** Six blocks carried literal neutrals a band cannot
+follow, and they are now the role tokens that can:
+
+- `border-gray-200` / `border-black/8` → `border-border` on `section_teaser`, `documents`,
+  `highlights`, `hours`, `pricing_table`, `pricing_teaser` and the `pricing-card` / `pricing-badge`
+  shortcuts. `--color-border`'s neutral default is `#e3e5ea` against gray-200's `#e5e7eb`, so a
+  light band is unchanged to the eye — but the hairline now follows an inverted band and a client
+  palette, which a literal never could.
+- `.surface-light` — the class that gives an opaque light card its light roles back inside an
+  inverted band — now also rides the FAQ item and its action pill, the `section_teaser` card and
+  row, the `documents` row and the `team` photo frame. Without it those paint white-on-white on a
+  dark band, which is the `pricing-card` bug (v0.50.0) one block over.
+
+**Known limit, unchanged by this and now reachable from more blocks:** `is-brand` is a *solid*
+`primary` fill, so a brand-coloured accent on it (a `text-primary` link, the pull quote's rule)
+paints primary on primary and disappears. It cannot be fixed by re-mapping `--color-primary`,
+which the band reads for its own fill; a site that needs visible accents there redefines those
+component keys in its `src/uno.ts`. See the note beside `.section-band.is-brand` in
+`core/styles/tokens.css`, and dashboard#1940.
+
 ### A background photo on `hero` itself (dashboard#1925)
 
 `hero` gains `background_image` / `background_image_meta` / `background_image_alt` (a
