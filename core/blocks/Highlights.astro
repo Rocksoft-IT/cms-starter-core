@@ -13,7 +13,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, categories = [], links = [], footnote, background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, categories = [], links = [], footnote, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -23,7 +23,7 @@ const linkRows = links.filter((link) => link.label && link.href)
 
 <section id={sectionId} class:list={['section-highlights section-band py-16', backgroundClass(background)]}>
   <div class="highlights-inner">
-    <SectionHeader {eyebrow} {heading} />
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
     {
       groups.map((category) => (

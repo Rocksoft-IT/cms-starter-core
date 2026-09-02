@@ -11,13 +11,24 @@ import { headingTag } from '../../lib/headingLevel'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { usableCtas } from '../../lib/ctas'
+import HeadingIcon from '../HeadingIcon.astro'
 
 interface Props {
   block: PromoSplitBlock
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, heading_level, body, cta_label, cta_href, src, src_meta, alt = '', reverse, background } = block.data
+// `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
+// (dashboard#1977). A NAME change only — the field was already a textarea, and `promo-split-body`
+// below keeps its class, because the element is this panel's own and the site layer styles it.
+const { anchor_id, heading_icon, eyebrow, heading, heading_level, intro, src, src_meta, alt = '', reverse, background } = block.data
+
+// ONE link — the panel holds this block to `max => 1` (dashboard#1959). It used to read a
+// `cta_label` + `cta_href` pair behind its own `cta_label && cta_href` gate; that rule is now
+// `usableCtas()`, shared with every block fed by `$ctaList`, so a row an editor left half-filled
+// behaves the same here as it does in a hero. See lib/ctas.ts.
+const cta = usableCtas(block.data.ctas)[0]
 
 const sectionId = sectionAnchorId(anchor_id)
 // Capitalized so Astro treats it as a dynamic tag rather than a literal <headingtag> element.
@@ -28,13 +39,14 @@ const Heading = headingTag(heading_level)
   <div class="promo-split-inner">
     <div class:list={['promo-split-panel', src && 'md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]']}>
       <div class="promo-split-content">
+        <HeadingIcon svg={heading_icon} />
         {eyebrow && <span class="promo-split-eyebrow">{eyebrow}</span>}
         {heading && <Heading class="promo-split-heading">{heading}</Heading>}
-        {body && <p class="promo-split-body">{body}</p>}
+        {intro && <p class="promo-split-body">{intro}</p>}
         {
-          cta_label && cta_href && (
-            <a class="promo-split-cta" href={hrefOf(cta_href)}>
-              {cta_label}
+          cta && (
+            <a class="promo-split-cta" href={hrefOf(cta.href)}>
+              {cta.label}
               <svg
                 width="16"
                 height="16"

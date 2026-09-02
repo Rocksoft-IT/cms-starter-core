@@ -1,0 +1,104 @@
+---
+// Core videos block — a BAND of videos, which VideoSection.astro beside it is not: that one is a
+// single inline <iframe>, and a section closing on two clips with different captions had no shape
+// in the CMS at all (dashboard#1914).
+//
+// A card is a LINK, not a second embed. Six players on one page is six third-party frames loaded
+// before anyone has asked to watch anything; a poster and a play mark say "this is a video" for
+// the cost of one image, and the frame is the video host's job once the visitor opts in. It is
+// also why this block reads better than VideoSection on a listing-style page.
+//
+// The poster is DERIVED from the URL (lib/video.ts), so the editor pastes a link and types a
+// label and there is no second value to keep in step when a clip is replaced. `image` is the
+// escape hatch for a host whose poster cannot be derived without a network call at build time —
+// Vimeo — and it WINS over a derived one wherever it is set: a control an editor can fill that
+// changes nothing on the page is the exact failure `background` shipped with (#1498), and an
+// editor who uploads a poster has said what they want.
+//
+// Everything degrades. A row with no usable URL is dropped rather than rendered as a link to
+// nowhere, a card with no poster is the play mark alone, and a card with no label takes its
+// accessible name from core's own string table — announced, never displayed, so an English
+// literal here would reach exactly the users who cannot see it is the wrong language.
+import type { VideosBlock } from '../../types/blocks'
+import { sectionAnchorId } from '../../lib/anchor'
+import { alignClass } from '../../lib/align'
+import { backgroundClass } from '../../lib/background'
+import { href as hrefOf } from '../../lib/href'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
+import { parseVideo } from '../../lib/video'
+import SectionHeader from '../SectionHeader.astro'
+import { coreString } from '../ui-strings'
+
+interface Props {
+  block: VideosBlock
+  /** The locale this page is being built for, from core/BlockRenderer.astro. */
+  locale?: string
+}
+
+const { block, locale } = Astro.props
+const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, items = [] } = block.data
+
+// Deep-link target — a video band is a typical TOC entry. See lib/anchor.ts.
+const sectionId = sectionAnchorId(anchor_id)
+// The shared `background` select — a band modifier the styling layer paints (#1498).
+const bandClass = backgroundClass(background)
+// The shared `align` select (#1643) — the header does the aligning, this is the site hook.
+const alignModifier = alignClass(align)
+
+// flatMap rather than map+filter: it drops the unusable rows AND narrows the type, where a
+// `.filter(Boolean)` would leave `astro check` believing a card can still be null.
+const cards = items.flatMap((item) => {
+  const video = parseVideo(item?.url)
+  if (!video) return []
+
+  const label = item?.label?.trim() ?? ''
+
+  return [
+    {
+      href: hrefOf(video.href),
+      label,
+      // The editor's own picture first — see the header. `image_meta` rides along only with it:
+      // a derived poster is a remote file the API never measured, so there is no srcset to emit.
+      poster: item?.image || video.thumbnail,
+      posterMeta: item?.image ? item.image_meta : undefined,
+    },
+  ]
+})
+
+const watchLabel = coreString(locale, 'videoCard')
+---
+
+{
+  cards.length > 0 && (
+    <section class:list={['section-videos section-band relative', bandClass, alignModifier]} id={sectionId}>
+      <div class="videos-inner">
+        <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
+        <ul class="videos-grid">
+          {cards.map((card) => (
+            <li>
+              <a class="video-card" href={card.href} aria-label={card.label ? undefined : watchLabel}>
+                <span class="video-card-media">
+                  {card.poster && (
+                    <img
+                      src={card.poster}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      {...responsiveImageAttrs(card.posterMeta, IMAGE_SIZES.gridTile)}
+                    />
+                  )}
+                  <span class="video-card-play" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </span>
+                </span>
+                {card.label && <span class="video-card-label">{card.label}</span>}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  )
+}

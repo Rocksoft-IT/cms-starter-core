@@ -40,13 +40,30 @@ describe('responsiveImageAttrs()', () => {
     expect(responsiveImageAttrs({ width: null, height: null, srcset: null }, sizes)).toEqual(nothing)
   })
 
+  // The slots whose width does NOT follow the container, and are therefore the only ones allowed to
+  // be a fixed px. Each has to be a slot the CSS caps outright — `pricing-logo` is
+  // `h-8 w-auto max-w-[7rem]`, so it is ≤112px at every viewport on every site whatever
+  // `container-global` is overridden to. Adding a key here is the deliberate act; a new entry that
+  // is not listed falls under the vw rule below and fails until someone justifies it.
+  const CONTAINER_INDEPENDENT = new Set(['planLogo'])
+
   it('never bakes a container-dependent pixel width into a sizes value', () => {
     // The slot's pixel width depends on `container-global`, which every client repo overrides — so
     // a pixel here would be right for one site and wrong for the rest. Viewport fractions
     // over-estimate the slot instead, which costs bytes rather than sharpness.
-    for (const value of Object.values(IMAGE_SIZES)) {
+    for (const [key, value] of Object.entries(IMAGE_SIZES)) {
+      if (CONTAINER_INDEPENDENT.has(key)) continue
       expect(value).toMatch(/\d+vw$/)
       expect(value).not.toMatch(/\d+px(,|$)/)
+    }
+  })
+
+  it('states a container-independent slot as a bare pixel width', () => {
+    // The other half of the carve-out: a slot exempt from the vw rule must actually be FIXED, not a
+    // media-query list that happens to end in px. No `vw`, no conditions — one number.
+    for (const key of CONTAINER_INDEPENDENT) {
+      const value = IMAGE_SIZES[key as keyof typeof IMAGE_SIZES]
+      expect(value).toMatch(/^\d+px$/)
     }
   })
 })

@@ -27,6 +27,338 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### A band a client's own wash fits in — `tint`, beside a `brand` that admits it is solid (dashboard#1940)
+
+The `background` select gains a sixth value, `tint`, and `brand`'s panel label now reads **"Brand
+(solid fill)"**. Two problems, one enum:
+
+`brand` is `[&.is-brand]:bg-primary` — a **solid** fill, the inverted band `dark` is. The name reads
+like a wash, and that reading is where the allteck port started before the code said otherwise. The
+stored value is unchanged (no migration, nothing published moves); what changed is the option label,
+which is the only place an editor could ever have read it.
+
+`tint` is the wash that reading expected. Its fill is `--band-tint-bg`, derived as 12% of
+`--color-primary` mixed into `--color-surface`, behind `@supports (background: color-mix(…))` — an
+unsupported function in a *defined* custom property poisons the declaration reading it rather than
+falling back, the same trap `--band-brand-text`'s `oklch()` gate exists for. Without support the
+token stays on its static `--color-surface-alt` value, i.e. a neutral band rather than a broken one.
+
+**Derived, not a new branding field** — same argument as `--band-brand-text`: one setting the client
+already maintains, nothing to drift from it, and the tint moves over MCP today because `primary`
+does (`set_branding`). Mixed towards the *surface* rather than towards white, so it stays on the
+page's own side of the theme; a literal near-white inverts on a dark-themed site, which is what
+`--band-muted-bg` learned on Täles (#1578). It sets a fill and nothing else — no `color`, no role
+re-mapping — because it never crosses over.
+
+**Additive: nothing renders differently until an editor picks the new value.** A site that wants an
+exact hex instead of the derived one redefines `--band-tint-bg` in its own `:root` (seam 2) —
+allteck's `#eaf4e9` is now one token in a client repo instead of a hand-written band.
+
+**This bump needs the dashboard change too.** The option is served by `config/cms.php`; a repo on
+this pin against a panel without it simply never receives `tint`, and `backgroundClass()` returns
+`undefined` for a value it does not know, so the section renders unbanded rather than broken.
+
+### `heading` and `eyebrow` follow the client's brand instead of core's neutrals (dashboard#1941)
+
+**A pin bump alone changes how two colour roles render on every client site — read this before
+taking it.** Core declares 19 palette keys and the CMS has branding fields for nine. `heading` and
+`eyebrow` were two of the ten with no field, so they painted core's neutral `#151516` / `#3b5aff`
+on every site until somebody hand-wrote them into that repo's `cms.config.ts`. Measured on allteck,
+whose branding says `#080808`: every heading was off by a shade too small to notice, and every
+eyebrow — across twelve blocks — was core's neutral **blue**, which reads as a deliberate accent.
+No MCP call could fix it; the only route was a PR against the client repo.
+
+They now **derive** from roles the client already sets through `/api/branding`: `heading` from
+`text-primary`, `eyebrow` from `primary`. In practice a site that has set a brand will see its
+headings take its text colour and its eyebrows take its brand colour on this bump. **Look at the
+site after rebuilding** — this is the intended correction, but it is a visible one.
+
+**No per-client wiring, and no `Layout.astro` edit.** The derivation is written into
+`NEUTRAL_PALETTE_DEFAULTS` as a `var()` chain rather than resolved in `Layout.astro`, which is a
+per-site file the panel writes once at provisioning: a fix there would reach newly generated repos
+only. Both consumers of that record put its values straight into a CSS value slot, so the chain
+resolves at use time against the `--color-text-primary` / `--color-primary` the same `:root` block
+already carries from the CMS.
+
+**Nothing is forced.** A site's own `brand.colors` value still replaces the key, so a repo that
+hand-wrote `heading`/`eyebrow` as a workaround keeps exactly what it has and can drop the override
+later. A site with no branding at all is unchanged — each chain falls back to the neutral hex the
+entry used to be. The inverted-band rules (`.section-band.is-dark`, `.section-band.is-brand`)
+redefine both roles at a more specific selector and are untouched, so the #1693 contrast work still
+wins — an eyebrow on an inverted band keeps the band's own colour and never the derived accent.
+
+**A second, smaller visible change rides along: an eyebrow on a light card inside an inverted band
+becomes visible.** `.surface-light` — the rule that gives an opaque light card its light text roles
+back — restored `heading`, `text-primary`, `text-secondary`, `muted` and `border`, and not
+`eyebrow`. So that one role kept the BAND's value, which defaults to the band's own text colour:
+white on a white card. Absent rather than low-contrast, which is how it survived #1693 adding
+`--color-eyebrow` to the band set in the first place. It now returns to the light value like its
+siblings, through a `--band-eyebrow-base` capture at `:root`. If a site has been relying on an
+eyebrow being invisible there, this is where it reappears.
+
+The other eight unreachable roles — `surface`, `surface-alt`, `surface-tint`, `section-bg`,
+`border`, `muted`, `body`, `primary-soft` — are unchanged: they need branding fields, which is a
+dashboard-side change rather than a default.
+### `pricing_teaser`, `cta_banner` and `promo_split` read `intro`, not `body` (dashboard#1977)
+
+**This bump CHANGES three existing renderers rather than adding anything.** All three used to
+declare a local `body` for the sentence under the heading; it is now the shared `intro` universal
+part. The dashboard migration `2026_09_02_120000_unify_standfirst_vocabulary` moved the stored
+values — per locale, and through nested blocks — on the deploy that shipped it.
+
+**Nothing visual moves.** All three fields were already `textarea`, identical to the part's own
+declaration, so this is a change of NAME and nothing else. `CtaBanner.astro` still draws
+`<p class="cta-body">` and `PromoSplit.astro` still draws `<p class="promo-split-body">`; only what
+they destructure changed. `PricingTeaser.astro` dropped an indirection — it was already passing
+`intro={body}` into `SectionHeader.astro`, so the value had always been the `intro` prop.
+
+**Nothing breaks at this pin, and nothing breaks before it either.** The API still emits `body` for
+these three blocks, projected from `intro`, as a **deprecated alias** — precisely so a repo can take
+this bump on its own schedule. It is removed in a later release, tracked as dashboard#1978 alongside
+the CTA alias below, because both retire through the same operation. A repo that has not migrated by
+then loses the sentence under its heading, silently.
+
+**If your repo OVERRIDES `CtaBanner.astro`, `PromoSplit.astro` or `PricingTeaser.astro`, the bump is
+not enough — migrate the override too.** A core release cannot reach a component your repo owns.
+Measured at the time of writing, four repos read one of these three: `diligently.pl` (CtaBanner,
+PricingTeaser), `scandinavian-taste` (CtaBanner, PromoSplit), `taeles-kebap-astro` (CtaBanner,
+PromoSplit) and `kaffemaskin-til-bedrift` (CtaBanner) — the last of which vendors `src/core/` and
+takes no core releases at all, so only a hand edit reaches it. The port is one identifier per
+override: destructure `intro` instead of `body`.
+
+**Convert your own fixtures in the same branch as the bump.** Nine of the ten repos carry these
+blocks in `src/fixtures/data/pages.*.json` under the old key, so `build:mock` and any e2e spec
+reading the fixture break on the bump even where the renderer comes from core unchanged. That is
+exactly what CI caught on dashboard#1959: the starter's `promo-split.spec.ts` read the retired key
+off its fixture and threw.
+
+**Three blocks kept their own name, permanently**, and this is not an unfinished rename:
+`hero.subheading` is richtext with `paragraph` under it (two slots, and a type the part cannot
+supply), `rich_content.body` IS the block's content, and `quote.lede` is in the quoted article's
+words. Their reasons are recorded beside each block and in `SectionHeaderCoverageTest`.
+
+### `promo_split` and `faq` read `ctas`, not `cta_label`/`cta_href` (dashboard#1959)
+
+**This bump CHANGES two existing renderers rather than adding anything.** Both blocks used to
+carry a `cta_label` + `cta_href` scalar pair; they now read the same `ctas` repeater that `hero`,
+`cta_banner` and `pricing_table` already used, held to one row by the panel (`max => 1`). The
+dashboard migration `2026_09_01_120000_unify_cta_vocabulary` moved the stored values — per locale,
+and through nested blocks — on the deploy that shipped it.
+
+**Nothing breaks at this pin, and nothing breaks before it either.** The API still emits
+`cta_label`/`cta_href` for these two blocks, derived from `ctas[0]`, as a **deprecated alias** —
+precisely so a repo can take this bump on its own schedule. What the alias does not do is last
+forever: it is removed in a later release — tracked as dashboard#1978, which lists the condition
+and the repos it is waiting on — and a repo that has not migrated by then loses its CTA silently.
+
+**If your repo OVERRIDES `PromoSplit.astro` or `Faq.astro`, the bump is not enough — migrate the
+override too.** A core release cannot reach a component your repo owns. Concretely, on
+`scandinavian-taste`, `PromoSplit.astro` reads `cta_href` directly and treats a
+`webforms.pipedrive.com` value as a **mode switch** that replaces the block's visual column with an
+inlined contact form. That override keeps working through the alias and has to move to `ctas`
+before the alias goes — and note its "href with no label" state is meaningful there, so read the
+row rather than `usableCtas()` if you are reproducing that behaviour.
+
+The port is otherwise small: destructure `ctas` instead of the pair and take `usableCtas(ctas)[0]`
+(`lib/ctas.ts`, already exported). `usableCtas()` drops a row missing either half, which is the
+same rule the old `cta_label && cta_href` gates stated locally — so a half-filled row renders
+exactly what it rendered before.
+
+Also here: the block-field coverage gate's header no longer cites `hero.ctas` as its example of a
+field rendered in only one branch. `HeroCtas.astro` fixed that, and the example had been left
+behind as a false statement in the one file whose job is to be trusted about coverage.
+
+### Two porting tools: read the source, then audit the port (dashboard#1966)
+
+`pnpm parity:source` and `pnpm parity:audit`, both shipped from core's `scripts/` and both run
+against a **static source** — a Webflow export, a hand-built HTML/CSS prototype, a mirror. We port
+one of these often enough that the two questions are worth naming separately:
+
+- **`parity:source '<selector>' [--motion]`** — what IS it. Serves the source, walks the section,
+  and prints every declared rule that owns each element beside the value it computes to, plus a DOM
+  tree and a mapping skeleton to fill in.
+- **`parity:audit <build-url> <ref-url> <selector> [ref-selector] [--shot DIR]`** — is it right
+  yet. Walks the same section on the build and on the live reference and prints both, element by
+  element, with screenshots.
+
+**Why the first one exists at all.** A rendered page — which is what VRT, `tests/measure` and any
+`getComputedStyle` check read — structurally cannot report three things, and on the port that
+prompted this each was guessed at instead:
+
+- **the authored unit.** `inset: 0 8vw 0 auto` measures 115.2px at 1440, and 115.2px is what four
+  measuring passes wrote into the stylesheet. Correct at exactly one width.
+- **a rule that does not apply.** A `min-height: 520px` parked in another breakpoint's media query
+  reads like the element's height in the file and computes to `auto` on the page. Copying it made a
+  card 275px too tall. The property table prints both and marks the dead one `✗`.
+- **an interaction that has not run.** Webflow's IX2 action lists compute to `none` on a page nobody
+  has scrolled or hovered. `--motion` decodes them out of the export's own JS into keyframe tables —
+  evaluated as the object literals they are rather than scraped, because a regex over that blob is
+  how one pass concluded a parallax did not exist at all. Reconstructing them by eye had produced a
+  hover magnet at an eighth of its throw, a parallax with two of four photos drifting the wrong way,
+  and a text reveal missing the stagger that is its whole character. The tool contradicted the last
+  of those within an hour of it shipping.
+
+Only `--motion` needs Webflow; the DOM and rule halves need a directory with an index.html.
+
+**Existing repos need a per-client edit.** `frontend/package.json` carries both script entries, so a
+client provisioned after this is born with them — an existing one gets the files with the pin bump
+and needs the two `scripts` lines added on the same `starter-update` branch. Nothing else is wired:
+neither tool is part of `pnpm build` or any test, and neither can fail a build.
+
+The `webflow-parity` skill now opens by telling you to run `parity:source` first.
+### A section heading can carry the client's own glyph (dashboard#1968)
+
+Twenty blocks gained `heading_icon`, an **optional** universal part holding raw SVG. It is the
+answer to "every client wants a different icon": core's `lib/icons.ts` has eleven named glyphs,
+which is a census of what two blocks happened to need, and a plumber's wrench or a roaster's bean
+was previously a core release plus a pin bump per repo — for one drawing.
+
+**What now renders.** `HeadingIcon.astro` is the one place the glyph is drawn and the only caller
+of the sanitiser, so the thirteen blocks that delegate to `SectionHeader.astro` get it by forwarding
+one prop, and the seven that head themselves (`Hero`, `RichContent`, `Heading`, `CtaBanner`,
+`PromoSplit`, `Faq`, `Map`) place the same component at the top of their own cluster. Size is the
+new `section-heading-icon` shortcut — one key, retunable per site, beside `section-animation`.
+`Documents` deliberately does **not** take the part: its `icon` select already draws a glyph on that
+header.
+
+**Two fixes ride along, and one of them was live.** `sanitizeSvg()` spelled its allowlist in
+camelCase while `sanitize-html` parses as HTML and lowercases names, so nothing matched — **every
+SVG lost its `viewBox`**, along with `preserveAspectRatio`, `gradientUnits`, `stdDeviation` and the
+tags `linearGradient` / `radialGradient` / `clipPath` / `textPath` / all seven `fe*` filters. Paste
+an unmodified Lucide icon and it came back unscalable, which nobody noticed because a 24-unit
+drawing in a 20px box still shows something. The `style` attribute was also getting through
+verbatim, carrying a full-viewport `position:fixed` and a `background-image:url()` fetch; it is
+dropped now. **If your site renders `pricing_table` billing-tab icons, they will start scaling
+correctly on this bump** — no client had one when this shipped, so it was measured as a no-op.
+
+**`sanitizeIcon()` is new and it forces `currentColor`.** A glyph here is monochrome by
+construction: `fill="none"` is preserved so outline icons stay outlines, every other colour is
+replaced, and `class`/`width`/`height` come off the root so the shortcut decides the size. That is
+deliberate — a pasted `fill="#1a3d7c"` would otherwise outlive the next rebrand — and it is why a
+mark needing its own colours stays a picture rather than a glyph. `pricing_table.tab_icons[].icon_svg`
+renders through the same function and changed type from `richtext` to `textarea`, which is also
+what makes it editable in the panel at all: `richtext` built a prose editor with no `svg` node.
+
+**No per-client wiring needed** — a pin bump is the whole change on the client side.
+
+### Eleven blocks gained a standfirst, three gained a label above the heading (dashboard#1958)
+
+The CMS gave the section header — `eyebrow` / `heading` / `intro` — the rule `background` and
+`anchor_id` already follow: *a block that renders a section of its own content carries the section
+header, and carries all of it*. Core is the other half of that, because a field the registry
+declares and no component reads fails `pnpm cms:blocks:verify`.
+
+**What now renders.** `intro` is forwarded to `SectionHeader.astro` by `Gallery`, `Team`,
+`Testimonials`, `SectionTeaser`, `Highlights`, `Hours`, `Contact` and `PricingTable`. `Documents`
+and `Map` draw their own header, and each now draws the whole cluster — a `section-eyebrow` above
+the heading and a `section-intro` below it, in their own left-aligned rhythm rather than through
+the centred shared component.
+
+**`VideoSection` was folded onto `SectionHeader.astro` instead**, and it is the one block here
+whose output changes. It had headed itself with a literal `text-3xl font-bold` where every other
+section heading is the `section-heading` shortcut (40px, `font-brand`), so a site retuning its
+headings from its palette retuned twenty of them and not this one. Its left alignment was the same
+kind of accident: the three blocks that head themselves are exactly the three that predate the
+component, and none recorded a reason — unlike `hero`, `cta_banner`, `promo_split` and `faq`,
+which each do. **Safe to correct here because no client uses this block yet**, so there is nothing
+to repaint; a site adopting `video_section` after this release gets the header every other section
+has. `Documents` and `Map` were left alone for exactly the reason this one could move: folding
+them WOULD repaint published pages, so it is a design decision rather than a declaration one.
+
+**Nothing published changes.** Every new field is absent on every existing block and every emit is
+guarded, so a block carrying only a heading renders byte-identical HTML — including the class
+attribute, which is why the three own-header blocks got a conditional bottom margin on the heading
+rather than a rewritten header. Verified by building the mock site and comparing the three
+sections' markup before and after.
+
+**Not done here, on purpose.** `hero`, `cta_banner`, `promo_split` and `faq` still draw their own
+header and keep it: folding them onto `SectionHeader.astro` would recentre the FAQ header
+(`faq-header` is `mb-7` and left-aligned where `section-header` is `text-center mb-12`), repaint
+the dark CTA band and turn hero's richtext `<h1>` into a plain `<h2>`. Each carries that reason
+beside itself in the block registry.
+
+### A pricing plan's bundled sub-plans and client logos finally render (dashboard#1779)
+
+`PricingTable.astro` drew twelve of the fourteen fields the `plan` item type declares. The two it
+dropped were `sub_plans` — the offers a bundle contains, which #1288 added to the backend for a
+$790 card holding a $490 and a $390 offer of its own — and `example_logos`, the client-mark row a
+card shows underneath. Both were authored in the panel and fully resolved by the API; core simply
+never read them, so an editor filled them in and the page showed nothing.
+
+**Additive, and the guards are the reason.** Every emit is behind a length check, so a plan
+carrying neither field renders exactly what it rendered before — that is provable by inspection of
+the two guards, and it is what the source-walk test asserts. (An earlier draft of this entry led
+with an HTML comparison of the fixture site before and after: 0 of 22 pages differed. That proved
+nothing about this change, because no fixture plan carried either field, so neither new path ran.
+Both fields are now IN the fixture instead, which is worth more: `build:mock`, the VRT sweep and
+Playwright all render the new nodes.)
+
+**`example_logos` is now typed, and it is not a string list.** It reaches `PricingPlan` as
+`TeaserImage[]`, the existing type for a whole `MediaUrls::for()` object, because a `multiple` media
+field emits one object per file (`url`, `alt`, `width`, `height`, `srcset`, …) — not a URL.
+`packages/cms-core/BLOCKS.md` still shows the old string-list example; `PagePayload::mediaFields()`
+is the authority. A fork reading the field structurally (diligently.pl does) can now read it by
+name. Note that `PricingPlan` is hand-maintained above the generated marker — `pnpm cms:types`
+skips ref blocks and will not add this for you.
+
+**The visual answers core picked, both deliberately conservative.** `sub_plans` renders as an
+indented list of name + price (plus each offer's own CTA as a text link), placed **above** the
+card's button — a card inside a card needs surface and padding decisions core does not have, and
+the button's `mt-auto` would otherwise push the bundle to the card's foot, away from the price it
+qualifies. `example_logos` renders as an unlabelled row at the card's foot, below the feature list.
+diligently.pl derives *"Small package examples:"* from the card's own `size_label`; that is a good
+idea and that site's editorial voice, so core emits no copy of its own and leaves the label to an
+override. Sites wanting a different treatment redefine `pricing-sub-plans`, `pricing-sub-plan-*`,
+`pricing-logos` or `pricing-logo` in their own `src/uno.ts`.
+
+Both collections are `<ul>`/`<li>`, like the feature list in the same card and like Gallery's and
+Team's tiles — a bundle's offers and a mark row are lists, and the count is what an assistive reader
+should hear. The logo `<img>` goes through `responsiveImageAttrs` with a new `IMAGE_SIZES.planLogo`
+(`112px` — a fixed value, the one exception to that table's vw rule, because `pricing-logo` is
+`h-8 max-w-[7rem]` and so never scales with the container): `MediaUrls::srcset()` emits `w`
+descriptors, and a `w` srcset with no `sizes` makes the browser assume `100vw` and fetch the largest
+rung for a 112px picture. And the row is guarded on the RESOLVED list, so a card whose every logo
+failed to resolve emits no row rather than `pricing-logos`' top rule around nothing.
+
+**Neither field is reachable by the field-coverage gate**, so it could not have caught this and
+cannot catch a regression: `pricing_table.plans` is an `items` reference with no inline `fields`, so
+`leafFields()` collapses it to one leaf and never descends into the `plan` registry. The guard is a
+source-walk test, `tests/pricing-plan-fields.test.ts`.
+
+### A band of video cards, each with its own label (dashboard#1914)
+
+New `videos` block: an eyebrow, a heading, an intro and a repeater of `{ url, label, image }`.
+It exists because `video_section` beside it is **one** URL rendered as **one** inline embed, so a
+section closing on two clips with different captions — "Se video fra bakeriet" and "Se video" on
+scandinaviantaste.no/referanser — had no shape in the CMS at all. `gallery` carries no link per
+picture, and `cards` with `layout: bento` makes the editor paste a thumbnail URL by hand.
+
+`core/blocks/Videos.astro` and `lib/video.ts` are new. The **poster is derived from the URL**
+(`lib/video.ts` recognises every YouTube form — `watch?v=`, `youtu.be`, `/embed/`, `/shorts/`,
+`/live/`, `-nocookie` — and returns `i.ytimg.com/vi/<id>/hqdefault.jpg`), so an editor pastes a
+link and types a label and there is nothing to re-upload when a clip is replaced. That parse is
+**pure**: no oEmbed, no fetch, nothing that could make a build fail or hang without the content
+having changed. Vimeo is recognised for its id and its link but has **no** derivable poster — its
+thumbnail lives behind an API call — so those cards fall back to the block's optional `image`, and
+to the play mark alone when there is none. An uploaded `image` **wins** over a derived poster
+wherever it is set: a control an editor can fill that changes nothing on the page is the failure
+`background` shipped with, and it is not being repeated.
+
+A card is a **link, not a second embed** — six players on one page is six third-party frames
+loaded before anyone asked to watch anything. The only third-party request the block makes is the
+YouTube poster image (`i.ytimg.com`, no cookies); a site that will not make even that one supplies
+its own `image` per row.
+
+New core string `videoCard` ("Watch video" / "Obejrzyj wideo") names a card that carries no label
+of its own, so a screen reader never meets an unnamed link. New shortcuts `section-videos`,
+`videos-inner`, `videos-grid`, `video-card`, `video-card-media`, `video-card-play`,
+`video-card-label` — neutral, no brand values, no hover motion; a site retunes any of them.
+
+**Pin bump only, no per-client wiring.** `coreBlocks` gains the type, so a repo that spreads it
+(`blocks: { ...coreBlocks }`) renders the block the moment its pin moves. A case study can receive
+it once its section has a page builder — `builder: true` on that section, which is per-client
+config in the panel and needs no code.
+
 ### Every block whose renderer emits a root `<section>` now takes the band (dashboard#1939)
 
 `background` was declared on eight blocks and absent from seventeen others — `hero`, `heading`,
@@ -82,6 +414,7 @@ would restyle the fleet's homepages on the next pin bump; a bare seam does not.
 
 Before this, a hero background was only reachable by wrapping the hero in a one-slide `carousel`
 (v0.51.0) — undiscoverable, and not what an editor reaching for "Hero" expects.
+
 
 ## v0.51.0 — a carousel block, and an eyebrow on the heading block
 

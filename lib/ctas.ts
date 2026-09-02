@@ -6,10 +6,18 @@
  * is a styled span the keyboard cannot reach. A repeater row saved half-filled is an unfinished
  * input rather than an instruction to render either of those, so it is dropped.
  *
- * Shared because three blocks render this one shape — `hero`, `cta_banner` and `pricing_table`,
- * all fed by `$ctaList` in the backend registry — and they had drifted to three different levels
- * of defensiveness about it. One helper is what keeps the same authoring mistake behaving the same
- * way wherever the editor makes it.
+ * Shared because FIVE blocks render this one shape — `hero`, `cta_banner`, `pricing_table`, and
+ * since dashboard#1959 also `promo_split` and `faq`, all fed by `$ctaList` in the backend registry
+ * — and they had drifted to different levels of defensiveness about it. One helper is what keeps
+ * the same authoring mistake behaving the same way wherever the editor makes it.
+ *
+ * The last two arrived by retiring a `cta_label` + `cta_href` scalar pair, each of which stated
+ * this same rule locally as `cta_label && cta_href`. Their registry declarations carry `max => 1`,
+ * so `usableCtas(ctas)[0]` is the whole of their CTA.
+ *
+ * NOTE for a client repo overriding either of those two: a half-filled row is dropped HERE, on the
+ * render side, and is deliberately KEPT in storage and in the payload — `scandinavian-taste` reads
+ * an href with no label as a mode switch. If you are reproducing that, read the row, not this.
  */
 export interface CtaLink {
   label?: string

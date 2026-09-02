@@ -40,6 +40,12 @@ export interface CoreStrings {
    * IN ENGLISH is the failure this seam exists to stop, so it is a key rather than a literal.
    */
   videoFrame: string
+  /**
+   * The accessible name of a card in the `videos` block that carries no label of its own. The
+   * label is the card's visible name where there is one, so this is the fallback rather than a
+   * duplicate announcement.
+   */
+  videoCard: string
   /** The carousel's arrows, and the dot that jumps to one slide. */
   previousSlide: string
   nextSlide: string
@@ -68,6 +74,7 @@ const BUILT_IN: Record<string, CoreStrings> = {
     previousTestimonial: 'Previous testimonial',
     nextTestimonial: 'Next testimonial',
     videoFrame: 'Embedded video',
+    videoCard: 'Watch video',
     previousSlide: 'Previous slide',
     nextSlide: 'Next slide',
     goToSlide: 'Go to slide {n}',
@@ -83,6 +90,7 @@ const BUILT_IN: Record<string, CoreStrings> = {
     previousTestimonial: 'Poprzednia opinia',
     nextTestimonial: 'Następna opinia',
     videoFrame: 'Osadzone wideo',
+    videoCard: 'Obejrzyj wideo',
     previousSlide: 'Poprzedni slajd',
     nextSlide: 'Następny slajd',
     goToSlide: 'Przejdź do slajdu {n}',

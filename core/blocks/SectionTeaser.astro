@@ -33,6 +33,7 @@ const { block } = Astro.props
 const { anchor_id,
   eyebrow,
   heading,
+  intro,
   layout = 'cards',
   items = [],
   action_label,
@@ -40,6 +41,7 @@ const { anchor_id,
   item_action_label,
   attachments_label,
   background,
+  heading_icon,
 } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
@@ -104,7 +106,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
   (hasHeader || items.length > 0) && (
     <section id={sectionId} class:list={['section-teaser section-band py-16', backgroundClass(background), isList && 'is-list']}>
       <div class="container-global">
-        <SectionHeader {eyebrow} {heading} />
+        <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
         {/* Cards layout — news grid */}
         {items.length > 0 && !isList && (

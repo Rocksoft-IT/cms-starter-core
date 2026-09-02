@@ -14,18 +14,18 @@
                 "ctas",
                 "cta_note"
             ],
-            "CTA card": [
+            "Card beside the buttons": [
                 "cta_card_image",
                 "cta_card_title",
                 "cta_card_subtitle",
                 "cta_card_href"
-            ],
-            "Background": [
-                "background_image",
-                "background_image_alt"
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
@@ -51,16 +51,18 @@
                         "type": "text"
                     },
                     "href": {
-                        "type": "text"
+                        "type": "href"
                     }
-                }
+                },
+                "max": 2
             },
             "cta_note": {
                 "type": "text"
             },
             "cta_card_image": {
                 "type": "media_upload",
-                "label": "Image"
+                "label": "Image",
+                "help": "A small card next to the buttons — the person to talk to, a partner, a badge or an app-store mark. The card appears once it has a title."
             },
             "cta_card_title": {
                 "type": "text",
@@ -76,11 +78,13 @@
             },
             "background_image": {
                 "type": "media_upload",
-                "label": "Background image"
+                "label": "Background image",
+                "advanced": true
             },
             "background_image_alt": {
                 "type": "text",
-                "label": "Alternative text"
+                "label": "Alternative text",
+                "advanced": true
             },
             "columns_layout": {
                 "type": "select",
@@ -116,7 +120,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -140,7 +145,6 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
-                "heading_level",
                 "body"
             ],
             "Media": [
@@ -148,6 +152,10 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
@@ -156,6 +164,7 @@
             },
             "heading_level": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Default (H2)",
                     "h1": "H1 — this section is the page title",
@@ -177,7 +186,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -215,6 +225,7 @@
             },
             "variant": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Standard (running prose)",
                     "note": "Note (set-apart box)"
@@ -239,6 +250,7 @@
             },
             "style": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "primary": "Primary",
                     "outline": "Outline"
@@ -255,11 +267,14 @@
                 {
                     "eyebrow": 1,
                     "text": 2
-                },
-                "level"
+                }
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
@@ -268,6 +283,7 @@
             },
             "level": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "h1": "H1",
                     "h2": "H2",
@@ -281,7 +297,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -317,11 +334,21 @@
             "body"
         ],
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "video_url": {
                 "type": "asset_url"
             },
+            "eyebrow": {
+                "type": "text"
+            },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "body": {
                 "type": "textarea"
@@ -332,8 +359,90 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
+    "videos": {
+        "label": "Videos",
+        "description": "A row of clickable video cards — paste a YouTube or Vimeo link and give it a label, and the thumbnail follows from the URL. For a single video embedded in the page, use Video section.",
+        "icon": "heroicon-o-film",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "intro"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "intro"
+            ],
+            "Videos": [
+                "items"
+            ]
+        },
+        "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
+            },
+            "items": {
+                "type": "repeater",
+                "fields": {
+                    "url": {
+                        "type": "asset_url"
+                    },
+                    "label": {
+                        "type": "text"
+                    },
+                    "image": {
+                        "type": "image"
+                    }
+                }
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
+                    "dark": "Dark"
+                }
+            },
+            "align": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "left": "Left",
+                    "center": "Centered"
+                }
+            },
+            "reveal": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "on": "Fade in on scroll",
+                    "off": "No animation"
                 }
             },
             "anchor_id": {
@@ -363,6 +472,10 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
@@ -392,7 +505,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -419,12 +533,12 @@
     },
     "cta_banner": {
         "label": "CTA banner",
-        "description": "Copy-only call-to-action banner: eyebrow, heading, body, optional highlight badges, CTAs and a CTA card (a picture, a title and a subtitle — the person to talk to). Compose an image beside it with a Columns block.",
+        "description": "Copy-only call-to-action banner: eyebrow, heading, intro, optional highlight badges, CTAs and a CTA card (a picture, a title and a subtitle — the person to talk to). Compose an image beside it with a Columns block.",
         "icon": "heroicon-o-megaphone",
         "preview": [
             "heading",
             "eyebrow",
-            "body"
+            "intro"
         ],
         "groups": {
             "Content": [
@@ -432,7 +546,7 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
-                "body"
+                "intro"
             ],
             "Badges": [
                 "badges"
@@ -440,7 +554,7 @@
             "Call to action": [
                 "ctas"
             ],
-            "CTA card": [
+            "Card beside the buttons": [
                 "cta_card_image",
                 "cta_card_title",
                 "cta_card_subtitle",
@@ -448,13 +562,17 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
             },
-            "body": {
+            "intro": {
                 "type": "textarea"
             },
             "badges": {
@@ -479,13 +597,15 @@
                         "type": "text"
                     },
                     "href": {
-                        "type": "text"
+                        "type": "href"
                     }
-                }
+                },
+                "max": 2
             },
             "cta_card_image": {
                 "type": "media_upload",
-                "label": "Image"
+                "label": "Image",
+                "help": "A small card next to the buttons — the person to talk to, a partner, a badge or an app-store mark. The card appears once it has a title."
             },
             "cta_card_title": {
                 "type": "text",
@@ -505,7 +625,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -524,12 +645,12 @@
     },
     "promo_split": {
         "label": "Promo split",
-        "description": "Two-column promo panel — brand-colored side with eyebrow, heading, body and one CTA; a photo bleeding to the edge on the other (reverse flips sides).",
+        "description": "Two-column promo panel — brand-colored side with eyebrow, heading, intro and one CTA; a photo bleeding to the edge on the other (reverse flips sides).",
         "icon": "heroicon-o-rectangle-stack",
         "preview": [
             "heading",
             "eyebrow",
-            "body"
+            "intro"
         ],
         "groups": {
             "Content": [
@@ -537,28 +658,33 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
-                "heading_level",
-                "body"
+                "intro"
             ],
             "Call to action": [
-                "cta_label",
-                "cta_href"
+                "ctas"
             ],
             "Image": [
                 "image",
-                "alt",
-                "reverse"
+                "alt"
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
             },
+            "intro": {
+                "type": "textarea"
+            },
             "heading_level": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Default (H2)",
                     "h1": "H1 — this section is the page title",
@@ -566,14 +692,23 @@
                     "h3": "H3"
                 }
             },
-            "body": {
-                "type": "textarea"
-            },
-            "cta_label": {
-                "type": "text"
-            },
-            "cta_href": {
-                "type": "href"
+            "ctas": {
+                "type": "repeater",
+                "label": "Call to action",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "href"
+                    }
+                },
+                "max": 1
             },
             "image": {
                 "type": "media_upload"
@@ -582,7 +717,8 @@
                 "type": "text"
             },
             "reverse": {
-                "type": "toggle"
+                "type": "toggle",
+                "advanced": true
             },
             "background": {
                 "type": "select",
@@ -590,7 +726,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -606,7 +743,7 @@
         "preview": [
             "heading",
             "eyebrow",
-            "body"
+            "intro"
         ],
         "groups": {
             "Content": [
@@ -614,7 +751,7 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
-                "body"
+                "intro"
             ],
             "Cards": [
                 "cards"
@@ -625,13 +762,17 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
             },
-            "body": {
+            "intro": {
                 "type": "textarea"
             },
             "cards": {
@@ -669,7 +810,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -704,23 +846,31 @@
             "Content": [
                 {
                     "eyebrow": 1,
-                    "heading": 1,
-                    "layout": 1
-                }
+                    "heading": 2
+                },
+                "intro"
             ],
             "Items": [
                 "items"
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
             },
+            "intro": {
+                "type": "textarea"
+            },
             "layout": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "slider": "Slider",
                     "single": "Single",
@@ -737,7 +887,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -783,11 +934,11 @@
                 {
                     "eyebrow": 1,
                     "heading": 2
-                }
+                },
+                "intro"
             ],
             "Source": [
                 "section",
-                "layout",
                 "limit"
             ],
             "Labels": [
@@ -798,17 +949,25 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
             },
+            "intro": {
+                "type": "textarea"
+            },
             "section": {
                 "type": "section"
             },
             "layout": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "cards": "Cards",
                     "list": "List"
@@ -842,7 +1001,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -856,11 +1016,18 @@
         "description": "A titled list of downloadable documents from the Files library; each row links to its file.",
         "icon": "heroicon-o-document-text",
         "fields": {
+            "eyebrow": {
+                "type": "text"
+            },
             "heading": {
                 "type": "text"
             },
+            "intro": {
+                "type": "textarea"
+            },
             "icon": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "document": "Document",
                     "folder": "Folder",
@@ -884,7 +1051,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -908,14 +1076,17 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
-                "intro",
-                "layout"
+                "intro"
             ],
             "Items": [
                 "items"
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
@@ -927,6 +1098,7 @@
             },
             "layout": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "tiles": "Tiles (compact, link-led)",
                     "cards": "Cards (icon, label and value)",
@@ -941,7 +1113,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1027,6 +1200,7 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
+                "intro",
                 "note"
             ],
             "Images": [
@@ -1034,11 +1208,18 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "note": {
                 "type": "text"
@@ -1066,7 +1247,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1092,19 +1274,18 @@
                 },
                 "intro"
             ],
-            "Layout": [
-                "layout",
-                "open_first"
-            ],
             "Questions": [
                 "items"
             ],
             "Call to action": [
-                "cta_label",
-                "cta_href"
+                "ctas"
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
@@ -1116,19 +1297,33 @@
             },
             "layout": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "accordion": "Accordion (click to expand)",
                     "list": "List (always open)"
                 }
             },
             "open_first": {
-                "type": "toggle"
+                "type": "toggle",
+                "advanced": true
             },
-            "cta_label": {
-                "type": "text"
-            },
-            "cta_href": {
-                "type": "href"
+            "ctas": {
+                "type": "repeater",
+                "label": "Call to action",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "href"
+                    }
+                },
+                "max": 1
             },
             "items": {
                 "type": "repeater",
@@ -1147,7 +1342,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1165,18 +1361,26 @@
                 {
                     "eyebrow": 1,
                     "heading": 2
-                }
+                },
+                "intro"
             ],
             "Members": [
                 "members"
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "members": {
                 "type": "repeater",
@@ -1203,7 +1407,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1450,14 +1655,12 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
+                "intro",
                 "body",
                 "animation_url"
             ],
             "Plans": [
                 "plans",
-                "width",
-                "description_height",
-                "price_size",
                 "billing_toggle",
                 "tab_icons",
                 "tab_labels"
@@ -1467,11 +1670,18 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "body": {
                 "type": "textarea"
@@ -1487,7 +1697,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1509,6 +1720,7 @@
             },
             "width": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Default (page container)",
                     "wide": "Wide (room for a fourth card)"
@@ -1516,6 +1728,7 @@
             },
             "description_height": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Default (each blurb sets its own height)",
                     "fixed": "Fixed (prices line up across the cards)"
@@ -1523,6 +1736,7 @@
             },
             "price_size": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Default",
                     "small": "Small (a long price stays on one line)"
@@ -1542,7 +1756,7 @@
                         "type": "text"
                     },
                     "icon_svg": {
-                        "type": "richtext"
+                        "type": "textarea"
                     }
                 }
             },
@@ -1571,9 +1785,10 @@
                         "type": "text"
                     },
                     "href": {
-                        "type": "text"
+                        "type": "href"
                     }
-                }
+                },
+                "max": 2
             },
             "anchor_id": {
                 "type": "text"
@@ -1595,6 +1810,7 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
+                "intro",
                 "footnote"
             ],
             "Categories": [
@@ -1605,11 +1821,18 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "categories": {
                 "type": "repeater",
@@ -1661,7 +1884,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1738,7 +1962,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1757,6 +1982,7 @@
                     "eyebrow": 1,
                     "heading": 2
                 },
+                "intro",
                 "footnote"
             ],
             "Opening hours": [
@@ -1764,11 +1990,18 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "hours": {
                 "type": "repeater",
@@ -1795,7 +2028,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1809,8 +2043,18 @@
         "description": "A standalone, composable map embed (GDPR-relevant; a renderer may consent-gate it).",
         "icon": "heroicon-o-map",
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
+            "eyebrow": {
+                "type": "text"
+            },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "map_embed_src": {
                 "type": "url"
@@ -1821,7 +2065,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1844,7 +2089,8 @@
                 {
                     "eyebrow": 1,
                     "heading": 2
-                }
+                },
+                "intro"
             ],
             "Details": [
                 "address",
@@ -1853,11 +2099,18 @@
             ]
         },
         "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
             "eyebrow": {
                 "type": "text"
             },
             "heading": {
                 "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
             },
             "address": {
                 "type": "textarea"
@@ -1877,7 +2130,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1898,7 +2152,8 @@
                 "type": "code_html"
             },
             "full_width": {
-                "type": "toggle"
+                "type": "toggle",
+                "advanced": true
             },
             "background": {
                 "type": "select",
@@ -1906,7 +2161,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1925,13 +2181,15 @@
         "fields": {
             "width": {
                 "type": "select",
+                "advanced": true,
                 "options": {
                     "default": "Default (page container)",
                     "prose": "Prose measure (line up with the text band above)"
                 }
             },
             "mobile_reverse": {
-                "type": "toggle"
+                "type": "toggle",
+                "advanced": true
             },
             "layout": {
                 "type": "select",
@@ -1954,7 +2212,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -1984,7 +2243,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },
@@ -2023,10 +2283,12 @@
             },
             "autoplay": {
                 "type": "toggle",
+                "advanced": true,
                 "default": true
             },
             "interval": {
                 "type": "select",
+                "advanced": true,
                 "default": "6",
                 "options": {
                     "4": "4 seconds",
@@ -2036,6 +2298,7 @@
             },
             "transition": {
                 "type": "select",
+                "advanced": true,
                 "default": "scroll",
                 "options": {
                     "scroll": "Scroll (swipe/scroll-snap — slides carry different content)",
@@ -2048,7 +2311,8 @@
                     "default": "Default (page background)",
                     "light": "Light",
                     "muted": "Muted",
-                    "brand": "Brand",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
                     "dark": "Dark"
                 }
             },

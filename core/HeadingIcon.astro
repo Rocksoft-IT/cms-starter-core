@@ -1,0 +1,37 @@
+---
+// The client's own glyph above a section heading — the `heading_icon` universal part
+// (dashboard#1968, §6 of #1954).
+//
+// ONE component rather than a line of markup at each call site, and that is the whole reason it
+// exists. Nine renderers draw a section header in this tree: thirteen blocks delegate to
+// SectionHeader.astro and eight head themselves (Hero, RichContent, Heading, CtaBanner,
+// PromoSplit, Faq, Documents, Map). Inlining `set:html={sanitizeIcon(...)}` in each is nine
+// chances to forget the sanitizer, and SectionHeader.astro's own note records where that ends —
+// "five spellings of the wrapper class" — so this is that extraction made BEFORE the drift rather
+// than after it. The `heading_icon` DoD says the same thing from the other side: rendered once,
+// never with a second, block-local sanitizer.
+//
+// `sanitizeIcon` (lib/sanitize.ts) is what makes the field defensible at all: it strips the
+// hostile half AND forces `currentColor`, so a pasted `fill="#1a3d7c"` cannot outlive a rebrand.
+// See its note for why that is imposed rather than requested in `help` text.
+//
+// It carries no visual values — size and colour live in the `section-heading-icon` shortcut, the
+// same seam as `section-eyebrow` / `section-heading` / `section-intro` / `section-animation`, so a
+// site retunes every heading glyph at once by redefining that one key.
+//
+// `aria-hidden`: the glyph is decoration over a heading that already says what the section is. An
+// icon that needed its own label would be content, and content is a field an editor can write.
+import { sanitizeIcon } from '../lib/sanitize'
+
+interface Props {
+  /** The block's `heading_icon` field — raw SVG as the editor pasted it. */
+  svg?: string
+}
+
+// Sanitized here rather than at the call sites, so "did this get sanitized" is answered once. An
+// empty field, and a payload of which NOTHING survives, both render no element at all — the same
+// contract SectionHeader.astro's own guard has, so an unused part never eats a gap or a margin.
+const icon = sanitizeIcon(Astro.props.svg)
+---
+
+{icon && <span class="section-heading-icon" aria-hidden="true" set:html={icon} />}

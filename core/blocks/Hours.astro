@@ -15,7 +15,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, hours = [], footnote, background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, hours = [], footnote, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -24,7 +24,7 @@ const rows = hours.filter((row) => row.day_label || row.hours_label)
 
 <section id={sectionId} class:list={['section-hours section-band', backgroundClass(background)]}>
   <div class="container-global py-16">
-    <SectionHeader {eyebrow} {heading} />
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
     {
       rows.length > 0 && (

@@ -32,11 +32,21 @@
 // mounts it; a site that does not gets a sized, empty, decorative box and no requests.
 
 import { alignClasses } from '../lib/align'
+import HeadingIcon from './HeadingIcon.astro'
 
 interface Props {
   eyebrow?: string
   heading?: string
   intro?: string
+  /**
+   * The client's own glyph, raw SVG as pasted (the `heading_icon` universal part, dashboard#1968).
+   * Drawn ABOVE the eyebrow: this cluster is a centred flex column and the glyph tops it, so it
+   * reads as the first line of the header rather than as decoration floating beside one.
+   *
+   * Passed through untouched — HeadingIcon.astro owns the sanitize-and-theme step, so there is
+   * exactly one place that can forget it.
+   */
+  headingIcon?: string
   /** A JSON animation this site serves (the `$sectionAnimation` field in the block registry). */
   animation?: string
   /**
@@ -53,12 +63,12 @@ interface Props {
   align?: string
 }
 
-const { eyebrow, heading, intro, animation, align } = Astro.props
+const { eyebrow, heading, intro, animation, align, headingIcon } = Astro.props
 const hasAction = Astro.slots.has('action')
 ---
 
 {
-  (eyebrow || heading || intro || animation || hasAction) && (
+  (eyebrow || heading || intro || animation || hasAction || headingIcon) && (
     <div
       class:list={[
         'section-header',
@@ -67,6 +77,7 @@ const hasAction = Astro.slots.has('action')
       ]}
     >
       <div class:list={['section-header-text', ...alignClasses(align, 'align-column')]}>
+        <HeadingIcon svg={headingIcon} />
         {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
         {heading && <h2 class="section-heading">{heading}</h2>}
         {intro && <p class="section-intro">{intro}</p>}

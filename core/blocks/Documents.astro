@@ -30,7 +30,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, heading, icon, files = [], background } = block.data
+const { anchor_id, eyebrow, heading, intro, icon, files = [], background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -62,8 +62,16 @@ const EXTERNAL_ICON = ICON_PATHS.external
   rows.length > 0 && (
     <section id={sectionId} class:list={['documents section-band py-16', backgroundClass(background)]}>
       <div class="container-global">
+        {/* The section header (dashboard#1958). This block declared `heading` alone, with the
+            written reason "a titled list, not a section header over content" — the shape of the
+            exemption #1936 retired on `cta_banner`, and retired here for the same reason. Drawn
+            inline rather than through SectionHeader.astro because the glyph sits BESIDE the
+            heading in a left-aligned row, where that component centres its cluster; the shared
+            `section-eyebrow` / `section-intro` shortcuts keep it in the same family. Each part is
+            guarded on its own, so a block carrying only a heading renders exactly as before. */}
+        {eyebrow && <p class="section-eyebrow mb-2">{eyebrow}</p>}
         {hasHeading && (
-          <div class="mb-8 flex items-center gap-3">
+          <div class:list={[intro ? 'mb-3' : 'mb-8', 'flex items-center gap-3']}>
             {headingIcon && (
               <svg
                 class="h-7 w-7 shrink-0 text-primary"
@@ -81,6 +89,7 @@ const EXTERNAL_ICON = ICON_PATHS.external
             <h2 class="section-heading">{heading}</h2>
           </div>
         )}
+        {intro && <p class="section-intro mb-8">{intro}</p>}
 
         <ul class="m-0 flex list-none flex-col gap-3 p-0">
           {rows.map((row) => {

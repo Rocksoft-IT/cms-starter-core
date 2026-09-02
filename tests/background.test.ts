@@ -13,6 +13,8 @@ describe('backgroundClass()', () => {
   it('maps every schema option to its band modifier', () => {
     expect(backgroundClass('light')).toBe('is-light')
     expect(backgroundClass('muted')).toBe('is-muted')
+    // The brand wash and the brand solid are two options, not two names for one (dashboard#1940).
+    expect(backgroundClass('tint')).toBe('is-tint')
     expect(backgroundClass('brand')).toBe('is-brand')
     expect(backgroundClass('dark')).toBe('is-dark')
   })
@@ -83,11 +85,29 @@ describe('every block that declares background actually renders it', () => {
 })
 
 describe('the styling layer paints what the blocks emit', () => {
-  it('section-band covers all four modifier classes', () => {
+  it('section-band covers all five modifier classes', () => {
     const band = coreShortcuts['section-band']
-    for (const modifier of ['is-light', 'is-muted', 'is-brand', 'is-dark']) {
+    for (const modifier of ['is-light', 'is-muted', 'is-tint', 'is-brand', 'is-dark']) {
       expect(band).toContain(`&.${modifier}`)
     }
+  })
+
+  // The tint is the band a client's own wash lands in, so its fill must be a TOKEN — a site
+  // redefines `--band-tint-bg` in its own `:root` (seam 2) and core's derived default steps aside.
+  // A literal here, or the `bg-primary` spelling `is-brand` uses, would close that seam and put the
+  // band back where #1940 found it: hand-written CSS in a client repo.
+  it('the tint band paints from a token, not a literal or a brand utility', () => {
+    const band = coreShortcuts['section-band']
+
+    expect(band).toContain('[&.is-tint]:[background-color:var(--band-tint-bg,#f5f6f8)]')
+    expect(band).not.toMatch(/\[&\.is-tint\]:bg-primary/)
+  })
+
+  // …and it is a fill only. `is-dark` and `is-brand` invert, so they also set `color` and re-map the
+  // text roles in tokens.css; the tint stays on the surface's side of the theme and must not, or a
+  // dark-themed site gets light text on its own light wash — the #1578 defect class.
+  it('the tint band sets no text colour of its own', () => {
+    expect(coreShortcuts['section-band']).not.toMatch(/\[&\.is-tint\]:\[color:/)
   })
 
   // The band must not resolve to a client-editable brand colour. `secondary` defaults to #101841
@@ -110,4 +130,32 @@ describe('light surfaces inside a band restore the light roles', () => {
       expect(source(name)).toContain('surface-light')
     },
   )
+
+  // The rule that kept `--color-eyebrow` broken for two slices (dashboard#1693 added it to the
+  // band set, dashboard#1941 to `.surface-light`): a role a band RE-MAPS but the light card does
+  // not PUT BACK is invisible rather than merely off — white on a white card — which is exactly
+  // the kind of defect that survives being looked at. Asserted as set equality in both directions
+  // so the next role added to a band cannot silently skip the card, and one removed cannot leave
+  // a dangling restore.
+  it('restores exactly the colour roles the inverted bands re-map', () => {
+    const tokens = readFileSync(
+      fileURLToPath(new URL('../core/styles/tokens.css', import.meta.url)),
+      'utf8',
+    )
+
+    const rolesIn = (selector: string): string[] => {
+      const block = tokens.slice(tokens.indexOf(selector))
+      const body = block.slice(block.indexOf('{') + 1, block.indexOf('}'))
+
+      return [...body.matchAll(/(--color-[\w-]+)\s*:/g)].map((m) => m[1]).sort()
+    }
+
+    const dark = rolesIn('.section-band.is-dark {')
+    const brand = rolesIn('.section-band.is-brand {')
+    const card = rolesIn('.section-band:is(.is-dark, .is-brand) .surface-light {')
+
+    expect(dark).toEqual(brand)
+    expect(card).toEqual(dark)
+    expect(card).toContain('--color-eyebrow')
+  })
 })

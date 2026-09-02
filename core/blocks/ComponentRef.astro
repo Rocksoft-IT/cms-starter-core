@@ -23,14 +23,20 @@ const { locale } = Astro.props
 const { data } = Astro.props.block
 const type = data.component_type
 
-// cta_default resolves flat (eyebrow/heading/body/cta_label/cta_href) — fold the single CTA
-// into cta_banner's ctas[] list shape. Built only for the branch that uses it.
+// cta_default resolves flat (eyebrow/heading/body/cta_label/cta_href) — fold the single CTA into
+// cta_banner's ctas[] list shape, and its `body` into that block's `intro`.
+//
+// The component keeps BOTH old names on purpose. A Component is not a page block: its fields are
+// partitioned by lane (translatable / meta_fields / media) and neither #1959's CTA rename nor
+// #1977's standfirst rename touched that registry — both unified the page-builder one. So this
+// adapter is where the two vocabularies meet, which is what it already was for cta_label/cta_href.
+// Built only for the branch that uses it.
 const ctaData: CtaBannerBlock['data'] | null =
   type === 'cta_default'
     ? {
         eyebrow: data.eyebrow as string | undefined,
         heading: data.heading as string | undefined,
-        body: data.body as string | undefined,
+        intro: data.body as string | undefined,
         ctas:
           data.cta_label && data.cta_href ? [{ label: data.cta_label as string, href: data.cta_href as string }] : [],
       }

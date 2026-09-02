@@ -69,4 +69,13 @@ export const IMAGE_SIZES = {
    * past every container by design. No breakpoints, because there is no narrower state to describe.
    */
   fullBleed: '100vw',
+  /**
+   * A client mark in a pricing card's logo row — and a FIXED px value, the one exception to the vw
+   * rule above. `pricing-logo` is `h-8 w-auto max-w-[7rem]`: the height is fixed and the width is
+   * capped at 7rem, so this slot is never wider than 112px at any viewport, on any site, whatever
+   * the container override. A vw fraction would over-declare it by an order of magnitude on a
+   * desktop viewport — which is exactly what a `w`-descriptor srcset with no `sizes` already does,
+   * since the browser then assumes `100vw` and picks the largest rung for a 112px picture.
+   */
+  planLogo: '112px',
 } as const

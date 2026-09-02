@@ -24,6 +24,9 @@
 const BAND_CLASSES = new Map([
   ['light', 'is-light'],
   ['muted', 'is-muted'],
+  // The brand WASH (`--band-tint-bg`), as against `brand` one line down, which is the brand colour
+  // SOLID. Two options because they are two surfaces, not two spellings — see dashboard#1940.
+  ['tint', 'is-tint'],
   ['brand', 'is-brand'],
   ['dark', 'is-dark'],
 ])

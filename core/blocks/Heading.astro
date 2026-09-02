@@ -2,6 +2,7 @@
 import type { HeadingBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import HeadingIcon from '../HeadingIcon.astro'
 
 interface Props {
   block: HeadingBlock
@@ -16,11 +17,13 @@ const Tag = block.data.level ?? 'h2'
 // emits a fixed <h2>, and an authorable h1-h4 is this block's whole point — the same call Hero.astro
 // made, for the same reason. `.section-eyebrow` is the shared shortcut, so it reads as one family.
 const eyebrow = block.data.eyebrow
+const heading_icon = block.data.heading_icon
 ---
 
 <section id={sectionId} class:list={['section-content section-band', backgroundClass(block.data.background)]}>
   {/* The band carries rhythm, the child carries the measure — see uno.core.ts (dashboard#1852). */}
   <div class="content-inner">
+    <HeadingIcon svg={heading_icon} />
     {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
     <Tag class="rich-heading">{block.data.text}</Tag>
   </div>

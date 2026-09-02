@@ -61,6 +61,39 @@ describe('resolveThemeColors', () => {
     expect(resolved.heading).toBe(`var(--color-heading, ${NEUTRAL_PALETTE_DEFAULTS.heading})`)
   })
 
+  test('heading and eyebrow derive from the roles /api/branding actually sets (dashboard#1941)', () => {
+    // The CMS has no branding field for either role, so a flat hex default here painted core's
+    // neutral on every client site — on allteck, `#151516` headings for a brand that says
+    // `#080808`, and core's neutral BLUE on every eyebrow across twelve blocks. Deriving them
+    // makes each follow a role the client already owns: `heading` → `text-primary`,
+    // `eyebrow` → `primary`. Both are written as a `var()` chain in NEUTRAL_PALETTE_DEFAULTS
+    // rather than resolved in Layout.astro, because Layout.astro is a PER-SITE file — a fix there
+    // reaches newly provisioned repos only, while this one travels on a core release + pin bump.
+    const resolved = resolveThemeColors({})
+
+    expect(resolved.heading).toBe('var(--color-heading, var(--color-text-primary, #151516))')
+    expect(resolved.eyebrow).toBe('var(--color-eyebrow, var(--color-primary, #3b5aff))')
+
+    // The inner hex is the neutral each entry used to be, so a site with no branding at all
+    // renders exactly as it did before the change.
+    expect(NEUTRAL_PALETTE_DEFAULTS.heading).toContain(NEUTRAL_PALETTE_DEFAULTS['text-primary'])
+    expect(NEUTRAL_PALETTE_DEFAULTS.eyebrow).toContain(NEUTRAL_PALETTE_DEFAULTS.primary)
+
+    // Each derives from a role the CMS DOES set, or the derivation buys nothing.
+    expect(NEUTRAL_PALETTE_DEFAULTS.heading).toContain('--color-text-primary')
+    expect(NEUTRAL_PALETTE_DEFAULTS.eyebrow).toContain('--color-primary')
+  })
+
+  test('a site’s own value still beats the derivation', () => {
+    // Precedence is unchanged: `brand.colors` REPLACES the key in the merge, so a repo that
+    // hand-wrote `heading`/`eyebrow` as a workaround for #1941 keeps its value and can drop it
+    // later. The same slot is what a CMS branding override uses in Layout.astro.
+    const resolved = resolveThemeColors({ heading: '#080808', eyebrow: '#080808' })
+
+    expect(resolved.heading).toBe('var(--color-heading, #080808)')
+    expect(resolved.eyebrow).toBe('var(--color-eyebrow, #080808)')
+  })
+
   test('every required key has a neutral default, so the throw can never fire on a site', () => {
     // The two lists are hand-maintained and this is what keeps them in sync: adding a key to
     // REQUIRED_PALETTE_KEYS without a default would re-introduce the build error for every site.

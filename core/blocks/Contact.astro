@@ -15,7 +15,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, address, maps_url, phone_display, phone_e164, background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, address, maps_url, phone_display, phone_e164, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -24,7 +24,7 @@ const phoneText = phone_display || phone_e164
 
 <section id={sectionId} class:list={['section-contact section-band', backgroundClass(background)]}>
   <div class="container-global py-16">
-    <SectionHeader {eyebrow} {heading} />
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
     {
       (address || phoneText) && (

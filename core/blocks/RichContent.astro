@@ -5,11 +5,12 @@ import { alignClass, alignClasses } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
 import { headingTag } from '../../lib/headingLevel'
 import RichText from '../RichText.astro'
+import HeadingIcon from '../HeadingIcon.astro'
 interface Props {
   block: RichContentBlock
 }
 const { block } = Astro.props
-const { anchor_id, eyebrow, align, background, heading_level, animation_url } = block.data
+const { anchor_id, heading_icon, eyebrow, align, background, heading_level, animation_url } = block.data
 
 // Deep-link target, so a table of contents can point at this block (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
@@ -37,6 +38,7 @@ const Heading = headingTag(heading_level)
         knows nothing of `heading_level`, which this block declares and uses. Hero.astro:85 renders
         its own eyebrow the same way and for the same reason. Aligned with the heading, because
         `align` is documented as SECTION HEADER alignment and the eyebrow is part of that cluster. */}
+    <HeadingIcon svg={heading_icon} />
     {eyebrow && <p class:list={['rich-eyebrow', ...alignClasses(align, 'align-text')]}>{eyebrow}</p>}
     {
       block.data.heading && (

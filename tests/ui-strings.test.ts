@@ -17,6 +17,7 @@ const KEYS = [
   'nextPhoto',
   'previousTestimonial',
   'nextTestimonial',
+  'videoCard',
   'previousSlide',
   'nextSlide',
   'goToSlide',

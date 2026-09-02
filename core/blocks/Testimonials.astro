@@ -1,9 +1,16 @@
 ---
 // Core testimonials block (collection-ref): `data.items` arrives resolved server-side from
 // the `testimonial` collection (hand-maintained TestimonialsItem in src/types/blocks.ts).
-// Two layouts over the same markup: `slider` (sliding track + arrows + autoplay) and
-// `single` (plain stacked cards). Every field is optional and degrades gracefully — an
-// empty resolved collection renders just the header, or no section at all.
+// Three layouts over the same markup: `slider` (sliding track + arrows + autoplay), `row`
+// (the cards side by side, wrapping) and `single` (plain stacked cards). Every field is
+// optional and degrades gracefully — an empty resolved collection renders just the header,
+// or no section at all.
+//
+// `row` shipped in the schema with #1692 and reached no renderer for two months (#1850): the
+// field was read into ONE boolean, so the value crossed panel → API → build and evaporated
+// here, rendering as `single` with nothing anywhere to report it. Same shape as #1498, and
+// the reason tests/testimonials-layout.test.ts now reads the option list out of the committed
+// schema instead of trusting this file to have kept up.
 import type { TestimonialsBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
@@ -19,7 +26,7 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { anchor_id, eyebrow, heading, align, background, layout = 'slider', items = [] } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, layout = 'slider', items = [] } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -35,6 +42,19 @@ const hasHeader = Boolean(eyebrow || heading)
 // Slider chrome only makes sense with more than one item; the `single` layout — or a
 // slider with a single item — renders the stacked default instead.
 const isSlider = layout === 'slider' && items.length > 1
+
+// `row` carries NO item-count gate, unlike the slider above. The slider needs one because its
+// arrows and autoplay are meaningless with a single slide; a wrapping row of one is just a
+// full-width card, which is a coherent render of that choice. Gating it would put the value
+// back on the silent-fallback path this exists to remove.
+//
+// Every value the schema offers has to be named here as well as in the class list below, and
+// `single` — the stacked default — is the one that must NOT be: it is the fallback arm, so it
+// is what an absent, half-authored or newer-than-this-core value renders as. The class list
+// spells each modifier out as a whole literal, never `is-${layout}`: UnoCSS extracts class
+// names statically, so an assembled one generates no CSS and the layout silently loses every
+// rule (verify:core-styles check 5 is the other half of that guard).
+const isRow = layout === 'row'
 
 // Arrow buttons and their click handlers are driven from one direction table; the inline
 // script reads `data-dir`. The labels are screen-reader-only and have no CMS field, so they come
@@ -56,10 +76,10 @@ function initial(name?: string) {
   (hasHeader || items.length > 0) && (
     <section id={sectionId} class:list={['section-testimonials section-band py-16', bandClass, alignModifier]}>
       <div class="container-global">
-        <SectionHeader {eyebrow} {heading} {align} />
+        <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
 
         {items.length > 0 && (
-          <div class:list={['testimonials-list', isSlider && 'is-slider relative']}>
+          <div class:list={['testimonials-list', isSlider && 'is-slider relative', isRow && 'is-row']}>
             {/* One shared star shape per section; each rendered star is a tiny <use> ref. */}
             <svg class="hidden" aria-hidden="true">
               <symbol id="tm-star" viewBox="0 0 18 17">

@@ -1,5 +1,6 @@
 ---
 import type { VideoSectionBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
@@ -11,11 +12,29 @@ interface Props {
 const { block, locale } = Astro.props
 
 const sectionId = sectionAnchorId(block.data.anchor_id)
+
+// The section header, now the SHARED one (dashboard#1958).
+//
+// This block used to declare `heading` alone — the middle of the cluster and nothing else, which
+// the header rule beside $universalParts calls an omission rather than a design — and it drew that
+// heading as a literal `text-3xl font-bold`, where every other section heading in core is the
+// `section-heading` shortcut (40px, `font-brand`). So a site retuning its section headings from
+// its palette retuned twenty of them and not this one: the #1938 shape, a block turning out to
+// have hardcoded the geometry it never had a reason to own.
+//
+// Both halves are fixed by not drawing it here at all. The alignment was the same kind of
+// accident: the three blocks that headed themselves left-aligned are exactly the three that
+// predate this component, and none of them ever recorded a reason — unlike `hero`, `cta_banner`,
+// `promo_split` and `faq`, which each do and keep their own. Folding it would normally be a
+// visual change on published pages and therefore its own decision; here it is not, because no
+// client uses this block yet, so there is nothing to repaint and nothing to weigh against
+// removing the duplication.
+const { heading_icon, eyebrow, heading, intro } = block.data
 ---
 
 <section id={sectionId} class:list={['video-section section-band py-16 px-6', backgroundClass(block.data.background)]}>
   <div class="max-w-4xl mx-auto">
-    {block.data.heading && <h2 class="text-3xl font-bold mb-6">{block.data.heading}</h2>}
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
     <div class="aspect-video">
       <!--
         `title` is what a screen reader announces this frame AS. Without it the listener is told
@@ -31,7 +50,7 @@ const sectionId = sectionAnchorId(block.data.anchor_id)
       -->
       <iframe
         src={block.data.video_url}
-        title={block.data.heading?.trim() || coreString(locale, 'videoFrame')}
+        title={heading?.trim() || coreString(locale, 'videoFrame')}
         class="w-full h-full rounded-lg"
         allowfullscreen></iframe>
     </div>

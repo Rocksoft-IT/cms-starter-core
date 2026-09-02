@@ -16,7 +16,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, members = [], background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, members = [], background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -30,7 +30,7 @@ function initial(name?: string) {
 
 <section class:list={['section-team section-band', backgroundClass(background)]} id={sectionId}>
   <div class="team-inner">
-    <SectionHeader {eyebrow} {heading} />
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
     {
       cards.length > 0 && (

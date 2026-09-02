@@ -15,7 +15,10 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, body, align, background, cards = [], footer_label, footer_href } = block.data
+// `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
+// (dashboard#1977). It was always the `intro` PROP — the header below used to receive it as
+// `intro={body}` — so the indirection is what went, not a field.
+const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, cards = [], footer_label, footer_href } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -36,7 +39,7 @@ const bulletLines = (bullets?: string) =>
 
 <section id={sectionId} class:list={['section-pricing-teaser section-band py-16', bandClass, alignModifier]}>
   <div class="pricing-teaser-inner">
-    <SectionHeader {eyebrow} {heading} intro={body} {align} />
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
 
     {
       cards.length > 0 && (

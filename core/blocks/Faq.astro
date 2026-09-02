@@ -25,19 +25,21 @@ import RichText from '../RichText.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
 import { href as hrefOf } from '../../lib/href'
+import { usableCtas } from '../../lib/ctas'
+import HeadingIcon from '../HeadingIcon.astro'
 interface Props {
   block: FaqBlock
 }
 const { block } = Astro.props
 const {
   anchor_id,
+  heading_icon,
   eyebrow,
   heading,
   intro,
   layout,
   open_first,
-  cta_label,
-  cta_href,
+  ctas,
   items = [],
   background,
 } = block.data
@@ -50,12 +52,14 @@ const sectionId = sectionAnchorId(anchor_id)
 // Anything but 'list' renders the accordion (see the header note on the default).
 const isList = layout === 'list'
 
-// The optional inline CTA needs both halves — a label with nowhere to go, or a bare URL with no
-// label, renders nothing rather than a broken link.
-const hasCta = Boolean(cta_label && cta_href)
+// The optional inline CTA, held to ONE by the panel (`max => 1`, dashboard#1959). It used to be a
+// `cta_label` + `cta_href` pair with its own "needs both halves" gate; `usableCtas()` is that same
+// rule, shared with every block fed by `$ctaList` — a label with nowhere to go, or a bare URL with
+// no label, renders nothing rather than a broken link. See lib/ctas.ts.
+const cta = usableCtas(ctas)[0]
 // An absolute http(s) target leaves the site, so it opens in a new tab and gets the external glyph.
 // A path stays in place, plain.
-const ctaExternal = hasCta && /^https?:\/\//.test(cta_href!)
+const ctaExternal = /^https?:\/\//.test(cta?.href ?? '')
 
 // Exclusive-accordion group name (the list layout has no groups). Derived from the heading
 // (deterministic — no build-to-build churn) so two FAQ blocks with different headings on one page
@@ -71,22 +75,23 @@ const groupName = `faq-${slug || 'section'}`
 <section class:list={['section-faq section-band', backgroundClass(background)]} id={sectionId}>
   <div class="faq-inner">
     {
-      (eyebrow || heading || intro || hasCta) && (
+      (heading_icon || eyebrow || heading || intro || cta) && (
         <header class="faq-header">
+          <HeadingIcon svg={heading_icon} />
           {eyebrow && <p class="faq-eyebrow">{eyebrow}</p>}
-          <div class:list={[hasCta && 'faq-header-row']}>
+          <div class:list={[cta && 'faq-header-row']}>
             <div>
               {heading && <h2 class="faq-heading">{heading}</h2>}
               {intro && <p class="faq-intro">{intro}</p>}
             </div>
-            {hasCta && (
+            {cta && (
               <a
                 class="faq-action surface-light"
-                href={hrefOf(cta_href)}
+                href={hrefOf(cta.href)}
                 target={ctaExternal ? '_blank' : undefined}
                 rel={ctaExternal ? 'noopener noreferrer' : undefined}
               >
-                {cta_label}
+                {cta.label}
                 {ctaExternal && (
                   <svg
                     viewBox="0 0 24 24"

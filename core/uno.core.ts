@@ -53,9 +53,36 @@ export const REQUIRED_PALETTE_KEYS = [
  * never leak in here", as that file put it - so they are exactly what a site with no opinion
  * should get. Nothing renders differently because of the move.
  *
- * A site overrides any subset in `brand.colors`, and the CMS overrides nine of them per client at
+ * A site overrides any subset in `brand.colors`, and the CMS sets nine of them per client at
  * build time (Layout.astro emits `--color-*` from /api/branding, which wins over the theme value).
  * So this is the bottom rung of three, not a design decision imposed on anyone.
+ *
+ * TWO ENTRIES ARE A `var()` CHAIN, NOT A HEX (dashboard#1941). `heading` and `eyebrow` are roles
+ * the CMS has no branding field for, so before this they painted the neutral `#151516` / `#3b5aff`
+ * on every client site whatever that client's brand was - measured on allteck, whose branding says
+ * `#080808`: every heading off by a shade nobody could see, and every eyebrow across twelve blocks
+ * core's neutral BLUE, which reads as a deliberate accent. There was no MCP call that could fix it;
+ * the only route was hand-writing the key into that repo's cms.config.ts and opening a PR.
+ *
+ * Deriving them here rather than in Layout.astro is what makes the fix reach the fleet. Both
+ * consumers of this record put its values straight into a CSS value slot - `resolveThemeColors`
+ * wraps each as `var(--color-<key>, <value>)`, and Layout.astro spreads the record into the `:root`
+ * block it emits - so a `var()` chain resolves at use time against `--color-text-primary` /
+ * `--color-primary`, which that SAME `:root` block already carries from /api/branding. Layout.astro
+ * is a per-site file (core ships no layout, and "Update starter" bumps the package pin rather than
+ * syncing files), so a derivation written there would fix newly provisioned repos only; written
+ * here it travels to every client on a core release + pin bump, with no per-repo edit.
+ *
+ * The precedence above is unchanged: a site's own `brand.colors` hex and a CMS branding override
+ * both REPLACE the key in the merge, so a repo that hand-wrote `heading` as a workaround keeps its
+ * value and can drop it later. Band scopes are unaffected too - `.section-band.is-dark` and
+ * `.surface-light` redefine both roles at a more specific selector (core/styles/tokens.css), so the
+ * inverted-band contrast work from #1693 still wins. The inner hex keeps the chain valid where no
+ * `:root` block was emitted at all.
+ *
+ * The other eight roles the CMS still cannot reach - `surface`, `surface-alt`, `surface-tint`,
+ * `section-bg`, `border`, `muted`, `body`, `primary-soft` - are unchanged here: they need branding
+ * fields, which is a dashboard-side change, not a default.
  */
 export const NEUTRAL_PALETTE_DEFAULTS: Record<(typeof REQUIRED_PALETTE_KEYS)[number], string> = {
   primary: '#3b5aff',
@@ -68,8 +95,10 @@ export const NEUTRAL_PALETTE_DEFAULTS: Record<(typeof REQUIRED_PALETTE_KEYS)[num
   'surface-alt': '#f5f6f8',
   'surface-tint': '#eceff5',
   border: '#e3e5ea',
-  heading: '#151516',
-  eyebrow: '#3b5aff',
+  // Derived, not neutral - see the note above. The hex each falls back to is the neutral this
+  // entry used to be, so a site with no branding at all renders exactly as it did.
+  heading: 'var(--color-text-primary, #151516)',
+  eyebrow: 'var(--color-primary, #3b5aff)',
   muted: '#757575',
   'text-primary': '#151516',
   'text-secondary': '#4a4a57',
@@ -112,7 +141,8 @@ export const coreShortcuts: Record<string, string> = {
 
   // ── Section bands (the shared `background` select) ──────────────────────────
   // Every block carrying the `background` field emits `section-band` plus one modifier from
-  // lib/background.ts (`is-light` / `is-muted` / `is-brand` / `is-dark`; `default` emits nothing).
+  // lib/background.ts (`is-light` / `is-muted` / `is-tint` / `is-brand` / `is-dark`; `default`
+  // emits nothing).
   // Six blocks used to drop the value on the floor — an editor picked "Dark", the panel saved it
   // and the page rendered white (#1498).
   //
@@ -129,6 +159,12 @@ export const coreShortcuts: Record<string, string> = {
   // with the color a client already maintains for text on it (`button-primary-text`, the default
   // behind `--band-brand-text`) rather than assuming white over an unknown brand.
   //
+  // `is-tint` is the brand WASH and `is-brand` the brand SOLID — the distinction dashboard#1940
+  // exists for. The tint sets a fill and NOTHING else: no `color`, and no role re-mapping in
+  // tokens.css either, because `--band-tint-bg` is mixed towards `--color-surface` and therefore
+  // lands on the page's own side of the theme, where the light roles already read. Inverting a band
+  // is what `is-dark` and `is-brand` are for.
+  //
   // Written as arbitrary PROPERTIES (`[background-color:…]`) rather than arbitrary values
   // (`bg-[…]`): `text-[var(--x)]` is ambiguous — UnoCSS has to guess color vs font-size from the
   // bracket — and guessing wrong here is exactly the silent-no-op failure this change exists to
@@ -136,6 +172,7 @@ export const coreShortcuts: Record<string, string> = {
   'section-band':
     '[&.is-light]:[background-color:var(--band-light-bg,#fff)] ' +
     '[&.is-muted]:[background-color:var(--band-muted-bg,#f2f2f2)] ' +
+    '[&.is-tint]:[background-color:var(--band-tint-bg,#f5f6f8)] ' +
     '[&.is-brand]:bg-primary [&.is-brand]:[color:var(--band-brand-text,#fff)] ' +
     '[&.is-dark]:[background-color:var(--band-dark-bg,#000)] [&.is-dark]:[color:var(--band-dark-text,#fff)]',
 
@@ -434,13 +471,39 @@ export const coreShortcuts: Record<string, string> = {
 
   // ── Testimonials block ──────────────────────────────────────────────────────
   // Stacked cards at a reading measure are the default; `.is-slider` on the wrapper switches the
-  // same markup into a sliding track. The switch rides `[.is-slider_&]:` variants so the whole
-  // block stays in this file — the ancestor class is set by the renderer, not by a stylesheet.
+  // same markup into a sliding track, and `.is-row` into a wrapping side-by-side row. Both
+  // switches ride `[.is-x_&]:` variants so the whole block stays in this file — the ancestor
+  // class is set by the renderer, not by a stylesheet.
+  //
+  // Unlike the cards block below, core DOES paint these two — that is this block's own recorded
+  // decision, and the `[.is-x_&]:` compound inside a real key is the one legal way to do it (see
+  // the Cards note: a bare `is-row` KEY would be a class name mapping to nothing, the #1035
+  // silence). `row` sat in the schema with no rule here at all until #1850, which is exactly the
+  // shape that note warns about, arrived at from the other side.
   'testimonial-mask': '[.is-slider_&]:overflow-hidden [.is-slider_&]:w-[88%] [.is-slider_&]:mx-auto',
+  // `.is-row` drops the prose cap the stacked default sits on — a row of four at a reading
+  // measure is the bug it was reported as — and switches the track to an AUTO-FIT GRID, the same
+  // shape `cards-grid` below uses for the same problem.
+  //
+  // Grid rather than `flex-wrap` + a slide basis (the first cut of #1850): a growing flex item has
+  // no cap, so on any viewport where the four the issue was filed for do NOT fit — 1152px of
+  // container at the 1280px laptop width holds three — the wrapped orphan stretches to the full
+  // row and sits as one 1152px slab under three 368px cards. An auto-fit track keeps every column
+  // an equal `1fr`, so a partly-filled last line stays card-sized. Still no media query and no
+  // item count anywhere in the CSS: the column count falls out of the container width against the
+  // per-block minimum below. (A row of ONE is still one full-width card — `auto-fit` collapses the
+  // empty tracks — which is the render Testimonials.astro documents for that choice.)
+  //
+  // The `280px` minimum is a per-block literal, like `cards-grid`'s `minmax(240px,1fr)`: it is the
+  // width below which a quote plus its attribution stops reading as a card, which differs block by
+  // block, so a shared token would fit neither.
   'testimonial-track':
     'mx-auto w-full max-w-[var(--layout-container-prose)] flex flex-col gap-6 ' +
     '[.is-slider_&]:flex-row [.is-slider_&]:gap-0 [.is-slider_&]:max-w-none ' +
-    '[.is-slider_&]:transition-transform [.is-slider_&]:duration-500',
+    '[.is-slider_&]:transition-transform [.is-slider_&]:duration-500 ' +
+    '[.is-row_&]:grid [.is-row_&]:grid-cols-[repeat(auto-fit,minmax(280px,1fr))] [.is-row_&]:max-w-none',
+  // The row adds nothing here: an auto-fit grid sizes its own children, so a slide needs no width,
+  // no basis and no `grow`. Only the slider's fixed-width track does.
   'testimonial-slide': '[.is-slider_&]:w-full [.is-slider_&]:shrink-0',
 
   // ── Carousel block ──────────────────────────────────────────────────────────
@@ -549,6 +612,16 @@ export const coreShortcuts: Record<string, string> = {
   // sizes it and stops: what goes inside is whichever player the SITE mounts on
   // `[data-animation-src]`, so the box has to reserve its space before anything is in it.
   'section-animation': 'block w-[220px] h-[220px] mt-2',
+  // The client's own glyph above the eyebrow (core/HeadingIcon.astro, dashboard#1968). ONE size
+  // for every block that carries the part, retunable by a site here — the answer to "core's
+  // glyphs are drawn at the call site's size" (`h-7 w-7` in Documents, `w-5 h-5` in PricingTable),
+  // which is how a universal part would have inherited three different answers.
+  //
+  // Sized on the BOX and not on the drawing: `sanitizeIcon` strips `width`/`height` off the pasted
+  // root precisely so this is the only thing deciding it, and the `[&>svg]` child selector then
+  // fills the box whatever the paste's own `viewBox` was. `text-[color:inherit]` is not needed —
+  // the glyph is forced to `currentColor`, so it inherits the heading's colour by construction.
+  'section-heading-icon': 'block w-9 h-9 [&>svg]:w-full [&>svg]:h-full',
   // Centred by default. With an `action` slot filled it becomes a row — heading block left, action
   // right, wrapping on narrow viewports — which is why the text gets its own wrapper.
   'section-header': 'text-center mb-12 flex flex-col items-center gap-2',
@@ -599,6 +672,28 @@ export const coreShortcuts: Record<string, string> = {
   // is worse than a card being a line taller. Released below `md`, where one card per row means
   // there is nothing to line up.
   'pricing-description-fixed': 'md:min-h-[7.5rem]',
+  // A bundle's nested plans (`sub_plans`) — the offers a card contains. An INDENTED LIST, not
+  // nested cards: the parent is already a card, and a card inside a card needs a second set of
+  // surface/padding decisions core has no answer for. The left rule plus inset says "these belong
+  // to the plan above" with one border, and re-uses the card's own gap so the group reads as one
+  // more row of card content rather than a new region.
+  // `list-reset` because the wrapper is a <ul>: a bundle's offers are a list in exactly the sense
+  // the card's feature list is, and so are Gallery's and Team's tiles — all four carry it.
+  'pricing-sub-plans': 'flex flex-col gap-3 pl-4 border-l-2 border-gray-200 list-reset',
+  'pricing-sub-plan': 'flex flex-col gap-1',
+  // Name and price on one line — the price is the reason a sub-plan is listed separately at all,
+  // so it sits beside the name rather than under it.
+  'pricing-sub-plan-head': 'flex items-baseline justify-between gap-3',
+  'pricing-sub-plan-name': 'text-[14px] font-semibold text-text-primary',
+  'pricing-sub-plan-price': 'text-[14px] font-bold whitespace-nowrap',
+  // A nested offer's own CTA. Deliberately a text link, not `btn-primary`: the parent card's
+  // button stays the card's main action, the same reasoning the section's closing CTAs use.
+  'pricing-sub-plan-cta': 'self-start text-[13px] font-semibold underline underline-offset-2',
+  // `example_logos` — the client-mark row under a card. `items-center` because these are logos of
+  // differing aspect, and a fixed height with `w-auto` is what keeps a wide wordmark and a square
+  // badge reading as one row; the top rule separates them from the feature list above.
+  'pricing-logos': 'flex flex-wrap items-center gap-4 border-t border-gray-200 pt-4 list-reset',
+  'pricing-logo': 'block h-8 w-auto max-w-[7rem] object-contain',
 
   // ── Hours & location block ────────────────────────────────────────────────
   'section-hours-location': 'bg-section-bg',
@@ -717,6 +812,32 @@ export const coreShortcuts: Record<string, string> = {
   'gallery-tile':
     'relative h-[200px] rounded-[14px] overflow-hidden border border-solid border-border ' +
     '[&_img]:w-full [&_img]:h-full [&_img]:object-cover',
+
+  // ── Videos block ─────────────────────────────────────────────────────────
+  // Wider tiles than the gallery's (a video poster is 16:9, and a 240px floor would give a strip
+  // of thumbnails too small to read a play mark on), and the same auto-fill idea so the column
+  // count follows the measure rather than a number a narrower page cannot honour. A site retunes
+  // any of these; core paints no brand values here.
+  'section-videos': 'section-y',
+  'videos-inner': 'container-global',
+  'videos-grid': 'grid grid-cols-[repeat(auto-fit,minmax(300px,1fr))] gap-5 list-reset mt-6',
+  'video-card': 'flex flex-col gap-3 no-underline text-text-primary',
+  // `aspect-video` rather than a fixed height: the poster IS 16:9 on both hosts, so the box that
+  // reserves space for it should be too — a fixed height would letterbox or crop every card.
+  'video-card-media':
+    'relative flex items-center justify-center aspect-video rounded-[14px] overflow-hidden ' +
+    'border border-solid border-border bg-section-bg ' +
+    '[&>img]:absolute [&>img]:inset-0 [&>img]:w-full [&>img]:h-full [&>img]:object-cover',
+  // The mark that says "this is a video" — the whole reason `cards` with an image could not do
+  // this job. White on a scrim so it reads over any frame the host chose for the poster; those
+  // two are the exempt non-brand colours, not a palette decision core has no business making.
+  // No hover motion: a shared engine animating a client's tiles is the call `cta-badge` already
+  // decided against, and a site adds one by redefining this key.
+  'video-card-play':
+    'relative flex items-center justify-center w-14 h-14 rounded-full bg-black/55 text-white ' +
+    '[&>svg]:w-7 [&>svg]:h-7 [&>svg]:ml-[2px]',
+  'video-card-label': 'font-semibold text-text-primary',
+
   // ── CTA banner block ──────────────────────────────────────────────────────
   // The fill is the shared band's now, not this block's (#1933). `section-band` + the `is-dark`
   // the renderer defaults to resolve to `background-color: #000; color: #fff` — the two

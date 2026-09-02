@@ -49,7 +49,7 @@ interface Props {
 }
 
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, intro, layout, align, background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, layout, align, background } = block.data
 
 // Also reads the retired `tiles` shape, because this component is registered as the transitional
 // renderer for `nav_tiles` too: content still carries that type until the data migration runs.
@@ -113,7 +113,7 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.capt
       id={sectionId}
     >
       <div class="cards-inner">
-        <SectionHeader {eyebrow} {heading} {intro} {align} />
+        <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
 
         <ul class="cards-grid">
           {entries.map((item) => {

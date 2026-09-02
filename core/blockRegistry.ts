@@ -24,6 +24,9 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   separator: () => import('./blocks/Separator.astro'),
   features: () => import('./blocks/Features.astro'),
   video_section: () => import('./blocks/VideoSection.astro'),
+  // Videos — a band of LINKED video cards, next to (not instead of) video_section's single
+  // inline embed. Its poster is derived from the URL, so nothing is uploaded (dashboard#1914).
+  videos: () => import('./blocks/Videos.astro'),
   custom_html: () => import('./blocks/CustomHtml.astro'),
   quote: () => import('./blocks/Quote.astro'),
   // hours / map / contact — split out of the former combined hours_location; map reuses MapEmbed.astro.

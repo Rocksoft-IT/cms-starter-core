@@ -44,7 +44,7 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { anchor_id, eyebrow, heading, note, images = [], background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, note, images = [], background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 const tiles = images.filter((i) => i?.image)
@@ -70,7 +70,7 @@ const nextLabel = t('nextPhoto')
   tiles.length > 0 && (
     <section class:list={['section-gallery section-band', backgroundClass(background)]} id={sectionId}>
       <div class="gallery-inner">
-        <SectionHeader {eyebrow} {heading}>
+        <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro}>
           {note && (
             <p class="gallery-note" slot="action">
               {note}

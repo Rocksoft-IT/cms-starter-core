@@ -3,17 +3,18 @@
 // `plans`, or — when `billing_toggle` is set — folds them into `tabs` grouped by each plan's
 // `billing_type` (the backend group_by resolver). One tab renders at a time; the buttons
 // switch panels with a few lines of script scoped to this section. Plan cards render
-// size_label chip → tier illustration → name → description → badge → price → fine print → CTA
-// → collapsible feature list, every field optional.
+// size_label chip → tier illustration → name → description → badge → price → fine print →
+// bundled sub_plans → CTA → collapsible feature list → example_logos row, every field optional.
 //
 // `width: 'wide'` swaps the page container for the one step past it — a four-card set does not
 // fit the page measure without squeezing all four.
-import type { PricingTableBlock } from '../../types/blocks'
-import { sanitizeSvg } from '../../lib/sanitize'
+import type { PricingTableBlock, ResponsiveImageMeta } from '../../types/blocks'
+import { sanitizeIcon } from '../../lib/sanitize'
 import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { usableCtas } from '../../lib/ctas'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
@@ -28,6 +29,7 @@ const {
   anchor_id,
   eyebrow,
   heading,
+  intro,
   body,
   align,
   background,
@@ -41,6 +43,7 @@ const {
   tab_icons,
   tab_labels,
   ctas,
+  heading_icon,
 } = block.data
 
 // Ungrouped payloads (billing_toggle off, or hand-authored fixtures) arrive as a flat
@@ -81,11 +84,39 @@ const bandClass = backgroundClass(background)
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 // See lib/align.ts.
 const alignModifier = alignClass(align)
+
+// `example_logos` is a `multiple` media field, so each element is the WHOLE MediaUrls.for() object
+// ({ url, alt, width, height, srcset, … }) — NOT a bare URL, whatever BLOCKS.md's example still
+// shows. A plain string is tolerated for hand-written fixtures, same as TeaserImage allows. These
+// three readers are local rather than in lib/ on purpose: the field-coverage gate follows a `lib/`
+// helper's source into its haystack, so moving the field read there would make the gate's hit on
+// `example_logos` meaningless — and the source-walk test in tests/pricing-plan-fields.test.ts
+// depends on the read being visible HERE (see that file's header).
+const logoUrl = (logo: unknown): string | null => {
+  if (typeof logo === 'string') return logo
+  const url = (logo as { url?: unknown } | null)?.url
+  return typeof url === 'string' && url !== '' ? url : null
+}
+
+// A logo's alt belongs to the MEDIUM, not the plan: it names the client, which the card cannot
+// know. Empty string when absent — a logo strip is decorative until someone types the name, and an
+// invented alt is worse than none.
+const logoAlt = (logo: unknown): string => {
+  const alt = (logo as { alt?: unknown } | null)?.alt
+  return typeof alt === 'string' ? alt : ''
+}
+
+// The same object carries the responsive triple, so a logo gets its srcset for free. A bare-string
+// fixture has none — hence null, which makes responsiveImageAttrs emit nothing and leave a plain
+// `src`, exactly as before this existed. Same cast as SectionTeaser's `imageMeta`: MediaUrls'
+// object is a structural superset of the triple, and the extra keys are simply never read.
+const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
+  logo && typeof logo === 'object' ? (logo as ResponsiveImageMeta) : null
 ---
 
 <section id={sectionId} class:list={['section-pricing-table section-band py-20', bandClass, alignModifier]}>
   <div class={containerClass}>
-    <SectionHeader {eyebrow} {heading} {align} animation={animation_url} />
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} animation={animation_url} />
 
     {
       showTabs && (
@@ -101,8 +132,18 @@ const alignModifier = alignClass(align)
                 class:list={['pricing-tab', i === 0 && 'is-active']}
               >
                 {labelOf(tab.billing_type)}
+                {/* `sanitizeIcon`, not `sanitizeSvg` (dashboard#1968 follow-up). Both authored-SVG
+                    fields agreed on TYPE after #1968 and still disagreed on RENDER, so a tab icon
+                    kept a hardcoded `fill` — wrong in a button whose text colour changes with
+                    `is-active` — and kept its own `width`, which this 20px box has no rule to
+                    contain. Free to correct: no client has a stored `tab_icons` value. The
+                    `[&>svg]` pair is what the size strip leaves the box responsible for, the same
+                    pairing the `section-heading-icon` shortcut makes. */}
                 {icon && (
-                  <span class="shrink-0 w-5 h-5 flex items-center justify-center" set:html={sanitizeSvg(icon)} />
+                  <span
+                    class="shrink-0 w-5 h-5 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                    set:html={sanitizeIcon(icon)}
+                  />
                 )}
               </button>
             )
@@ -130,6 +171,16 @@ const alignModifier = alignClass(align)
             // itself is built once — only its position varies, so its markup must not.
             const notePlacement = plan.fine_print_placement ?? 'under_price'
             const note = plan.fine_print ? <p class="pricing-fine-print">{plan.fine_print}</p> : null
+            // Resolved ONCE per plan, and filtered BEFORE the length check the row is guarded on.
+            // Guarding on the raw list would emit `pricing-logos` — `border-t … pt-4`, a visible
+            // rule plus 1rem of padding — around nothing whenever every element's url failed to
+            // resolve. Hoisting also stops the three readers running per element inside the map.
+            // flatMap rather than map+filter so `url` narrows to a string for the <img> below —
+            // a predicate-less filter leaves it `string | null` however plainly it reads.
+            const logos = (plan.example_logos ?? []).flatMap((logo) => {
+              const url = logoUrl(logo)
+              return url ? [{ url, alt: logoAlt(logo), meta: logoMeta(logo) }] : []
+            })
             return (
               <article class="pricing-card surface-light">
                 {plan.size_label && <span class="pricing-chip">{plan.size_label}</span>}
@@ -162,6 +213,37 @@ const alignModifier = alignClass(align)
                 <div class:list={['pricing-price', priceClass]}>{plan.price ?? ''}</div>
 
                 {notePlacement === 'under_price' && note}
+
+                {/* The offers a bundle contains (`sub_plans`, #1288): a $790 card whose real content
+                    is two fully-priced offers of its own. Placed BEFORE the CTA because the card's
+                    button carries `mt-auto` — anything after it is pinned to the card's foot, and
+                    these are plan CONTENT, so they belong in the flowing region beside the price
+                    they qualify.
+
+                    An indented <ul> rather than nested cards: the parent is already a card, and a
+                    card inside a card needs surface/padding decisions core does not have. A list
+                    for the same reason the feature list below is one — these are repeated peers,
+                    and their count is a fact an assistive reader should hear. Each row
+                    is name + price, since the price is the whole reason a sub-plan is listed apart
+                    from a feature line. Always resolved records — the API drops ids that no longer
+                    resolve — so there is no bare-number case to guard. */}
+                {(plan.sub_plans ?? []).length > 0 && (
+                  <ul class="pricing-sub-plans">
+                    {(plan.sub_plans ?? []).map((sub) => (
+                      <li class="pricing-sub-plan">
+                        <div class="pricing-sub-plan-head">
+                          <span class="pricing-sub-plan-name">{sub.name}</span>
+                          {sub.price && <span class="pricing-sub-plan-price">{sub.price}</span>}
+                        </div>
+                        {sub.cta_label && sub.cta_href && (
+                          <a href={hrefOf(sub.cta_href)} class="pricing-sub-plan-cta">
+                            {sub.cta_label}
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
                 {plan.cta_label && plan.cta_href && (
                   <a href={hrefOf(plan.cta_href)} class="btn-primary justify-center mt-auto">
@@ -204,6 +286,38 @@ const alignModifier = alignClass(align)
 
                     {notePlacement === 'with_details' && note}
                   </details>
+                )}
+
+                {/* `example_logos` — the client-mark row the source shows under a card. LAST, so it
+                    lands at the card's foot below the feature list: the CTA's `mt-auto` puts
+                    everything after it there, which is where a "who this is for" strip reads as
+                    evidence for the whole card rather than as another content row.
+
+                    Unlabelled on purpose. diligently.pl derives "Small package examples:" from the
+                    card's own `size_label`, which is a good idea and that site's editorial voice —
+                    core has no field for the phrase, and inventing English copy in a renderer is
+                    not core's call to make. A site that wants the label adds it in its own override.
+
+                    Elements are objects, so read `.url`/`.alt` through the helpers above; a logo
+                    whose url does not resolve is dropped by the `logos` filter rather than emitted
+                    as a broken <img> — which is also what keeps the row's top rule off a card whose
+                    every logo failed. A <ul>, like the feature list above and like core's other
+                    repeated media collections (Gallery, Team): a mark row is a list, and the count
+                    is a fact worth announcing. */}
+                {logos.length > 0 && (
+                  <ul class="pricing-logos">
+                    {logos.map((logo) => (
+                      <li>
+                        <img
+                          class="pricing-logo"
+                          src={logo.url}
+                          alt={logo.alt}
+                          loading="lazy"
+                          {...responsiveImageAttrs(logo.meta, IMAGE_SIZES.planLogo)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
                 )}
               </article>
             )

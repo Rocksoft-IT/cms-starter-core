@@ -7,13 +7,14 @@ import type { MapBlock } from '../../types/blocks'
 import MapEmbed from '../MapEmbed.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import HeadingIcon from '../HeadingIcon.astro'
 
 interface Props {
   block: MapBlock
 }
 
 const { block } = Astro.props
-const { anchor_id, heading, map_embed_src, background } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, map_embed_src, background } = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 ---
@@ -22,7 +23,14 @@ const sectionId = sectionAnchorId(anchor_id)
   (heading || map_embed_src) && (
     <section id={sectionId} class:list={['section-map section-band', backgroundClass(background)]}>
       <div class="container-global py-16">
-        {heading && <h2 class="section-heading mb-6 text-text-primary">{heading}</h2>}
+        {/* The section header (dashboard#1958): this block carried `heading` alone and no written
+            reason. Left-aligned and drawn here rather than through SectionHeader.astro, which
+            centres its cluster. The heading still doubles as the embed's accessible title below —
+            a use of the field, not a reason to withhold the two beside it. */}
+        <HeadingIcon svg={heading_icon} />
+        {eyebrow && <p class="section-eyebrow mb-2">{eyebrow}</p>}
+        {heading && <h2 class:list={['section-heading', intro ? 'mb-3' : 'mb-6', 'text-text-primary']}>{heading}</h2>}
+        {intro && <p class="section-intro mb-6">{intro}</p>}
         <MapEmbed src={map_embed_src} title={heading ?? 'Map'} />
       </div>
     </section>

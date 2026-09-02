@@ -33,7 +33,7 @@ export interface ColumnsBlock {
     /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     layout: string
     columns: ResolvedColumn[]
     /**
@@ -73,7 +73,11 @@ export interface HeroBlock {
     /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    /** The client's own glyph above the eyebrow (dashboard#1968) — raw SVG, forced to
+     *  `currentColor` and stripped of its own sizing by `sanitizeIcon()` at render.
+     *  Hand-added because codegen skips this interface — see the note above it. */
+    heading_icon?: string
     eyebrow?: string
     heading?: string
     subheading?: string
@@ -158,7 +162,7 @@ export interface TabsBlock {
     /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     tabs: TabPanel[]
   }
 }
@@ -232,13 +236,22 @@ export interface TestimonialsBlock {
     /** Deep-link target: becomes the root <section>'s `id` (dashboard#1775). Hand-added
      *  because codegen skips this interface — see the note above it. */
     anchor_id?: string
+    /** The client's own glyph above the eyebrow (dashboard#1968) — raw SVG, forced to
+     *  `currentColor` and stripped of its own sizing by `sanitizeIcon()` at render.
+     *  Hand-added because codegen skips this interface — see the note above it. */
+    heading_icon?: string
     eyebrow?: string
     heading?: string
-    layout?: 'slider' | 'single'
+    /** The standfirst under the heading (dashboard#1958 gave it to every block whose slot was
+     *  empty). Hand-added because codegen skips this interface — see the note above it. */
+    intro?: string
+    /** `row` was in the schema from #1692 and missing from this union until #1850 — the drift
+     *  that made a `row` fixture unauthorable while the panel offered the option. */
+    layout?: 'slider' | 'single' | 'row'
     items?: TestimonialsItem[]
     // Shared section fields ($sectionBackground / $sectionAlign in config/cms.php). Copied by
     // hand because `pnpm cms:types` skips ref blocks — keep them in step with the config.
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
   }
 }
@@ -267,6 +280,13 @@ export interface PricingPlan {
    *  to a URL; `plan_image_meta` carries the intrinsic size and srcset (absent for an SVG). */
   plan_image?: string
   plan_image_meta?: ResponsiveImageMeta
+  /** Client marks shown under the card — a ROW of them, distinct from `plan_image`, which is the
+   *  single tier illustration at the card's head. A `multiple` media field, so the API emits the
+   *  WHOLE `MediaUrls::for()` object per logo ({@link TeaserImage}) rather than a bare URL: read
+   *  `.url` and `.alt`, not the element itself. (`PagePayload::mediaFields()` is the authority for
+   *  the shape; `packages/cms-core/BLOCKS.md` documented it as a bare string list until this change
+   *  corrected it.) A bare string is tolerated for hand-written fixtures, as `TeaserImage` allows. */
+  example_logos?: TeaserImage[]
   /** Plans this plan bundles — the cards a card contains, in the order the editor arranged them.
    *  Always resolved records, never ids: one that no longer resolves is dropped by the API
    *  rather than left as a number, so a renderer never has to tell the two apart. */
@@ -291,14 +311,21 @@ export interface PricingTableBlock {
   type: 'pricing_table'
   data: {
     anchor_id?: string
+    /** The client's own glyph above the eyebrow (dashboard#1968) — raw SVG, forced to
+     *  `currentColor` and stripped of its own sizing by `sanitizeIcon()` at render.
+     *  Hand-added because codegen skips this interface — see the note above it. */
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    /** The standfirst under the heading (dashboard#1958). `body` is NOT it — this block renders
+     *  that far below, above the closing CTAs. Hand-added because codegen skips ref blocks. */
+    intro?: string
     body?: string
     // Same shared pair as TestimonialsBlock above, and hand-copied for the same reason.
     // `background` widened from the block's original two-value select to the full
     // $sectionBackground set, which the config has carried since #1152 — the type was left
     // behind there, so `muted`/`brand` failed to type-check while the API accepted them.
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     /** A JSON animation this site serves, hung under the section heading (#1416). Same field
      *  name and same `asset_url` contract as `rich_content.animation_url`. */
@@ -396,9 +423,16 @@ export interface SectionTeaserBlock {
     /** The shared section band (`$sectionBackground`), given to every block whose renderer emits a
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    /** The client's own glyph above the eyebrow (dashboard#1968) — raw SVG, forced to
+     *  `currentColor` and stripped of its own sizing by `sanitizeIcon()` at render.
+     *  Hand-added because codegen skips this interface — see the note above it. */
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    /** The standfirst under the heading (dashboard#1958 gave it to every block whose slot was
+     *  empty). Hand-added because codegen skips this interface — see the note above it. */
+    intro?: string
     layout?: 'cards' | 'list'
     limit?: number
     action_label?: string
@@ -473,12 +507,13 @@ export interface ResponsiveImageMeta {
 export interface RichContentBlock {
   type: 'rich_content'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
     heading_level?: 'default' | 'h1' | 'h2' | 'h3'
     body?: string
     animation_url?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -498,10 +533,11 @@ export interface ButtonBlock {
 export interface HeadingBlock {
   type: 'heading'
   data: {
+    heading_icon?: string
     eyebrow?: string
     text?: string
     level?: 'h1' | 'h2' | 'h3' | 'h4'
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -514,10 +550,28 @@ export interface SeparatorBlock {
 export interface VideoSectionBlock {
   type: 'video_section'
   data: {
+    heading_icon?: string
     video_url?: string
+    eyebrow?: string
     heading?: string
+    intro?: string
     body?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    anchor_id?: string
+  }
+}
+
+export interface VideosBlock {
+  type: 'videos'
+  data: {
+    heading_icon?: string
+    eyebrow?: string
+    heading?: string
+    intro?: string
+    items?: Array<{ url?: string; label?: string; image?: string | null; image_meta?: ResponsiveImageMeta }>
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    align?: 'default' | 'left' | 'center'
+    reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
   }
 }
@@ -525,11 +579,12 @@ export interface VideoSectionBlock {
 export interface FeaturesBlock {
   type: 'features'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
     intro?: string
     steps?: Array<{ number?: string; title?: string; description?: string }>
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -539,9 +594,10 @@ export interface FeaturesBlock {
 export interface CtaBannerBlock {
   type: 'cta_banner'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
-    body?: string
+    intro?: string
     badges?: Array<{ label?: string }>
     ctas?: Array<{ label?: string; href?: string }>
     src?: string | null
@@ -549,7 +605,7 @@ export interface CtaBannerBlock {
     cta_card_title?: string
     cta_card_subtitle?: string
     cta_card_href?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
   }
@@ -558,17 +614,17 @@ export interface CtaBannerBlock {
 export interface PromoSplitBlock {
   type: 'promo_split'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    intro?: string
     heading_level?: 'default' | 'h1' | 'h2' | 'h3'
-    body?: string
-    cta_label?: string
-    cta_href?: string
+    ctas?: Array<{ label?: string; href?: string }>
     src?: string | null
     src_meta?: ResponsiveImageMeta
     alt?: string
     reverse?: boolean
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -576,9 +632,10 @@ export interface PromoSplitBlock {
 export interface PricingTeaserBlock {
   type: 'pricing_teaser'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
-    body?: string
+    intro?: string
     cards?: Array<{
       eyebrow?: string
       title?: string
@@ -589,7 +646,7 @@ export interface PricingTeaserBlock {
     }>
     footer_label?: string
     footer_href?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -599,10 +656,12 @@ export interface PricingTeaserBlock {
 export interface DocumentsBlock {
   type: 'documents'
   data: {
+    eyebrow?: string
     heading?: string
+    intro?: string
     icon?: 'document' | 'folder' | 'download' | 'info' | 'book'
     files?: DocumentEntry[]
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -610,11 +669,12 @@ export interface DocumentsBlock {
 export interface CardsBlock {
   type: 'cards'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
     intro?: string
     layout?: 'tiles' | 'cards' | 'steps' | 'stats' | 'bento'
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     items?: Array<{
@@ -635,11 +695,13 @@ export interface CardsBlock {
 export interface GalleryBlock {
   type: 'gallery'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    intro?: string
     note?: string
     images?: Array<{ image?: string | null; image_meta?: ResponsiveImageMeta; alt?: string }>
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -647,15 +709,15 @@ export interface GalleryBlock {
 export interface FaqBlock {
   type: 'faq'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
     intro?: string
     layout?: 'accordion' | 'list'
     open_first?: boolean
-    cta_label?: string
-    cta_href?: string
+    ctas?: Array<{ label?: string; href?: string }>
     items?: Array<{ question?: string; answer?: string }>
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -663,10 +725,12 @@ export interface FaqBlock {
 export interface TeamBlock {
   type: 'team'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    intro?: string
     members?: Array<{ name?: string; role?: string; photo?: string | null; photo_meta?: ResponsiveImageMeta }>
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -703,8 +767,10 @@ export interface ButtonGroupBlock {
 export interface HighlightsBlock {
   type: 'highlights'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    intro?: string
     categories?: Array<{
       title?: string
       note?: string
@@ -712,7 +778,7 @@ export interface HighlightsBlock {
     }>
     links?: Array<{ label?: string; href?: string }>
     footnote?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -730,7 +796,7 @@ export interface QuoteBlock {
     image?: string | null
     image_meta?: ResponsiveImageMeta
     alt?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -738,11 +804,13 @@ export interface QuoteBlock {
 export interface HoursBlock {
   type: 'hours'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    intro?: string
     hours?: Array<{ day_label?: string; hours_label?: string }>
     footnote?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -750,9 +818,12 @@ export interface HoursBlock {
 export interface MapBlock {
   type: 'map'
   data: {
+    heading_icon?: string
+    eyebrow?: string
     heading?: string
+    intro?: string
     map_embed_src?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -760,13 +831,15 @@ export interface MapBlock {
 export interface ContactBlock {
   type: 'contact'
   data: {
+    heading_icon?: string
     eyebrow?: string
     heading?: string
+    intro?: string
     address?: string
     maps_url?: string
     phone_display?: string
     phone_e164?: string
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -776,7 +849,7 @@ export interface CustomHtmlBlock {
   data: {
     html?: string
     full_width?: boolean
-    background?: 'default' | 'light' | 'muted' | 'brand' | 'dark'
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }
 }
@@ -788,6 +861,7 @@ export type Block =
   | HeadingBlock
   | SeparatorBlock
   | VideoSectionBlock
+  | VideosBlock
   | FeaturesBlock
   | CtaBannerBlock
   | PromoSplitBlock

@@ -9,7 +9,7 @@ interface Props {
   block: FeaturesBlock
 }
 const { block } = Astro.props
-const { anchor_id, eyebrow, heading, intro, align, background, steps = [] } = block.data
+const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, steps = [] } = block.data
 
 // Deep-link target — a process/steps section is a typical TOC entry (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
@@ -25,7 +25,7 @@ const alignModifier = alignClass(align)
 <section class:list={['section-features section-band relative', bandClass, alignModifier]} id={sectionId}>
   <div class="features-inner">
     <div class="features-component">
-      <SectionHeader {eyebrow} {heading} {intro} {align} />
+      <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
       <div class="features-steps">
         {
           steps.map((step, i) => {

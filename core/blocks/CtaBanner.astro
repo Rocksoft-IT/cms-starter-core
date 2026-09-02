@@ -4,11 +4,15 @@ import { href as hrefOf } from '../../lib/href'
 import { usableCtas } from '../../lib/ctas'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import HeadingIcon from '../HeadingIcon.astro'
 interface Props {
   block: CtaBannerBlock
 }
 const { block } = Astro.props
-const { eyebrow, heading, body, badges = [], anchor_id, background } = block.data
+// `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
+// (dashboard#1977). A NAME change only — the field was already a textarea, and `cta-body` below
+// keeps its class, because the element is this banner's own and the site layer styles it.
+const { heading_icon, eyebrow, heading, intro, badges = [], anchor_id, background } = block.data
 
 // `?? 'dark'`, where the other seven banded blocks fall through to no modifier at all. This block
 // was black before it had the field (#1933), and every banner already published carries no
@@ -34,9 +38,10 @@ const sectionId = sectionAnchorId(anchor_id)
           </div>
         )
       }
+      <HeadingIcon svg={heading_icon} />
       {eyebrow && <p class="cta-eyebrow">{eyebrow}</p>}
       {heading && <h2 class="cta-heading">{heading}</h2>}
-      {body && <p class="cta-body">{body}</p>}
+      {intro && <p class="cta-body">{intro}</p>}
     </div>
     {
       ctas.length > 0 && (
