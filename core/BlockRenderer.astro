@@ -1,7 +1,7 @@
 ---
 import type { Block } from '../types/blocks'
 import { cmsConfig } from '~site/cms.config'
-import { defaultLocale } from './i18n'
+import { defaultLocale as configDefaultLocale } from './i18n'
 
 interface Props {
   blocks: Block[]
@@ -19,9 +19,24 @@ interface Props {
    * locale simply do not declare the prop.
    */
   locale?: string
+  /**
+   * The locale that routes at the root, unprefixed — a block needs this ALONGSIDE `locale` to
+   * tell "this IS the default tree, no href rewriting needed" from "this is a translated tree".
+   * Same optional/defaulted treatment as `locale`, for the same reason.
+   */
+  defaultLocale?: string
+  /**
+   * Default-locale page path → its own path per locale (`buildPathIndex`, core/i18n.ts), handed to
+   * every block alongside `locale`/`defaultLocale` so `href()` (lib/href.ts) can resolve a
+   * hand-typed internal link (a CTA, a nav item) to the CURRENT locale's address instead of
+   * rendering whatever literal path an editor saw while typing it — always the default locale's.
+   * Optional: a block that renders no internal href simply does not declare the prop.
+   */
+  pathIndex?: Record<string, Record<string, string>>
 }
-const { blocks, locale } = Astro.props
-const loc = locale ?? defaultLocale
+const { blocks, locale, defaultLocale, pathIndex } = Astro.props
+const loc = locale ?? configDefaultLocale
+const defLoc = defaultLocale ?? configDefaultLocale
 
 const typesNeeded = new Set<string>(blocks.map((b) => b.type))
 const registry: Record<string, any> = Object.fromEntries(
@@ -39,6 +54,6 @@ const registry: Record<string, any> = Object.fromEntries(
     if (!Component) return null
     // Handed to EVERY block, not only the ones core knows need it: a site's own block override is
     // registered through the same registry and has exactly the same problem to solve.
-    return <Component block={block} locale={loc} />
+    return <Component block={block} locale={loc} defaultLocale={defLoc} pathIndex={pathIndex} />
   })
 }

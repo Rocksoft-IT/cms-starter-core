@@ -1,5 +1,5 @@
 import type { PageApiItem } from '../lib/api'
-import { localePrefix, pathForLocale, uriFromPath } from './i18n'
+import { buildPathIndex, localePrefix, pathForLocale, uriFromPath } from './i18n'
 
 export interface RoutingContext {
   pages: PageApiItem[]
@@ -85,6 +85,12 @@ export async function buildStaticPaths(
   const registeredTypes = Object.keys(pageTypes)
   const ctx: RoutingContext = { pages, branding, cta, enabledSections, locale, defaultLocale, registeredTypes }
 
+  // Built once per locale tree from THIS locale's `pages` — but every page in it carries
+  // `translations[]` for every enabled locale, so the index itself is locale-agnostic; a
+  // page missing from one locale's list only means it isn't routable there, not that its
+  // cross-locale addresses are wrong for the entries that ARE present.
+  const pathIndex = buildPathIndex(pages, defaultLocale)
+
   // A page whose type has no registry entry cannot be rendered and is dropped — but never
   // silently: a green build with missing pages surfaces as production 404s (#821). Tally
   // only pages that fell to the registry (enabled-section filtering is intentional).
@@ -116,7 +122,11 @@ export async function buildStaticPaths(
       // remembering to add it to its own config.
       return {
         params: { uri },
-        props: { pageType: p.type, locale, defaultLocale, path, ...shapeProps(p, ctx) },
+        // `pathIndex` rides along unconditionally, same reasoning as `defaultLocale`: a
+        // component resolving an internal href needs it, and threading it through every
+        // `pageTypes[...].props` shaper individually would mean every site remembering to
+        // add it themselves.
+        props: { pageType: p.type, locale, defaultLocale, path, pathIndex, ...shapeProps(p, ctx) },
       }
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -142,7 +152,7 @@ export async function buildStaticPaths(
       // uri — a canonical pointing at another locale's page. A rule may still override it.
       return {
         params: { uri: uriFromPath(path) },
-        props: { pageType, locale, defaultLocale, path, ...props },
+        props: { pageType, locale, defaultLocale, path, pathIndex, ...props },
       }
     })
   })

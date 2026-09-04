@@ -33,9 +33,13 @@ interface Props {
   block: VideosBlock
   /** The locale this page is being built for, from core/BlockRenderer.astro. */
   locale?: string
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block, locale } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, items = [] } = block.data
 
 // Deep-link target — a video band is a typical TOC entry. See lib/anchor.ts.
@@ -55,7 +59,7 @@ const cards = items.flatMap((item) => {
 
   return [
     {
-      href: hrefOf(video.href),
+      href: hrefOf(video.href, hrefCtx),
       label,
       // The editor's own picture first — see the header. `image_meta` rides along only with it:
       // a derived poster is a remote file the API never measured, so there is no srcset to emit.

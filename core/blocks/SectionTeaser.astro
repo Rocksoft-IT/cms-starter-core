@@ -27,6 +27,9 @@ interface Props {
    * language on a translated page (#1463).
    */
   locale?: string
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
 const { block } = Astro.props
@@ -47,6 +50,8 @@ const { anchor_id,
 const sectionId = sectionAnchorId(anchor_id)
 
 const locale = Astro.props.locale ?? defaultLocale
+const defLoc = Astro.props.defaultLocale ?? defaultLocale
+const hrefCtx = { locale, defaultLocale: defLoc, pathIndex: Astro.props.pathIndex }
 const hasHeader = Boolean(eyebrow || heading)
 const isList = layout === 'list'
 const hasAction = Boolean(action_label && action_href)
@@ -112,7 +117,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
         {items.length > 0 && !isList && (
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             {items.map((item) => {
-              const href = hrefOf(item.path)
+              const href = hrefOf(item.path, hrefCtx)
               const image = cardImage(item)
               const img = imageUrl(image)
               const date = formatDate(item.date, locale)
@@ -162,7 +167,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
         {items.length > 0 && isList && (
           <ul class="m-0 flex list-none flex-col gap-3 p-0">
             {items.map((item) => {
-              const href = hrefOf(item.path)
+              const href = hrefOf(item.path, hrefCtx)
               const badge = dateBadge(item.date)
               const status = nonEmpty(item.status)
               const attachments = typeof item.attachment_count === 'number' ? item.attachment_count : 0
@@ -223,7 +228,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
 
         {hasAction && (
           <div class="mt-10 text-center">
-            <a href={hrefOf(action_href)} class="btn-primary">
+            <a href={hrefOf(action_href, hrefCtx)} class="btn-primary">
               {action_label}
             </a>
           </div>

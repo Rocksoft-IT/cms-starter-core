@@ -49,6 +49,44 @@ export function pathForLocale(page: PageApiItem, locale: string, fallbackLocale:
   return (page.path as string | null) ?? (page.slug ? `/${page.slug}/` : null)
 }
 
+/**
+ * Every routable page's default-locale address → its own address in each locale it has one for.
+ *
+ * Built once per build (`buildStaticPaths`) and threaded down through `BlockRenderer` so `href()`
+ * (lib/href.ts) can resolve a hand-typed internal link. An editor filling a CTA/nav/`custom_html`
+ * href field has no "pick a page" control — just free text — and what they see and type is always
+ * the DEFAULT locale's address, because that's the only address the panel shows while editing any
+ * locale's copy of the field. Rendered unchanged on a non-default locale's tree, that literal
+ * value is simply wrong: `/contact` on the Polish site must mean `/pl/kontakt/`, not the English
+ * page.
+ *
+ * Keyed by `pathForLocale(page, defaultLocale, defaultLocale)` — the same fallback rule
+ * `pathForLocale` already applies for "no explicit translations[] row for this locale" — trailing-
+ * slash normalized so it matches whatever `href()` normalizes an editor's literal value to. A page
+ * with no resolvable default-locale address (dropped from the build, a bare fragment target) is
+ * simply absent from the index; `href()`'s fallback for an unknown path is the literal value,
+ * unchanged — never worse than not having this index at all.
+ */
+export function buildPathIndex(pages: PageApiItem[], defaultLocale: string): Record<string, Record<string, string>> {
+  const index: Record<string, Record<string, string>> = {}
+
+  for (const page of pages) {
+    const defaultPath = pathForLocale(page, defaultLocale, defaultLocale)
+    if (!defaultPath) continue
+
+    const locales: Record<string, string> = {}
+    for (const t of page.translations ?? []) {
+      if (t.path) locales[t.locale] = t.path
+    }
+    if (Object.keys(locales).length === 0) continue
+
+    const key = defaultPath.endsWith('/') ? defaultPath : `${defaultPath}/`
+    index[key] = locales
+  }
+
+  return index
+}
+
 export interface HreflangLink {
   hreflang: string
   href: string

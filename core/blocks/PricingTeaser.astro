@@ -12,9 +12,14 @@ import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
   block: PricingTeaserBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 // `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
 // (dashboard#1977). It was always the `intro` PROP — the header below used to receive it as
 // `intro={body}` — so the indirection is what went, not a field.
@@ -65,7 +70,7 @@ const bulletLines = (bullets?: string) =>
                   <p class="text-[16px] leading-[1.7] text-text-secondary mb-4">{card.price_label}</p>
                 )}
                 {card.cta_label && card.cta_href && (
-                  <a href={hrefOf(card.cta_href)} class="btn-primary justify-center mt-auto">
+                  <a href={hrefOf(card.cta_href, hrefCtx)} class="btn-primary justify-center mt-auto">
                     {card.cta_label}
                   </a>
                 )}
@@ -79,7 +84,7 @@ const bulletLines = (bullets?: string) =>
     {
       footer_label && footer_href && (
         <p class="text-center mt-8 text-[16px]">
-          <a href={hrefOf(footer_href)} class="link-inline">
+          <a href={hrefOf(footer_href, hrefCtx)} class="link-inline">
             {footer_label}
           </a>
         </p>

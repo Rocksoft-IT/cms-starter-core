@@ -18,9 +18,14 @@ import { backgroundClass } from '../../lib/background'
 
 interface Props {
   block: QuoteBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 const { anchor_id,
   source_tag,
   headline,
@@ -73,7 +78,7 @@ const sourceLinkText = source_link_label || source_link_href
           <figcaption class="quote-cite">
             {attribution && <span class="quote-attribution">{attribution}</span>}
             {hasSourceLink && (
-              <a class="quote-source-link" href={hrefOf(source_link_href)}>
+              <a class="quote-source-link" href={hrefOf(source_link_href, hrefCtx)}>
                 {sourceLinkText}
               </a>
             )}

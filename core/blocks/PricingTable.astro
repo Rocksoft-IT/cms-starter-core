@@ -22,9 +22,14 @@ import { tabLabel } from '../../lib/tab-label'
 
 interface Props {
   block: PricingTableBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 const {
   anchor_id,
   eyebrow,
@@ -236,7 +241,7 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
                           {sub.price && <span class="pricing-sub-plan-price">{sub.price}</span>}
                         </div>
                         {sub.cta_label && sub.cta_href && (
-                          <a href={hrefOf(sub.cta_href)} class="pricing-sub-plan-cta">
+                          <a href={hrefOf(sub.cta_href, hrefCtx)} class="pricing-sub-plan-cta">
                             {sub.cta_label}
                           </a>
                         )}
@@ -246,7 +251,7 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
                 )}
 
                 {plan.cta_label && plan.cta_href && (
-                  <a href={hrefOf(plan.cta_href)} class="btn-primary justify-center mt-auto">
+                  <a href={hrefOf(plan.cta_href, hrefCtx)} class="btn-primary justify-center mt-auto">
                     {plan.cta_label}
                   </a>
                 )}
@@ -342,7 +347,7 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
       closingCtas.length > 0 && (
         <div class="actions-row justify-center mt-8">
           {closingCtas.map((cta) => (
-            <a href={hrefOf(cta.href)} class="btn-outline">
+            <a href={hrefOf(cta.href, hrefCtx)} class="btn-outline">
               {cta.label}
             </a>
           ))}

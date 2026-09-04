@@ -46,9 +46,14 @@ import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
   block: CardsBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 const { anchor_id, heading_icon, eyebrow, heading, intro, layout, align, background } = block.data
 
 // Also reads the retired `tiles` shape, because this component is registered as the transitional
@@ -117,7 +122,7 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.capt
 
         <ul class="cards-grid">
           {entries.map((item) => {
-            const link = hrefOf(item.href)
+            const link = hrefOf(item.href, hrefCtx)
             const Tag = link ? 'a' : 'div'
             const glyph = item.image ? undefined : iconPath(item.icon)
 

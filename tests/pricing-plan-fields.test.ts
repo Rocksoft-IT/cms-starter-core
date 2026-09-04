@@ -51,7 +51,7 @@ describe('PricingTable renders a bundle’s sub_plans', () => {
   // the parent card's own CTA is guarded.
   it('links each nested plan’s own CTA when both halves are set', () => {
     expect(code).toMatch(/sub\.cta_label && sub\.cta_href/)
-    expect(code).toMatch(/href=\{hrefOf\(sub\.cta_href\)\}/)
+    expect(code).toMatch(/href=\{hrefOf\(sub\.cta_href, hrefCtx\)\}/)
   })
 
   // Before the CTA, and this is load-bearing rather than cosmetic: `pricing-card` is

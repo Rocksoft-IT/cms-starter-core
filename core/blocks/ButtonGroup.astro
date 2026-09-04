@@ -4,9 +4,14 @@ import { href as hrefOf } from '../../lib/href'
 
 interface Props {
   block: ButtonGroupBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 const { buttons = [] } = block.data
 
 // Same style precedence as Button.astro: explicit `outline` wins; `primary`/absent
@@ -16,7 +21,7 @@ const { buttons = [] } = block.data
 <div class="section-buttons">
   {
     buttons.map((btn) => (
-      <a href={hrefOf(btn.href)} class={btn.style === 'outline' ? 'btn-outline' : 'btn-primary'}>
+      <a href={hrefOf(btn.href, hrefCtx)} class={btn.style === 'outline' ? 'btn-outline' : 'btn-primary'}>
         {btn.label}
       </a>
     ))

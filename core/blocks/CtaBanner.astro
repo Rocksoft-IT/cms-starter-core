@@ -7,8 +7,13 @@ import { backgroundClass } from '../../lib/background'
 import HeadingIcon from '../HeadingIcon.astro'
 interface Props {
   block: CtaBannerBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 // `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
 // (dashboard#1977). A NAME change only — the field was already a textarea, and `cta-body` below
 // keeps its class, because the element is this banner's own and the site layer styles it.
@@ -47,7 +52,7 @@ const sectionId = sectionAnchorId(anchor_id)
       ctas.length > 0 && (
         <div class="cta-actions">
           {ctas.map((cta) => (
-            <a href={hrefOf(cta.href)} class="btn-white">
+            <a href={hrefOf(cta.href, hrefCtx)} class="btn-white">
               {cta.label}
             </a>
           ))}

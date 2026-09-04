@@ -29,8 +29,13 @@ import { usableCtas } from '../../lib/ctas'
 import HeadingIcon from '../HeadingIcon.astro'
 interface Props {
   block: FaqBlock
+  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  locale?: string
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
-const { block } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
 const {
   anchor_id,
   heading_icon,
@@ -87,7 +92,7 @@ const groupName = `faq-${slug || 'section'}`
             {cta && (
               <a
                 class="faq-action surface-light"
-                href={hrefOf(cta.href)}
+                href={hrefOf(cta.href, hrefCtx)}
                 target={ctaExternal ? '_blank' : undefined}
                 rel={ctaExternal ? 'noopener noreferrer' : undefined}
               >

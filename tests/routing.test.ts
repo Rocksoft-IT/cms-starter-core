@@ -66,3 +66,48 @@ describe('buildStaticPaths() duplicate uri reporting', () => {
     expect(warn.mock.calls[0]![0]).toContain('2 routes resolve to "/kontakt"')
   })
 })
+
+// pathIndex is what lets a block resolve a hand-typed internal href (a CTA, a nav item) to the
+// CURRENT locale's own address instead of the literal, default-locale one an editor saw while
+// typing it (lib/href.ts). It has to ride on every route unconditionally, the same way
+// `defaultLocale` already does — a component needing it should never depend on every
+// `pageTypes[...].props` shaper remembering to add it.
+describe('buildStaticPaths() pathIndex', () => {
+  const contact = (): PageApiItem =>
+    ({
+      id: 1,
+      type: 'page',
+      slug: 'contact',
+      name: 'contact',
+      path: '/contact/',
+      translations: [
+        { locale: 'en', path: '/contact/' },
+        { locale: 'pl', path: '/pl/kontakt/' },
+      ],
+    }) as unknown as PageApiItem
+
+  it('carries a cross-locale entry on every emitted route', async () => {
+    const paths = await build([contact()])
+
+    expect(paths).toHaveLength(1)
+    const { pathIndex } = paths[0]!.props as { pathIndex: Record<string, Record<string, string>> }
+    expect(pathIndex['/contact/']).toEqual({ en: '/contact/', pl: '/pl/kontakt/' })
+  })
+
+  it('rides on an extraRoutes-derived route too', async () => {
+    const paths = await buildStaticPaths(
+      pageTypes,
+      [{ buildPaths: () => [{ uri: 'derived', pageType: 'page', props: {} }] }],
+      [contact()],
+      null,
+      null,
+      null,
+      'en',
+      'en',
+    )
+
+    const derived = paths.find((p) => p.params.uri === 'derived')!
+    const { pathIndex } = derived.props as { pathIndex: Record<string, Record<string, string>> }
+    expect(pathIndex['/contact/']).toEqual({ en: '/contact/', pl: '/pl/kontakt/' })
+  })
+})

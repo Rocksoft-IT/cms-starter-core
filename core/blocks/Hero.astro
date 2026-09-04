@@ -15,9 +15,13 @@ interface Props {
   /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
    *  way down (core/BlockRenderer.astro). */
   locale?: string
+  /** Locale context for resolving an internal href, forwarded to HeroCtas and to nested blocks
+   *  the same way `locale` is — from core/BlockRenderer.astro. */
+  defaultLocale?: string
+  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block, locale } = Astro.props
+const { block, locale, defaultLocale, pathIndex } = Astro.props
 const { anchor_id,
   heading_icon,
   eyebrow,
@@ -104,11 +108,11 @@ const tracks = [
                 <RichText class="heading-h1" html={heading} />
                 {subheading && <RichText class="subhero-text" html={subheading} />}
               {paragraph && <RichText class="hero-paragraph" html={paragraph} />}
-                <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} />
+                <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} {locale} {defaultLocale} {pathIndex} />
               </div>
             ) : (
               <div class="hero-2col-track" style={`flex-grow:${track.grow}`}>
-                <BlockRenderer blocks={track.column.blocks} {locale} />
+                <BlockRenderer blocks={track.column.blocks} {locale} {defaultLocale} {pathIndex} />
               </div>
             ),
           )}
@@ -129,7 +133,7 @@ const tracks = [
               {subheading && <RichText class="subhero-text" html={subheading} />}
               {paragraph && <RichText class="hero-paragraph" html={paragraph} />}
             </div>
-            <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} />
+            <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} {locale} {defaultLocale} {pathIndex} />
           </div>
         </div>
       </div>
