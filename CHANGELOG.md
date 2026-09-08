@@ -27,9 +27,49 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.58.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@67729ef7` on 2026-09-08 — heading written by `publish_core`._
+
+### The cookie banner's privacy link follows the locale it renders in (dashboard#1454's shape)
+
+It resolved the configured privacy page through `page.path` — the DEFAULT-locale address — so on
+every translated tree the banner linked to the default locale's notice. `lib/api.ts` warns about
+that exact field ("Never use it to decide whether a page is routable in THIS locale: that is
+`pathForLocale()`, off `translations[]`"), and the component's own comment already claimed to
+resolve "its localized path". Only the code disagreed.
+
+Measured on a real build of diligently.pl: `/cookie-declaration/` rendered on `/pl/`, where the
+Polish notice lives at `/pl/deklaracja-cookie/`. It is the one piece of chrome that exists for
+legal reasons, so a reader who could not read it was the whole failure.
+
+Now `pathForLocale(page, locale, defaultLocale)`, with the default locale from
+`getEffectiveConfig()` — the CMS-resolved one (#1195), not this repo's declared value. No client
+edit needed: the banner already receives `locale`.
+
 ## v0.57.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@cc790ecd` on 2026-09-08 — heading written by `publish_core`._
+
+**⚠ BREAKING for a repo pinned to the mirror commit `e913ed5`.** That commit — a hotfix published
+straight to the mirror, never part of a release — threaded the cross-locale index as a PROP:
+`<BlockRenderer {locale} {defaultLocale} {pathIndex} />`, with each component building its href
+context out of the three. v0.57.0 resolves the index itself, once per build, behind a memoized
+accessor, so `BlockRenderer` and `Cards` no longer declare `defaultLocale` or `pathIndex` and
+passing them is a type error.
+
+Nobody pinned to a TAG is affected — the prop shape never appeared in one. Exactly one repo was
+pinned to that commit (diligently.pl), and the migration is a deletion: drop the two props at every
+call site, drop the plumbing that fed them, and replace each
+
+```ts
+const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
+```
+
+with `const hrefCtx = await hrefContextFor(locale)`. Any page type calling `buildPathIndex()` itself
+can stop: core does it once per build rather than once per page. Worked example:
+[diligently.pl#201](https://github.com/Rocksoft-IT/diligently.pl/pull/201) — 21 files, and the site
+came out with less code than it went in with.
 
 ### An editor-typed internal href resolves to the current locale's own page address
 
@@ -96,13 +136,13 @@ which is the only place an editor could ever have read it.
 
 `tint` is the wash that reading expected. Its fill is `--band-tint-bg`, derived as 12% of
 `--color-primary` mixed into `--color-surface`, behind `@supports (background: color-mix(…))` — an
-unsupported function in a *defined* custom property poisons the declaration reading it rather than
+unsupported function in a _defined_ custom property poisons the declaration reading it rather than
 falling back, the same trap `--band-brand-text`'s `oklch()` gate exists for. Without support the
 token stays on its static `--color-surface-alt` value, i.e. a neutral band rather than a broken one.
 
 **Derived, not a new branding field** — same argument as `--band-brand-text`: one setting the client
 already maintains, nothing to drift from it, and the tint moves over MCP today because `primary`
-does (`set_branding`). Mixed towards the *surface* rather than towards white, so it stays on the
+does (`set_branding`). Mixed towards the _surface_ rather than towards white, so it stays on the
 page's own side of the theme; a literal near-white inverts on a dark-themed site, which is what
 `--band-muted-bg` learned on Täles (#1578). It sets a fill and nothing else — no `color`, no role
 re-mapping — because it never crosses over.
@@ -156,6 +196,7 @@ eyebrow being invisible there, this is where it reappears.
 The other eight unreachable roles — `surface`, `surface-alt`, `surface-tint`, `section-bg`,
 `border`, `muted`, `body`, `primary-soft` — are unchanged: they need branding fields, which is a
 dashboard-side change rather than a default.
+
 ### `pricing_teaser`, `cta_banner` and `promo_split` read `intro`, not `body` (dashboard#1977)
 
 **This bump CHANGES three existing renderers rather than adding anything.** All three used to
@@ -263,6 +304,7 @@ and needs the two `scripts` lines added on the same `starter-update` branch. Not
 neither tool is part of `pnpm build` or any test, and neither can fail a build.
 
 The `webflow-parity` skill now opens by telling you to run `parity:source` first.
+
 ### A section heading can carry the client's own glyph (dashboard#1968)
 
 Twenty blocks gained `heading_icon`, an **optional** universal part holding raw SVG. It is the
@@ -301,8 +343,8 @@ what makes it editable in the panel at all: `richtext` built a prose editor with
 ### Eleven blocks gained a standfirst, three gained a label above the heading (dashboard#1958)
 
 The CMS gave the section header — `eyebrow` / `heading` / `intro` — the rule `background` and
-`anchor_id` already follow: *a block that renders a section of its own content carries the section
-header, and carries all of it*. Core is the other half of that, because a field the registry
+`anchor_id` already follow: _a block that renders a section of its own content carries the section
+header, and carries all of it_. Core is the other half of that, because a field the registry
 declares and no component reads fails `pnpm cms:blocks:verify`.
 
 **What now renders.** `intro` is forwarded to `SectionHeader.astro` by `Gallery`, `Team`,
@@ -386,7 +428,7 @@ indented list of name + price (plus each offer's own CTA as a text link), placed
 card's button — a card inside a card needs surface and padding decisions core does not have, and
 the button's `mt-auto` would otherwise push the bundle to the card's foot, away from the price it
 qualifies. `example_logos` renders as an unlabelled row at the card's foot, below the feature list.
-diligently.pl derives *"Small package examples:"* from the card's own `size_label`; that is a good
+diligently.pl derives _"Small package examples:"_ from the card's own `size_label`; that is a good
 idea and that site's editorial voice, so core emits no copy of its own and leaves the label to an
 override. Sites wanting a different treatment redefine `pricing-sub-plans`, `pricing-sub-plan-*`,
 `pricing-logos` or `pricing-logo` in their own `src/uno.ts`.
@@ -447,7 +489,6 @@ schema travels inside a core release because `pnpm cms:types --check` compares a
 copy against its pinned core's types — but grouping is panel-side only, so regenerating from it is a
 no-op and nothing rendered changes.
 
-
 ## v0.55.0 — the band reaches every block whose root is a `<section>`
 
 _Cut from `Rocksoft-IT/diligently-dashboard@e8042b9f` on 2026-08-31 — heading backfilled by dashboard#1990._
@@ -480,7 +521,7 @@ follow, and they are now the role tokens that can:
   row, the `documents` row and the `team` photo frame. Without it those paint white-on-white on a
   dark band, which is the `pricing-card` bug (v0.50.0) one block over.
 
-**Known limit, unchanged by this and now reachable from more blocks:** `is-brand` is a *solid*
+**Known limit, unchanged by this and now reachable from more blocks:** `is-brand` is a _solid_
 `primary` fill, so a brand-coloured accent on it (a `text-primary` link, the pull quote's rule)
 paints primary on primary and disappears. It cannot be fixed by re-mapping `--color-primary`,
 which the band reads for its own fill; a site that needs visible accents there redefines those
@@ -509,7 +550,6 @@ untouched, and `tokens.css` re-points it at the brand button on the two light ba
 newly be given — a white pill on near-white, with a hover that goes transparent, is not off-brand,
 it is invisible.
 
-
 ## v0.54.0 — a background photo on `hero`
 
 _Cut from `Rocksoft-IT/diligently-dashboard@32b300a4` on 2026-08-31 — heading backfilled by dashboard#1990._
@@ -534,7 +574,6 @@ would restyle the fleet's homepages on the next pin bump; a bare seam does not.
 
 Before this, a hero background was only reachable by wrapping the hero in a one-slide `carousel`
 (v0.51.0) — undiscoverable, and not what an editor reaching for "Hero" expects.
-
 
 ## v0.53.0 — a carousel that fades instead of panning
 
@@ -562,7 +601,6 @@ not remove a focusable descendant from the tab order on its own.
 **This bump needs the dashboard change too.** The `transition` select is served by `config/cms.php`;
 a repo on this pin against a panel without it simply never receives the value, and the block falls
 back to `scroll`.
-
 
 ## v0.52.0 — a metric harness beside the VRT one
 
@@ -606,7 +644,6 @@ twice — the consent dismissal, the trailing slash, and the scroll-before-captu
 scrolled holds its lazy images unloaded, and an image then measures `height: 0`, which sends you
 hunting a CSS bug that is not there). VRT keeps its `[vrt]` warning prefix through a `tool` option.
 The harness documents itself in `tests/measure/README.md`.
-
 
 ## v0.51.0 — a carousel block, and an eyebrow on the heading block
 
@@ -691,7 +728,7 @@ on a dark theme. **A site overrides any of those keys in its own `src/uno.ts`** 
 collision, no `!important`.
 
 **It reads the footer MENU.** Columns come from the `footer` component's `footer_links` as before,
-and *failing that* from `GET /api/menus/{cmsConfig.menus.footer}` — a menu group becomes a column,
+and _failing that_ from `GET /api/menus/{cmsConfig.menus.footer}` — a menu group becomes a column,
 its children the links, a top-level leaf a link in the unlabelled column. `footer_links` keeps
 precedence, so a client that filled it in sees no change. This is not a new idea: smbp's own
 `Footer.astro` has always driven its columns off `getMenu('footer')` while core knew only the
@@ -712,7 +749,6 @@ its own. Both now wrap in `content-inner` like `RichContent`, i.e. `container-na
 instead of full-bleed. A site that had compensated for the old behaviour in its own CSS should
 check those two blocks after the bump.
 
-
 ## v0.49.0 — a client can paste an embed without a developer
 
 Per-client custom code: an admin pastes raw `<script>`/HTML into the panel, it is stored on the
@@ -725,10 +761,11 @@ of `customCode.ts` and its 214 lines of tests are for.
 **Wiring required.** The component has to be mounted where the snippets belong:
 
 ```astro
-import CustomCode from '@rocksoft/cms-starter-core/core/CustomCode.astro'
-…
-<CustomCode placement="head" />   <!-- in <head> -->
-<CustomCode placement="body" />   <!-- last in <body> -->
+import CustomCode from '@rocksoft/cms-starter-core/core/CustomCode.astro' …
+<CustomCode placement="head" />
+<!-- in <head> -->
+<CustomCode placement="body" />
+<!-- last in <body> -->
 ```
 
 `CookieConsent.astro` moved with it, so a site that mounts consent should re-read that section
@@ -802,7 +839,7 @@ Total: 0 tests in 0 files
 
 Node refuses to strip types from `.ts` under `node_modules`. The rest of the package is unaffected
 because Astro and Vite compile it — this is Playwright's Node-based loader specifically. So
-`tests/conformance/` is plain JavaScript, and anything else core ships for a client to *execute*
+`tests/conformance/` is plain JavaScript, and anything else core ships for a client to _execute_
 must be too.
 
 Riding the same tag, two field additions, each closing a gap that failed silently:
@@ -846,10 +883,10 @@ else here is additive, and a page that uses none of the new fields renders byte-
 
 ### Before you bump
 
-| breaking change | who it reaches |
-| --- | --- |
+| breaking change                                  | who it reaches                                                                 |
+| ------------------------------------------------ | ------------------------------------------------------------------------------ |
 | `advisor_*` on `hero` is renamed to `cta_card_*` | a repo overriding `Hero.astro` / `HeroCtas.astro`, or styling `.hero-advisor*` |
-| `rich_content.image` / `.alt` are **retired** | a repo whose `RichContent` override reads either field |
+| `rich_content.image` / `.alt` are **retired**    | a repo whose `RichContent` override reads either field                         |
 
 Neither breaks at runtime the moment you bump: the renamed props and the retired fields arrive
 undefined, and an override falls through rather than throwing. What breaks is `astro check`. Stored
@@ -887,13 +924,13 @@ all get the same pill, edited once.
 **The CSS shortcut names moved with the fields**, since leaving them behind would reintroduce the
 inconsistency the rename removes:
 
-| before | after |
-| --- | --- |
-| `hero-advisor` | `hero-cta-card` |
-| `hero-advisor-photo` | `hero-cta-card-photo` |
-| `hero-advisor-text` | `hero-cta-card-text` |
-| `hero-advisor-name` | `hero-cta-card-title` |
-| `hero-advisor-role` | `hero-cta-card-subtitle` |
+| before               | after                    |
+| -------------------- | ------------------------ |
+| `hero-advisor`       | `hero-cta-card`          |
+| `hero-advisor-photo` | `hero-cta-card-photo`    |
+| `hero-advisor-text`  | `hero-cta-card-text`     |
+| `hero-advisor-name`  | `hero-cta-card-title`    |
+| `hero-advisor-role`  | `hero-cta-card-subtitle` |
 
 #### What a client repo has to do
 
@@ -920,10 +957,10 @@ fields in its own `CtaBanner` override, which is what scandinavian-taste does.
 formal terms and caveats — and core drew one. An editor picked "Note", the panel saved it, and the
 page was unchanged.
 
-| value | renders |
-| --- | --- |
-| `default` (or absent) | running prose — unchanged, class attribute included |
-| `note` | a tinted box: `surface-alt` fill, 1px border, 12px radius, 24px padding |
+| value                 | renders                                                                 |
+| --------------------- | ----------------------------------------------------------------------- |
+| `default` (or absent) | running prose — unchanged, class attribute included                     |
+| `note`                | a tinted box: `surface-alt` fill, 1px border, 12px radius, 24px padding |
 
 **The default is byte-identical.** A paragraph that never set the field still renders exactly
 `class="rich-body"` — the modifier and its painter key are both absent, not inert.
@@ -947,7 +984,7 @@ the component to draw it.
   thing that does not carry over: `SectionHeader` spaces its eyebrow with a flex `gap`, while
   `.content-inner` is plain block flow.
 - **`animation_url`** emits the contract core already defines — `<div class="section-animation"
-  data-animation-src="…" aria-hidden="true">`, the same element `SectionHeader` gives the eleven
+data-animation-src="…" aria-hidden="true">`, the same element `SectionHeader` gives the eleven
   blocks that draw a header. **Core still ships no player and makes no third-party request**: a
   site that mounts nothing gets a sized, empty, decorative box.
 
@@ -963,9 +1000,9 @@ every other one. Twelve blocks draw an eyebrow and five hand it to `SectionHeade
 this was never specific to `rich_content`; that block is only what finally made it visible.
 Measured in a browser on core's own defaults:
 
-| band | before | after |
-| --- | --- | --- |
-| `dark` | brand accent on the dark fill — **4.09:1** at 13px/700, under the 4.5:1 that size needs | 21:1 |
+| band    | before                                                                                                                                                                                      | after                  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| `dark`  | brand accent on the dark fill — **4.09:1** at 13px/700, under the 4.5:1 that size needs                                                                                                     | 21:1                   |
 | `brand` | the palette ships `primary` and `eyebrow` at the **same** default, and the brand band's fill is `bg-primary` — so the label was drawn in the fill's own colour, **contrast 1.0, invisible** | the band's text colour |
 
 The brand band's remaining ratio is a property of `--band-brand-text`, shared with the heading and
@@ -986,11 +1023,11 @@ A picture beside prose is a **`columns` row holding the prose block and an `imag
 same call v0.28.0's backend made for `hero`, and what editors were already authoring by hand. That
 is not a lesser option:
 
-| | carries |
-| --- | --- |
-| `columns` | any block per column, `width: prose`, `mobile_reverse` |
-| `image_block` | its own `alt`, `caption`, `aspectRatio`, `objectFit`, `objectPosition`, `maxWidth` |
-| the two retired fields | a path, and a string |
+|                        | carries                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| `columns`              | any block per column, `width: prose`, `mobile_reverse`                             |
+| `image_block`          | its own `alt`, `caption`, `aspectRatio`, `objectFit`, `objectPosition`, `maxWidth` |
+| the two retired fields | a path, and a string                                                               |
 
 The layout was left to whichever renderer received them, which is why every repo that forked this
 block answered it differently — and why core never rendered them at all.
@@ -1030,7 +1067,7 @@ byte-identical markup, and none of them needs a config or layout edit.
 
 **One of them renames two class names, though** — `.hero-2col-left` / `.hero-2col-right` become
 `.hero-2col-own` / `.hero-2col-track` (see [that section](#a-heros-own-content-is-a-movable-track-1632)).
-The output is unchanged; a site that *names* the old classes in a stylesheet or an e2e test is not.
+The output is unchanged; a site that _names_ the old classes in a stylesheet or an e2e test is not.
 `grep -rn "hero-2col" src tests` before bumping. Everything else here is a pin bump and nothing else.
 
 Five of the six exist because a client repo had already paid for them in a fork. That is the
@@ -1054,11 +1091,11 @@ had already set the field.
 `align` on **`rich_content`**, **`features`**, **`pricing_teaser`**, **`testimonials`**,
 **`cards`**, **`pricing_table`** and — new in this release — **`hero`**:
 
-| value | renders |
-| --- | --- |
+| value                 | renders                            |
+| --------------------- | ---------------------------------- |
 | `default` (or absent) | the block's own design — unchanged |
-| `left` | the section header pushed left |
-| `center` | the section header centred |
+| `left`                | the section header pushed left     |
+| `center`              | the section header centred         |
 
 **`left` is a real value, not a synonym for `default`.** Core's shared header and its hero both
 centre by design, so "push this one back" is a choice an absent value could never express — which
@@ -1074,11 +1111,11 @@ The block emits `is-align-left` / `is-align-center` on its own `<section>` — t
 against, beside `section-band`'s `is-dark` — and core paints the elements it aligns through three
 new shortcut keys:
 
-| key | sets | on |
-| --- | --- | --- |
-| `align-text` | `text-align` | the header box, `.rich-heading`, the hero's own track |
-| `align-column` | `align-items` | `.section-header`, `.section-header-text`, `.hero-text` |
-| `align-row` | `justify-content` | the hero's button row |
+| key            | sets              | on                                                      |
+| -------------- | ----------------- | ------------------------------------------------------- |
+| `align-text`   | `text-align`      | the header box, `.rich-heading`, the hero's own track   |
+| `align-column` | `align-items`     | `.section-header`, `.section-header-text`, `.hero-text` |
+| `align-row`    | `justify-content` | the hero's button row                                   |
 
 Three and not one because a flex column and a flex row put the horizontal axis in different
 properties. A site retunes any of them by redefining the key (seam 1), exactly like `section-band`.
@@ -1131,30 +1168,30 @@ exactly what shipped before, so there is no migration and no visual change to an
 **⚠ BREAKING — two class names moved with it.** `left` and `right` stop being true once the block's
 own content can sit in any track, so:
 
-| before | after |
-| --- | --- |
-| `.hero-2col-left` | `.hero-2col-own` |
+| before             | after              |
+| ------------------ | ------------------ |
+| `.hero-2col-left`  | `.hero-2col-own`   |
 | `.hero-2col-right` | `.hero-2col-track` |
 
 **The rendered result is unchanged** — the same `flex-grow` values land on the same two elements, so
-nothing about the page moves. What breaks is anything that *names* the old classes: a site
+nothing about the page moves. What breaks is anything that _names_ the old classes: a site
 stylesheet, or an e2e test.
 
 **Four of the seven client repos named them.** Measured while rolling v0.41.0 out, by grepping each
 clone — an earlier count from `gh api search/code` said one, and its index was stale:
 
-| repo | how it named them | needed a fix |
-| --- | --- | --- |
-| smbp | `tests/e2e/layout-shares.spec.ts` | **yes** — 410 passed, 1 failed |
-| rebelia | the same test | **yes** |
-| raw-operations | the same test | **yes** |
-| diligently.pl | its own forked `Hero.astro` emits **and styles** them | no |
+| repo           | how it named them                                     | needed a fix                   |
+| -------------- | ----------------------------------------------------- | ------------------------------ |
+| smbp           | `tests/e2e/layout-shares.spec.ts`                     | **yes** — 410 passed, 1 failed |
+| rebelia        | the same test                                         | **yes**                        |
+| raw-operations | the same test                                         | **yes**                        |
+| diligently.pl  | its own forked `Hero.astro` emits **and styles** them | no                             |
 
 The three tests are the same file, because they come from the same template. Each was two renamed
 selectors; the values they assert did not move.
 
 **diligently.pl is the case worth understanding.** Its fork emits `hero-2col-left` in its own markup
-*and* defines `.hero-2col-left { flex: 1 1 0; text-align: center }` in its own scoped `<style>`. It
+_and_ defines `.hero-2col-left { flex: 1 1 0; text-align: center }` in its own scoped `<style>`. It
 never depended on core's rule, so the rename cannot reach it — its build came out byte-identical.
 
 So the question is not "do you name these classes" but **"do you name them AND let core style
@@ -1174,13 +1211,13 @@ grep -rn "hero-2col" src tests
 Two new values on the select, emitted as `is-stats` / `is-bento` on the section beside the three
 that were already there:
 
-| value | renders |
-| --- | --- |
-| `tiles` | compact, link-led — unchanged |
+| value   | renders                                                   |
+| ------- | --------------------------------------------------------- |
+| `tiles` | compact, link-led — unchanged                             |
 | `cards` | icon, label and value — unchanged, and still the fallback |
-| `steps` | a numbered sequence — unchanged |
-| `stats` | **new** — a row of bare figures |
-| `bento` | **new** — picture-led cards |
+| `steps` | a numbered sequence — unchanged                           |
+| `stats` | **new** — a row of bare figures                           |
+| `bento` | **new** — picture-led cards                               |
 
 They exist because a site was **inferring** them. With no value to pick, scandinavian-taste read
 the intent out of the data: a `tiles` block whose items all lacked an `href` became a dark stat
@@ -1191,7 +1228,7 @@ could report it.
 **These are hooks, not looks.** Core paints none of the five — the difference between cards layouts
 belongs to the site layer, so a site styles `.is-stats` in its own `src/uno.ts` (seam 1). Core ships
 no shortcut key for them, for the same reason it ships none for `is-tiles` (#1035): a shortcut key
-*is* a class name, so a "neutral" one would generate nothing while reading like working style.
+_is_ a class name, so a "neutral" one would generate nothing while reading like working style.
 
 `cards` remains the fallback for an absent or unrecognised value, which is what keeps a site pinned
 below this tag safe: it renders the old layout rather than a section with no layout class at all.
@@ -1268,7 +1305,6 @@ Precedence is own label → default pair → raw billing type, joined with `||` 
 row saved with a `billing_type` but a blank label is half-filled input, not a deliberate empty
 caption.
 
-
 ## v0.38.0 — a band derives its readable text, and a section block can be the page H1
 
 Two independent changes ride this tag, because neither had been published when the other landed.
@@ -1285,11 +1321,11 @@ or a `rich_content`, so each rendered its title as an `<h2>` with no `<h1>` anyw
 
 `heading_level` is a new select on **`promo_split`** and **`rich_content`**:
 
-| value | renders |
-| --- | --- |
-| `default` | `<h2>` — unchanged |
-| `h1` | `<h1>` — "this section is the page title" |
-| `h2` / `h3` | that tag |
+| value       | renders                                   |
+| ----------- | ----------------------------------------- |
+| `default`   | `<h2>` — unchanged                        |
+| `h1`        | `<h1>` — "this section is the page title" |
+| `h2` / `h3` | that tag                                  |
 
 It rides the same shared-field seam as `background` / `align` / `reveal`, so extending it to another
 block later is one line. **`default` keeps the current `<h2>`**, and anything unrecognised — an empty
@@ -1311,7 +1347,7 @@ client's primary button is not its brand colour the default is simply wrong: wit
 token is now computed from the fill — black on a light brand, white on a dark one — so it cannot
 disagree with `primary` again.
 
-It makes the same *decision* as the panel's `App\Support\Color::text()`, not the same computation:
+It makes the same _decision_ as the panel's `App\Support\Color::text()`, not the same computation:
 that thresholds WCAG relative luminance, which CSS cannot derive from a single hex, so this
 thresholds OKLCH perceptual lightness at `0.58`, calibrated against the WCAG crossover across the
 sRGB cube. Exact for neutrals; for roughly 2% of highly saturated greens and purples the two metrics
@@ -1452,10 +1488,10 @@ build asks Google for.
 
 **The measurement this comes from.** For `Inter` with `subsets: latin, latin-ext`:
 
-| request | woff2 files | bytes | `@font-face` blocks | weights the browser may use |
-| --- | --- | --- | --- | --- |
-| `wght@400;600;700` | 2 | 47.1 + 83.1 KB | 6 | 400 / 600 / 700 |
-| `wght@100..900` | the same 2 | the same bytes | 2 | 100–900 |
+| request            | woff2 files | bytes          | `@font-face` blocks | weights the browser may use |
+| ------------------ | ----------- | -------------- | ------------------- | --------------------------- |
+| `wght@400;600;700` | 2           | 47.1 + 83.1 KB | 6                   | 400 / 600 / 700             |
+| `wght@100..900`    | the same 2  | the same bytes | 2                   | 100–900                     |
 
 Google serves the **variable** file either way. Asking for three discrete weights does not fetch
 three smaller files — it fetches the same variable file and declares it three times, which fences
@@ -1524,10 +1560,10 @@ was. Dashboard #1521.
 `GET /api/branding` now carries `fonts.body` next to `fonts.primary`, and `cmsFonts()` registers
 both:
 
-| Role | API | Variable |
-| --- | --- | --- |
+| Role    | API             | Variable                                                      |
+| ------- | --------------- | ------------------------------------------------------------- |
 | Display | `fonts.primary` | `--font-primary` — what core's `font-brand` shortcut resolves |
-| Body | `fonts.body` | `--font-body` — what the SITE's `body` rule resolves |
+| Body    | `fonts.body`    | `--font-body` — what the SITE's `body` rule resolves          |
 
 **`--font-body` is published, not applied — and adopting it is a one-line site edit.** Running
 text inherits from `body`, whose rule lives in the site's own `global.css`: unlayered, later in the
@@ -1536,7 +1572,9 @@ token, keeping the site's current stack as the fallback for a client that picks 
 
 ```css
 /* src/styles/global.css */
-body { font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif); }
+body {
+  font-family: var(--font-body, ui-sans-serif, system-ui, sans-serif);
+}
 ```
 
 No change is needed in `astro.config.mjs` or `Layout.astro` — `cmsFonts()` and `<BrandFont />`

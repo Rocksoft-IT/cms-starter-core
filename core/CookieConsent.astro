@@ -23,6 +23,8 @@
 import { getSiteSettings, getCookieConsent, getPages } from '../lib/api'
 import { CONSENT_SIGNALS_JS, resolveAnalytics } from './analytics'
 import { consentCopyDefaults } from './consentCopy'
+import { getEffectiveConfig } from './effectiveConfig'
+import { pathForLocale } from './i18n'
 import { resolvePrivacyHref } from './privacyHref'
 
 interface Props {
@@ -83,8 +85,20 @@ const allowSelectionLabel = copy?.allow_selection_label || fallback.allow_select
 let fromCms: string | null = null
 const privacyId = settings.cookie_consent?.privacy_page_id
 if (showBanner && typeof privacyId === 'number') {
-  const pages = await getPages(locale).catch(() => [])
-  fromCms = pages.find((p) => p.id === privacyId)?.path ?? null
+  const [pages, { defaultLocale }] = await Promise.all([getPages(locale).catch(() => []), getEffectiveConfig()])
+  const page = pages.find((p) => p.id === privacyId)
+
+  // `pathForLocale`, not `page.path`. The comment above has always said "its localized path", but
+  // `path` is the DEFAULT-locale address and lib/api.ts says so at the field: "Never use it to
+  // decide whether a page is routable in THIS locale: that is pathForLocale(), off translations[]."
+  // Reading it here pointed the banner's privacy link at the default locale's page on every
+  // translated tree — the same defect as the teaser cards in dashboard#1454, in the one piece of
+  // chrome that exists for legal reasons. Measured on diligently.pl: `/cookie-declaration/` on
+  // /pl/, where the Polish notice lives at `/pl/deklaracja-cookie/`.
+  //
+  // The default locale comes from getEffectiveConfig (the CMS-resolved one, #1195), not the
+  // module constant, so a client whose panel disagrees with its cms.config.ts still resolves right.
+  fromCms = page ? pathForLocale(page, locale, defaultLocale) : null
 }
 const privacyHref = showBanner ? resolvePrivacyHref(fromCms, privacyHrefProp) : null
 
