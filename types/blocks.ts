@@ -249,10 +249,14 @@ export interface TestimonialsBlock {
      *  that made a `row` fixture unauthorable while the panel offered the option. */
     layout?: 'slider' | 'single' | 'row'
     items?: TestimonialsItem[]
-    // Shared section fields ($sectionBackground / $sectionAlign in config/cms.php). Copied by
-    // hand because `pnpm cms:types` skips ref blocks — keep them in step with the config.
+    // Shared section fields ($sectionBackground / $sectionAlign / $sectionReveal in
+    // config/cms.php). Copied by hand because `pnpm cms:types` skips ref blocks — keep them in
+    // step with the config.
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    /** The config has carried this on this block since the part existed; the type was left
+     *  behind, so the field the renderer now reads (#1985) was unauthorable in a fixture. */
+    reveal?: 'default' | 'on' | 'off'
   }
 }
 
@@ -327,6 +331,8 @@ export interface PricingTableBlock {
     // behind there, so `muted`/`brand` failed to type-check while the API accepted them.
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     align?: 'default' | 'left' | 'center'
+    /** $sectionReveal, hand-copied for the same reason as the pair above (#1985). */
+    reveal?: 'default' | 'on' | 'off'
     /** A JSON animation this site serves, hung under the section heading (#1416). Same field
      *  name and same `asset_url` contract as `rich_content.animation_url`. */
     animation_url?: string

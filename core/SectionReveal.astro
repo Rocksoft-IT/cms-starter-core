@@ -1,0 +1,84 @@
+---
+// The behaviour half of the shared `reveal` select (dashboard#1985). The class half is
+// lib/reveal.ts; core/uno.core.ts's `section-reveal` shortcut paints it. Mounted by every block
+// that offers the field, and only when an editor actually chose "Fade in on scroll" — a section
+// left at `default` ships no JS at all.
+//
+// WHY CORE SHIPS THE OBSERVER. `frontend/scripts/field-coverage.mjs` parked `*.reveal` on
+// KNOWN_UNRENDERED arguing a fade-on-scroll needs an observer mounted by the site layer, so a
+// class alone would leave the control as dead as it was. The class alone would — which is why
+// this file exists rather than a one-line `revealClass()` call. Core already ships behaviour JS
+// for Tabs, Gallery, Carousel, Testimonials and PricingTable; a scroll reveal is no different in
+// kind, and leaving it to each site is what made eight blocks advertise a promise nothing kept.
+//
+// `is:inline` + `set:html`, the idiom Carousel.astro and Testimonials.astro use: a bundled
+// <script> is hoisted onto every page whether or not any block asked for it. Instances beyond the
+// first are no-ops via the `revealReady` flag on <html>, so eight revealing sections still ship
+// one observer.
+//
+// NOTHING IS HIDDEN BY CSS ALONE. The armed state is applied by this script and only by this
+// script, so with JS off or broken, with no IntersectionObserver, or under a reduced-motion
+// preference, every section is simply visible. A CSS-only `opacity: 0` would upgrade a dead
+// control into permanently invisible content, which is worse than the bug being fixed.
+const REVEAL_JS = `(function () {
+  if (document.documentElement.dataset.revealReady) return
+  if (!('IntersectionObserver' in window)) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  document.documentElement.dataset.revealReady = '1'
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return
+      // Removing the armed class and adding the revealed one in the same step is what animates:
+      // CSS reads the transition out of the AFTER-change style, and only \`is-revealed\` carries
+      // one. Arming is therefore instant — the section never fades OUT on its way to hidden.
+      entry.target.classList.remove('is-reveal-armed')
+      entry.target.classList.add('is-revealed')
+      observer.unobserve(entry.target)
+    })
+  }, { rootMargin: '0px 0px -10% 0px' })
+
+  function arm() {
+    document.querySelectorAll('.is-reveal').forEach(function (el) {
+      if (el.dataset.revealArmed) return
+      el.dataset.revealArmed = '1'
+      el.classList.add('is-reveal-armed')
+      observer.observe(el)
+    })
+  }
+
+  // A LAST PASS AT \`load\`, for the section the observer can never fire for. The negative bottom
+  // \`rootMargin\` shrinks the root, so an element lying ENTIRELY inside that band does not
+  // intersect — and on a page with no scroll room left below it (a short document, a short section
+  // at the very bottom) nothing will ever move it out. It would keep \`is-reveal-armed\`, i.e.
+  // \`opacity: 0\`, permanently — the "dead control upgraded into invisible content" this file's
+  // header promises cannot happen. Arming from script alone rules that out for NO JS; it does not
+  // rule it out for "JS ran and the callback never came".
+  //
+  // Anything still armed but genuinely on screen once loading is done is revealed outright: it is
+  // in front of the reader, so leaving it hidden is never the right answer, and the same
+  // armed-to-revealed swap still animates it. Sections below the fold are left to the observer
+  // exactly as before, so the effect itself is untouched.
+  function sweep() {
+    document.querySelectorAll('.is-reveal-armed').forEach(function (el) {
+      if (el.getBoundingClientRect().top >= window.innerHeight) return
+      el.classList.remove('is-reveal-armed')
+      el.classList.add('is-revealed')
+      observer.unobserve(el)
+    })
+  }
+
+  // Twice, deliberately. This script runs during parse, so the first pass reaches only the
+  // sections ABOVE it — a later revealing block would otherwise never be armed, and would render
+  // permanently un-revealed (visible, but never animating). The second pass catches the rest once
+  // the document is complete; those sections are below the fold by construction, so arming them
+  // then is not something a reader can see. Per-element \`data-reveal-armed\` keeps the two passes
+  // from fighting.
+  arm()
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arm)
+  if (document.readyState === 'complete') sweep()
+  else window.addEventListener('load', sweep)
+})();`
+---
+
+<script is:inline set:html={REVEAL_JS} />

@@ -3,14 +3,19 @@ import type { RichContentBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass, alignClasses } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { revealClass, revealsOnScroll } from '../../lib/reveal'
+import SectionReveal from '../SectionReveal.astro'
 import { headingTag } from '../../lib/headingLevel'
 import RichText from '../RichText.astro'
 import HeadingIcon from '../HeadingIcon.astro'
 interface Props {
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Forwarded to
+   *  RichText so the links inside the prose resolve to this locale (core/pathIndex.ts). */
+  locale?: string
   block: RichContentBlock
 }
-const { block } = Astro.props
-const { anchor_id, heading_icon, eyebrow, align, background, heading_level, animation_url } = block.data
+const { block, locale } = Astro.props
+const { anchor_id, heading_icon, eyebrow, align, background, reveal, heading_level, animation_url } = block.data
 
 // Deep-link target, so a table of contents can point at this block (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
@@ -23,13 +28,20 @@ const bandClass = backgroundClass(background)
 // and the source it reproduces centres a heading over prose that stays left. On the <section> it
 // is the hook a site styles against, the same place `bandClass` sits. See lib/align.ts.
 const alignModifier = alignClass(align)
+// The shared `reveal` select (#1985) — `on` marks the section for the observer in
+// core/SectionReveal.astro, which is the only thing that ever hides it. See lib/reveal.ts.
+const revealModifier = revealClass(reveal)
 // Capitalized so Astro treats it as a dynamic tag rather than a literal <headingtag> element.
 const Heading = headingTag(heading_level)
 ---
 
-<section class:list={['section-content section-band', bandClass, alignModifier]} id={sectionId}>
+<section
+  class:list={['section-content section-band section-reveal', bandClass, alignModifier, revealModifier]}
+  id={sectionId}
+>
   <div class="content-inner">
-    {/* The `eyebrow` the block description has promised since the field was added backend-first in
+    {
+      /* The `eyebrow` the block description has promised since the field was added backend-first in
         2026-07 (context/changes/rich-content-eyebrow), with the renderer deferred to a follow-up
         that never landed in core — so diligently.pl, taeles-kebap-astro and scandinavian-taste each
         forked this component to draw it (dashboard#1693).
@@ -37,7 +49,8 @@ const Heading = headingTag(heading_level)
         Inline rather than through the shared SectionHeader: that component draws a fixed <h2> and
         knows nothing of `heading_level`, which this block declares and uses. Hero.astro:85 renders
         its own eyebrow the same way and for the same reason. Aligned with the heading, because
-        `align` is documented as SECTION HEADER alignment and the eyebrow is part of that cluster. */}
+        `align` is documented as SECTION HEADER alignment and the eyebrow is part of that cluster. */
+    }
     <HeadingIcon svg={heading_icon} />
     {eyebrow && <p class:list={['rich-eyebrow', ...alignClasses(align, 'align-text')]}>{eyebrow}</p>}
     {
@@ -45,8 +58,9 @@ const Heading = headingTag(heading_level)
         <Heading class:list={['rich-heading', ...alignClasses(align, 'align-text')]}>{block.data.heading}</Heading>
       )
     }
-    <RichText class="rich-body" html={block.data.body} />
-    {/* The `animation_url` field, through the contract core already defines (dashboard#1693).
+    <RichText class="rich-body" html={block.data.body} {locale} />
+    {
+      /* The `animation_url` field, through the contract core already defines (dashboard#1693).
         `SectionHeader` emits this exact element for the eleven blocks that draw a header, and
         `PricingTable.astro:88` already passes it — RichContent draws no header, so it emits the
         element itself rather than gaining a header it does not want.
@@ -56,7 +70,12 @@ const Heading = headingTag(heading_level)
         mounts nothing gets a sized, empty, decorative box and no requests, which is why the
         element is `aria-hidden`. The value is an `asset_url` the backend has already validated
         against `/^\/[\w\/.-]+\.json$/`, so this does not re-validate what the schema guarantees;
-        `SectionHeader` makes the same call. */}
+        `SectionHeader` makes the same call. */
+    }
     {animation_url && <div class="section-animation" data-animation-src={animation_url} aria-hidden="true" />}
   </div>
+  {
+    /* The observer, once per page and only for a section that asked to fade in (#1985). See core/SectionReveal.astro. */
+  }
+  {revealsOnScroll(reveal) && <SectionReveal />}
 </section>

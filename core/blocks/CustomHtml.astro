@@ -2,12 +2,23 @@
 import type { CustomHtmlBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { hrefContextFor } from '../pathIndex'
+import { localizeHtmlHrefs } from '../../lib/html-hrefs'
 
 interface Props {
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
+  locale?: string
   block: CustomHtmlBlock
 }
-const { block } = Astro.props
+const { block, locale } = Astro.props
 const { anchor_id, html, full_width, background } = block.data
+
+// The escape hatch is also the worst case for a hand-typed internal link: no field, no schema, no
+// warning — just markup, and an editor who only ever saw the default locale’s addresses. Only
+// `<a>` hrefs are touched, and only on a translated tree; everything else ships verbatim, which is
+// this field’s whole contract (lib/html-hrefs.ts).
+const localized = localizeHtmlHrefs(html, await hrefContextFor(locale))
 
 const sectionId = sectionAnchorId(anchor_id)
 ---
@@ -17,5 +28,5 @@ const sectionId = sectionAnchorId(anchor_id)
     /* set:html is intentionally unsanitized — admin is trusted and scripts must be preserved.
       Projects with untrusted editors can opt into sanitization using the sanitize-html dependency. */
   }
-  {full_width ? <div set:html={html} /> : <div class="custom-html-inner" set:html={html} />}
+  {full_width ? <div set:html={localized} /> : <div class="custom-html-inner" set:html={localized} />}
 </section>

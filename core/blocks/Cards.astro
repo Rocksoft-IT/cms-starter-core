@@ -39,22 +39,27 @@ import type { CardsBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { revealClass, revealsOnScroll } from '../../lib/reveal'
+import SectionReveal from '../SectionReveal.astro'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { iconPath } from '../../lib/icons'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
 
 interface Props {
-  block: CardsBlock
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
   locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
+  block: CardsBlock
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
-const { anchor_id, heading_icon, eyebrow, heading, intro, layout, align, background } = block.data
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
+const { anchor_id, heading_icon, eyebrow, heading, intro, layout, align, background, reveal } = block.data
 
 // Also reads the retired `tiles` shape, because this component is registered as the transitional
 // renderer for `nav_tiles` too: content still carries that type until the data migration runs.
@@ -93,10 +98,13 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.capt
   entries.length > 0 && (
     <section
       class:list={[
-        'section-cards section-band',
+        'section-cards section-band section-reveal',
         // The shared `background` select — one band modifier the styling layer paints (#1498).
         // See lib/background.ts.
         backgroundClass(background),
+        // The shared `reveal` select (#1985) — `on` marks the section for the observer in
+        // core/SectionReveal.astro, which is the only thing that ever hides it. See lib/reveal.ts.
+        revealClass(reveal),
         // The shared `align` select (#1643) — the header does the aligning, this is the site
         // hook. See lib/align.ts.
         alignClass(align),
@@ -170,6 +178,8 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.capt
           })}
         </ul>
       </div>
+      {/* The observer, once per page and only for a section that asked to fade in (#1985). See core/SectionReveal.astro. */}
+      {revealsOnScroll(reveal) && <SectionReveal />}
     </section>
   )
 }

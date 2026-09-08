@@ -27,6 +27,63 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.57.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@cc790ecd` on 2026-09-08 — heading written by `publish_core`._
+
+### An editor-typed internal href resolves to the current locale's own page address
+
+A CTA, a menu item, a button, a link inside a `custom_html` or rich-text body: whatever locale's
+copy an editor is editing, the address the panel shows them is the **default locale's**, because
+these fields have no "pick a page" control — just free text. That literal value used to render
+unchanged on every locale's tree, so a CTA meaning "the contact page" linked to `/contact/` from
+the Polish site instead of `/pl/kontakt/`. It answers 200, so nothing ever failed: the reader was
+simply dropped into another language. Same silent shape as the teaser-card bug (dashboard#1454),
+for the addresses the API never sees because a human typed them.
+
+`buildStaticPaths` now builds a cross-locale path index once per locale tree and puts it on every
+route, `BlockRenderer` hands it to every block alongside `locale`, and `href()` takes an optional
+context. A path the index knows resolves to this locale's address for that page; **everything else
+is untouched** — external and `mailto:` URLs, `#fragment`s, file-like paths, an unknown path, the
+default-locale tree, or no context at all. `custom_html` and rich-text bodies are covered too:
+their `<a>` hrefs are rewritten in the HTML string, and only on a translated tree, so on the
+default tree the markup is byte-identical.
+
+A `section_teaser` item's `path` deliberately does **not** go through this — the API already
+resolves it for the requested locale (dashboard#1454). The rule is: resolve editor-typed hrefs,
+never API-resolved ones.
+
+#### Wiring
+
+Almost none, and that is deliberate. The index is **build-scoped**, so core resolves it through a
+memoized accessor (`core/pathIndex.ts`, the same shape as `core/effectiveConfig.ts`) rather than
+threading it as a prop. A component asks for it where it renders; the only thing it cannot work out
+for itself is `locale`, which every client repo has been passing since #1147.
+
+So a pin bump delivers this to the blocks with **no repo edit at all** — `Layout.astro` untouched,
+no new props anywhere in the chain. Two optional one-liners round it out, and a site that skips them
+loses only those two surfaces, not the feature:
+
+- `src/components/Navbar.astro` — `const hrefCtx = await hrefContextFor(locale)`, then pass
+  `hrefCtx` to each `hrefOf()` and to `groupHref()`, so the header menu resolves too;
+- `src/page-types/DefaultPage.astro` and `src/sections/SectionLanding.astro` — add `{locale}` to
+  the `<RichText>` that renders the page body, so the links inside an editor's prose resolve.
+
+`tests/unit/locale-href-wiring.test.ts` ships with the template and fails when any of that is
+missing — unlike core's own tests, that one survives into a client repo, because it is a client's
+wiring it checks.
+
+## v0.56.0 — one vocabulary for standfirsts and CTAs, and a band a client's own wash fits in
+
+_Cut from `Rocksoft-IT/diligently-dashboard@9891c068` on 2026-09-02 — heading backfilled by
+dashboard#1990, which is also why it is the last one written by hand: `publish_core` cuts the
+heading itself now._
+
+**Two entries here CHANGE renderers that already existed** — `intro` (dashboard#1977) and `ctas`
+(dashboard#1959). Both keep reading their old payload keys as deprecated aliases, so a repo can move
+the pin before it migrates content, and both aliases are removed later (dashboard#1978). Read those
+two entries before bumping. Everything else in this release is additive.
+
 ### A band a client's own wash fits in — `tint`, beside a `brand` that admits it is solid (dashboard#1940)
 
 The `background` select gains a sixth value, `tint`, and `brand`'s panel label now reads **"Brand
@@ -277,6 +334,29 @@ header and keep it: folding them onto `SectionHeader.astro` would recentre the F
 the dark CTA band and turn hero's richtext `<h1>` into a plain `<h2>`. Each carries that reason
 beside itself in the block registry.
 
+### `testimonials.layout: row` renders, after carrying the option unread (dashboard#1850)
+
+`testimonials.layout` has offered three values since dashboard#1692 — `slider`, `single`, `row` —
+and `Testimonials.astro` read them into one boolean, `layout === 'slider'`. Every horizontal rule in
+`uno.core.ts` sits behind `[.is-slider_&]:`, so `row` fell through to the stacked default and
+produced markup and CSS byte-identical to `single`: a column capped at the 760px prose measure. The
+panel offered the choice, `/api/pages` carried it, and the page dropped it with nothing anywhere
+reporting that.
+
+**Visible on any site whose editor has already picked `row`.** The block now emits `is-row` beside
+`is-slider`, and core paints `[.is-row_&]:flex-row flex-wrap max-w-none` on the track with
+`[.is-row_&]:grow basis-[280px]` on the slide — a wrapping row rather than a stack. A site that drew
+that row in its own stylesheet to compensate (el-service does) should check for a doubled rule after
+the bump.
+
+**No item-count gate on `row`**, unlike the slider: arrows and autoplay are meaningless with one
+slide, whereas a wrapping row of one is a full-width card — a coherent render of that choice rather
+than another silent fallback.
+
+`types/blocks.ts` said `'slider' | 'single'`, which is where the drift was actually recorded and why
+a `row` fixture could not be authored; the union sits above the GENERATED marker, so
+`pnpm cms:types` does not rewrite it.
+
 ### A pricing plan's bundled sub-plans and client logos finally render (dashboard#1779)
 
 `PricingTable.astro` drew twelve of the fourteen fields the `plan` item type declares. The two it
@@ -359,6 +439,19 @@ of its own, so a screen reader never meets an unnamed link. New shortcuts `secti
 it once its section has a page builder — `builder: true` on that section, which is per-client
 config in the panel and needs no code.
 
+### Also in this tag, invisible
+
+`blocks.json` moved several presentational fields into the panel's collapsed **Advanced** group and
+disclosed the CTA card and the hero backdrop as single parts (dashboard#1957, dashboard#1981). The
+schema travels inside a core release because `pnpm cms:types --check` compares a repo's committed
+copy against its pinned core's types — but grouping is panel-side only, so regenerating from it is a
+no-op and nothing rendered changes.
+
+
+## v0.55.0 — the band reaches every block whose root is a `<section>`
+
+_Cut from `Rocksoft-IT/diligently-dashboard@e8042b9f` on 2026-08-31 — heading backfilled by dashboard#1990._
+
 ### Every block whose renderer emits a root `<section>` now takes the band (dashboard#1939)
 
 `background` was declared on eight blocks and absent from seventeen others — `hero`, `heading`,
@@ -394,6 +487,33 @@ which the band reads for its own fill; a site that needs visible accents there r
 component keys in its `src/uno.ts`. See the note beside `.section-band.is-brand` in
 `core/styles/tokens.css`, and dashboard#1940.
 
+### `cta_banner` joins the band, and its dark look becomes one (dashboard#1933)
+
+`cta_banner` was the only section-level block without `background`, on the premise recorded in its
+own comment: "this banner's design is fixed". It is not — allteck.no runs three CTA banners, all
+light, one of them on a tint — and with no field to say so, a client repo had to override five core
+shortcuts by hand.
+
+**Nothing moves on an existing site.** The block committed to dark in five places at once, and all
+five are now the band's: `section-cta`'s `bg-black text-white` becomes `section-band`, the eyebrow
+and body take their role tokens, and the badge derives its border and fill from `currentColor`
+instead of assuming white. Each is exactly equivalent on the dark band — `section-band.is-dark`
+resolves to `#000`/`#fff`, and `--band-dark-text-secondary` IS the `#b3b3b3` that `text-gray-300`
+was spelling. `CtaBanner.astro` reads `background ?? 'dark'` where the other seven banded blocks
+fall through to no modifier, because published banners carry no `background` key at all and absent
+has to keep meaning the black band, or the next build turns every client's closing CTA into a
+page-ground one.
+
+**The one genuinely new value is on the light bands.** `btn-white` keeps its dark-band spelling
+untouched, and `tokens.css` re-points it at the brand button on the two light bands the block can
+newly be given — a white pill on near-white, with a hover that goes transparent, is not off-brand,
+it is invisible.
+
+
+## v0.54.0 — a background photo on `hero`
+
+_Cut from `Rocksoft-IT/diligently-dashboard@32b300a4` on 2026-08-31 — heading backfilled by dashboard#1990._
+
 ### A background photo on `hero` itself (dashboard#1925)
 
 `hero` gains `background_image` / `background_image_meta` / `background_image_alt` (a
@@ -414,6 +534,78 @@ would restyle the fleet's homepages on the next pin bump; a bare seam does not.
 
 Before this, a hero background was only reachable by wrapping the hero in a one-slide `carousel`
 (v0.51.0) — undiscoverable, and not what an editor reaching for "Hero" expects.
+
+
+## v0.53.0 — a carousel that fades instead of panning
+
+_Cut from `Rocksoft-IT/diligently-dashboard@9f63b63f` on 2026-08-30 — entry and heading backfilled by
+dashboard#1990, which found this release carrying no entry at all._
+
+### `carousel.transition: crossfade`, for a rotating background behind fixed content (dashboard#1911)
+
+A Webflow-style hero slider is a static heading over a rotating PHOTO, not a row of different
+slides. The scroll-snap track `carousel` shipped with (v0.51.0) panned that identical heading
+sideways along with the picture, which reads as the text glitching rather than a background
+changing. `transition` is a new select on the block: `scroll`, the existing behaviour, or
+`crossfade`, which fades slides in place.
+
+**Additive — nothing changes until an editor picks the new value.** `scroll` is both the default and
+the absent value, so a carousel published before this bump renders exactly as it did.
+
+**How the fade is built**, because it constrains what a slide may hold: slides share one CSS grid
+cell (`grid-template-areas: "stack"`, each slide `grid-area: stack`), so the row's height comes from
+whichever slide is tallest rather than from whichever is showing. `aria-hidden` doubles as the
+accessibility state and the fade's own visibility switch, and `inert` rides alongside it — a
+crossfade slide is typically a whole `hero` with its own CTAs, and `aria-hidden` on an ancestor does
+not remove a focusable descendant from the tab order on its own.
+
+**This bump needs the dashboard change too.** The `transition` select is served by `config/cms.php`;
+a repo on this pin against a panel without it simply never receives the value, and the block falls
+back to `scroll`.
+
+
+## v0.52.0 — a metric harness beside the VRT one
+
+_Cut from `Rocksoft-IT/diligently-dashboard@e36c34c2` on 2026-08-28 — entry and heading backfilled by
+dashboard#1990, which found this release carrying no entry at all._
+
+### `tests/measure`: not which pages differ, but by how much (dashboard#1897)
+
+VRT (v0.46.0) answers **which** pages differ and roughly where — a percentage and a diff PNG. It
+cannot answer **by what**, and that is the half a port actually needs typed: `600x462` against `800`
+tall, `gap: 48px` against `12px`, `16/25.6` against `18/29`. That half was being done by pasting
+ad-hoc `getBoundingClientRect` snippets into a devtools console — a different set of properties every
+time, and nothing written down afterwards.
+
+`compare-metrics.spec.js` reads the same CSS selectors on a reference and on this build, and prints
+only the properties that differ. **Not a gate**, deliberately, for the same reason VRT is not: a
+rewrite differs from its reference by design, so a red suite would train everyone to ignore it. A
+test fails only when the RUN is broken — a non-200 on either side, a **selector matching nothing**,
+or a missing target list. `MEASURE_STRICT=1` turns surviving differences into failures, which is what
+a baseline regression run wants.
+
+**Per-client wiring, not just a pin bump** — the same split as the conformance floor (v0.43.0) and
+VRT (v0.46.0): core owns the harness, the repo owns the addresses. Three things per repo:
+
+1. `playwright.measure.config.ts` — its own config, because like VRT it has **no `webServer`**: it
+   compares two independently served URLs. Point `testDir` through
+   `require.resolve('@rocksoft/cms-starter-core/package.json')` and **never** write a literal
+   `./packages/…` path, which does not exist in a client repo.
+2. `tests/measure.targets.json` — this site's list: one entry per layout being ported, each naming
+   the selectors worth watching on it.
+3. `"test:measure"` in `package.json`. No new dependency: it uses the Playwright the repo already
+   has for e2e.
+
+**Record a baseline before the old site is switched off.** A site being replaced disappears, and the
+reference with it: `MEASURE_SAVE=1` writes `tests/measure.baseline/` and `MEASURE_BASELINE=1`
+compares against it offline. It is small JSON and is committed, which also makes a diff against it a
+legible statement about what the port changed.
+
+**Also here:** `tests/shared/page-prep.js`, holding what both harnesses need and neither should own
+twice — the consent dismissal, the trailing slash, and the scroll-before-capture (a page never
+scrolled holds its lazy images unloaded, and an image then measures `height: 0`, which sends you
+hunting a CSS bug that is not there). VRT keeps its `[vrt]` warning prefix through a `tool` option.
+The harness documents itself in `tests/measure/README.md`.
 
 
 ## v0.51.0 — a carousel block, and an eyebrow on the heading block

@@ -36,7 +36,8 @@
                 "type": "richtext"
             },
             "paragraph": {
-                "type": "richtext"
+                "type": "richtext",
+                "optional": true
             },
             "ctas": {
                 "type": "repeater",
@@ -57,7 +58,10 @@
                 "max": 2
             },
             "cta_note": {
-                "type": "text"
+                "type": "text",
+                "label": "CTA note",
+                "help": "A line of reassurance under the buttons, like 100% free, no credit card required. Text only — the buttons above are the links.",
+                "optional": true
             },
             "cta_card_image": {
                 "type": "media_upload",
@@ -246,7 +250,7 @@
                 "type": "text"
             },
             "href": {
-                "type": "text"
+                "type": "href"
             },
             "style": {
                 "type": "select",
@@ -802,7 +806,7 @@
                 "type": "text"
             },
             "footer_href": {
-                "type": "text"
+                "type": "href"
             },
             "background": {
                 "type": "select",
@@ -987,7 +991,7 @@
                 "type": "text"
             },
             "action_href": {
-                "type": "text"
+                "type": "href"
             },
             "item_action_label": {
                 "type": "text"
@@ -1173,7 +1177,7 @@
                         "type": "textarea"
                     },
                     "href": {
-                        "type": "text"
+                        "type": "href"
                     },
                     "highlighted": {
                         "type": "toggle"
@@ -1621,7 +1625,7 @@
                         "type": "text"
                     },
                     "href": {
-                        "type": "text"
+                        "type": "href"
                     },
                     "style": {
                         "type": "select",
@@ -1871,7 +1875,7 @@
                         "type": "text"
                     },
                     "href": {
-                        "type": "text"
+                        "type": "href"
                     }
                 }
             },
@@ -1946,8 +1950,8 @@
                 "help": "The wording of the link to the original, e.g. “Read more on nussbaum.de”."
             },
             "source_link_href": {
-                "type": "text",
-                "help": "The full address of the article, starting with https:// — this field is not checked, so a typo here fails silently."
+                "type": "href",
+                "help": "The full address of the article, starting with https://."
             },
             "image": {
                 "type": "image"

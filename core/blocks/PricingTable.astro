@@ -14,22 +14,27 @@ import { sectionAnchorId } from '../../lib/anchor'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { usableCtas } from '../../lib/ctas'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { revealClass, revealsOnScroll } from '../../lib/reveal'
+import SectionReveal from '../SectionReveal.astro'
 import { tabLabel } from '../../lib/tab-label'
 
 interface Props {
-  block: PricingTableBlock
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
   locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
+  block: PricingTableBlock
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
 const {
   anchor_id,
   eyebrow,
@@ -38,6 +43,7 @@ const {
   body,
   align,
   background,
+  reveal,
   animation_url,
   width,
   description_height,
@@ -89,6 +95,9 @@ const bandClass = backgroundClass(background)
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 // See lib/align.ts.
 const alignModifier = alignClass(align)
+// The shared `reveal` select (#1985) — `on` marks the section for the observer in
+// core/SectionReveal.astro, which is the only thing that ever hides it. See lib/reveal.ts.
+const revealModifier = revealClass(reveal)
 
 // `example_logos` is a `multiple` media field, so each element is the WHOLE MediaUrls.for() object
 // ({ url, alt, width, height, srcset, … }) — NOT a bare URL, whatever BLOCKS.md's example still
@@ -119,7 +128,10 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
   logo && typeof logo === 'object' ? (logo as ResponsiveImageMeta) : null
 ---
 
-<section id={sectionId} class:list={['section-pricing-table section-band py-20', bandClass, alignModifier]}>
+<section
+  id={sectionId}
+  class:list={['section-pricing-table section-band section-reveal py-20', bandClass, alignModifier, revealModifier]}
+>
   <div class={containerClass}>
     <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} animation={animation_url} />
 
@@ -208,6 +220,7 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
 
                 {plan.description && (
                   <RichText
+                    {locale}
                     class:list={['text-[14px] leading-[1.6] text-text-secondary [&_p]:mb-0', descriptionClass]}
                     html={plan.description}
                   />
@@ -335,9 +348,7 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
       /* One class, both bands: a dark band re-maps `--color-text-secondary` to its own lighter
          grey (core/styles/tokens.css), so the per-band ternary this used to carry is gone. */
       body && (
-        <p class="text-center max-w-[700px] mx-auto mt-12 text-[15px] leading-[1.7] text-text-secondary">
-          {body}
-        </p>
+        <p class="text-center max-w-[700px] mx-auto mt-12 text-[15px] leading-[1.7] text-text-secondary">{body}</p>
       )
     }
 
@@ -355,6 +366,10 @@ const logoMeta = (logo: unknown): ResponsiveImageMeta | null =>
       )
     }
   </div>
+  {
+    /* The observer, once per page and only for a section that asked to fade in (#1985). See core/SectionReveal.astro. */
+  }
+  {revealsOnScroll(reveal) && <SectionReveal />}
 </section>
 
 {

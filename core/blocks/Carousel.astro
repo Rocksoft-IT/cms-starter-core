@@ -106,49 +106,49 @@ const arrows = [
           // attributes below — that duplication is exactly how the pair could drift apart.
           const isHidden = isCrossfade && i !== 0
           return (
-          // `aria-hidden` doubles as the crossfade's own visibility switch (`carousel-slide`'s
-          // `[&[aria-hidden="false"]]:opacity-100` in uno.core.ts) — one flag instead of an
-          // `aria-hidden` + `.is-active` pair that could drift apart. Absent entirely in scroll
-          // mode: there every slide is reachable and none should be announced as hidden.
-          //
-          // `inert` rides alongside it rather than `aria-hidden` alone: a crossfade slide's
-          // content is typically a whole Hero, CTA buttons included, and `aria-hidden="true"` on
-          // an ancestor of a FOCUSABLE element is a real violation, not a lint nicety — the
-          // control stays reachable by Tab even though it is invisible. `inert` removes it from
-          // focus, pointer interaction and find-in-page in one attribute (and implies the
-          // `aria-hidden` semantics itself in every current browser; the explicit attribute above
-          // stays for older assistive tech that does not yet read `inert`).
-          <div
-            class="carousel-slide"
-            id={`slide-${gid}-${slide.anchor}`}
-            role="group"
-            aria-roledescription="slide"
-            aria-hidden={isCrossfade ? (isHidden ? 'true' : 'false') : undefined}
-            inert={isHidden || undefined}
-            aria-label={
-              slide.name || coreString(locale, 'slidePosition', { n: String(i + 1), total: String(items.length) })
-            }
-          >
-            {slide.image && (
-              <>
-                <img
-                  class="carousel-bg"
-                  src={slide.image}
-                  alt={slide.imageAlt}
-                  loading={i === 0 ? 'eager' : 'lazy'}
-                  fetchpriority={i === 0 ? 'high' : undefined}
-                  {...responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed)}
-                />
-                {/* The scrim is what keeps text over a photograph readable. A token rather than a
+            // `aria-hidden` doubles as the crossfade's own visibility switch (`carousel-slide`'s
+            // `[&[aria-hidden="false"]]:opacity-100` in uno.core.ts) — one flag instead of an
+            // `aria-hidden` + `.is-active` pair that could drift apart. Absent entirely in scroll
+            // mode: there every slide is reachable and none should be announced as hidden.
+            //
+            // `inert` rides alongside it rather than `aria-hidden` alone: a crossfade slide's
+            // content is typically a whole Hero, CTA buttons included, and `aria-hidden="true"` on
+            // an ancestor of a FOCUSABLE element is a real violation, not a lint nicety — the
+            // control stays reachable by Tab even though it is invisible. `inert` removes it from
+            // focus, pointer interaction and find-in-page in one attribute (and implies the
+            // `aria-hidden` semantics itself in every current browser; the explicit attribute above
+            // stays for older assistive tech that does not yet read `inert`).
+            <div
+              class="carousel-slide"
+              id={`slide-${gid}-${slide.anchor}`}
+              role="group"
+              aria-roledescription="slide"
+              aria-hidden={isCrossfade ? (isHidden ? 'true' : 'false') : undefined}
+              inert={isHidden || undefined}
+              aria-label={
+                slide.name || coreString(locale, 'slidePosition', { n: String(i + 1), total: String(items.length) })
+              }
+            >
+              {slide.image && (
+                <>
+                  <img
+                    class="carousel-bg"
+                    src={slide.image}
+                    alt={slide.imageAlt}
+                    loading={i === 0 ? 'eager' : 'lazy'}
+                    fetchpriority={i === 0 ? 'high' : undefined}
+                    {...responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed)}
+                  />
+                  {/* The scrim is what keeps text over a photograph readable. A token rather than a
                     fixed colour, so a site retunes (or removes) it without overriding the block —
                     the component-level seam `--hero-c1` established. */}
-                <span class="carousel-scrim" aria-hidden="true" />
-              </>
-            )}
-            <div class="carousel-content">
-              <BlockRenderer blocks={slide.blocks} {locale} />
+                  <span class="carousel-scrim" aria-hidden="true" />
+                </>
+              )}
+              <div class="carousel-content">
+                <BlockRenderer blocks={slide.blocks} {locale} />
+              </div>
             </div>
-          </div>
           )
         })}
       </div>

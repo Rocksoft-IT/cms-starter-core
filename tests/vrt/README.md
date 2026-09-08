@@ -48,6 +48,7 @@ other six.
 | `NEW_BASE_URL`             | this build (default `http://localhost:4321`)                                                                      |
 | `VRT_WIDTH` / `VRT_HEIGHT` | viewport; anything but 1440 wide gets its own filename suffix, so a mobile pass never overwrites the desktop PNGs |
 | `VRT_ROUTE_NAMES`          | `home,pricing` — narrow a run while iterating on one page                                                         |
+| `VRT_REPO`                 | read the route list from ANOTHER checkout; the PNGs still land in the cwd (`../measure/README.md` explains why)   |
 
 Serving a static prototype for the reference side is whatever is at hand, e.g.
 `npx serve -l 8080 .` inside the prototype repo.

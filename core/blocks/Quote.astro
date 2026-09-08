@@ -12,21 +12,25 @@
 import type { QuoteBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
 
 interface Props {
-  block: QuoteBlock
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
   locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
+  block: QuoteBlock
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
-const { anchor_id,
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
+const {
+  anchor_id,
   source_tag,
   headline,
   lede,
@@ -69,7 +73,7 @@ const sourceLinkText = source_link_label || source_link_href
       {
         quote && (
           <blockquote class="quote-mark">
-            <RichText class="quote-text" html={quote} />
+            <RichText class="quote-text" html={quote} {locale} />
           </blockquote>
         )
       }

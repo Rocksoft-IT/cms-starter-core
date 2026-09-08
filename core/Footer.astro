@@ -31,6 +31,7 @@
 import { getFooter, getMenu } from '../lib/api'
 import { getEffectiveConfig } from './effectiveConfig'
 import { footerColumns } from '../lib/footer'
+import { hrefContextFor } from './pathIndex'
 import RichText from './RichText.astro'
 
 interface Props {
@@ -39,6 +40,11 @@ interface Props {
 }
 
 const { locale = 'en' } = Astro.props
+
+// The footer renders on EVERY page of every locale tree, and both of its link sources are
+// editor-typed hrefs — `footer_links` rows and the footer menu. Without this a translated page
+// carried a whole column of links back into the default language (lib/href.ts).
+const hrefCtx = await hrefContextFor(locale)
 
 const footer = await getFooter(locale).catch(() => null)
 
@@ -55,6 +61,7 @@ const { menus, seo } = await getEffectiveConfig()
 const columns = footerColumns(
   footer?.footer_links,
   (footer?.footer_links?.length ?? 0) > 0 ? null : await getMenu(menus.footer, locale).catch(() => null),
+  hrefCtx,
 )
 
 // Social links: only the URLs the editor filled in, in a fixed order. `data-social` lets a
@@ -81,7 +88,7 @@ const copyright = `© ${new Date().getFullYear()}${siteName ? ` ${siteName}` : '
   <div class="footer-inner">
     {footer?.logo?.url && <img class="footer-brand" src={footer.logo.url} alt={footer.logo.alt ?? ''} />}
 
-    {footer?.company_text && <RichText class="footer-legal" html={footer.company_text} />}
+    {footer?.company_text && <RichText class="footer-legal" html={footer.company_text} {locale} />}
 
     {
       columns.length > 0 && (

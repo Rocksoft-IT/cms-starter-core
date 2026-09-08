@@ -6,24 +6,41 @@
 import type { PricingTeaserBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { revealClass, revealsOnScroll } from '../../lib/reveal'
+import SectionReveal from '../SectionReveal.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
-  block: PricingTeaserBlock
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
   locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
+  block: PricingTeaserBlock
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
 // `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
 // (dashboard#1977). It was always the `intro` PROP — the header below used to receive it as
 // `intro={body}` — so the indirection is what went, not a field.
-const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, cards = [], footer_label, footer_href } = block.data
+const {
+  anchor_id,
+  heading_icon,
+  eyebrow,
+  heading,
+  intro,
+  align,
+  background,
+  reveal,
+  cards = [],
+  footer_label,
+  footer_href,
+} = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -33,6 +50,9 @@ const bandClass = backgroundClass(background)
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 // See lib/align.ts.
 const alignModifier = alignClass(align)
+// The shared `reveal` select (#1985) — `on` marks the section for the observer in
+// core/SectionReveal.astro, which is the only thing that ever hides it. See lib/reveal.ts.
+const revealModifier = revealClass(reveal)
 
 // `bullets` is a plain textarea: one bullet per non-empty line.
 const bulletLines = (bullets?: string) =>
@@ -42,7 +62,10 @@ const bulletLines = (bullets?: string) =>
     .filter(Boolean)
 ---
 
-<section id={sectionId} class:list={['section-pricing-teaser section-band py-16', bandClass, alignModifier]}>
+<section
+  id={sectionId}
+  class:list={['section-pricing-teaser section-band section-reveal py-16', bandClass, alignModifier, revealModifier]}
+>
   <div class="pricing-teaser-inner">
     <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
 
@@ -91,4 +114,8 @@ const bulletLines = (bullets?: string) =>
       )
     }
   </div>
+  {
+    /* The observer, once per page and only for a section that asked to fade in (#1985). See core/SectionReveal.astro. */
+  }
+  {revealsOnScroll(reveal) && <SectionReveal />}
 </section>

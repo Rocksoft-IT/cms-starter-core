@@ -114,3 +114,41 @@ describe('footerColumns', () => {
     expect(footerColumns([], [])).toEqual([])
   })
 })
+
+// The footer renders on every page of every locale tree, and both of its sources are editor-typed
+// hrefs. Before this, a translated page carried a whole column of links back into the default
+// language — the same silent 200 as every other hand-typed internal href (lib/href.ts).
+describe('footerColumns - locale resolution', () => {
+  const ctx = {
+    locale: 'pl',
+    defaultLocale: 'en',
+    pathIndex: { '/contact/': { pl: '/pl/kontakt/' }, '/about/': { pl: '/pl/o-nas/' } },
+  }
+
+  it('resolves a footer_links row to the current locale address', () => {
+    const [column] = footerColumns([{ label: 'Kontakt', href: '/contact', column: 'Firma' }], null, ctx)
+    expect(column!.links[0]!.href).toBe('/pl/kontakt/')
+  })
+
+  it('resolves a menu leaf', () => {
+    const [column] = footerColumns(undefined, [{ label: 'Kontakt', href: '/contact', children: [] } as never], ctx)
+    expect(column!.links[0]!.href).toBe('/pl/kontakt/')
+  })
+
+  it('resolves a linked group’s own destination and each of its children', () => {
+    const menu = [
+      {
+        label: 'O nas',
+        href: '/about',
+        children: [{ label: 'Kontakt', href: '/contact', children: [] }],
+      },
+    ] as never
+    const [column] = footerColumns(undefined, menu, ctx)
+    expect(column!.links.map((l) => l.href)).toEqual(['/pl/o-nas/', '/pl/kontakt/'])
+  })
+
+  it('leaves every href alone with no context — the default tree is untouched', () => {
+    const [column] = footerColumns([{ label: 'Contact', href: '/contact', column: '' }], null)
+    expect(column!.links[0]!.href).toBe('/contact/')
+  })
+})

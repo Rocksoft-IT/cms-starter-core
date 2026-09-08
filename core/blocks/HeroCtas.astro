@@ -13,10 +13,14 @@
 // would make `ctas` and `cta_note` read as unrendered on a block that renders them fine.
 import type { HeroBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { usableCtas } from '../../lib/ctas'
 import { alignClasses } from '../../lib/align'
 
 interface Props {
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
+  locale?: string
   ctas?: HeroBlock['data']['ctas']
   cta_note?: string
   cta_card_image?: HeroBlock['data']['cta_card_image']
@@ -30,15 +34,13 @@ interface Props {
    * parent track carries. See lib/align.ts.
    */
   align?: string
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro via Hero.astro. */
-  locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { cta_note, align, cta_card_image, cta_card_title, cta_card_subtitle, cta_card_href, locale, defaultLocale, pathIndex } =
-  Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
+const { cta_note, align, cta_card_image, cta_card_title, cta_card_subtitle, cta_card_href, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
 
 // A row saved with only half its pair is an unfinished input, not an instruction to draw an empty
 // link — the same rule the two other blocks fed by `$ctaList` now follow. See lib/ctas.ts.

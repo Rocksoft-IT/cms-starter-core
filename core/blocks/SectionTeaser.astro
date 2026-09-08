@@ -12,6 +12,7 @@ import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
 
@@ -27,13 +28,11 @@ interface Props {
    * language on a translated page (#1463).
    */
   locale?: string
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
 }
 
 const { block } = Astro.props
-const { anchor_id,
+const {
+  anchor_id,
   eyebrow,
   heading,
   intro,
@@ -50,8 +49,13 @@ const { anchor_id,
 const sectionId = sectionAnchorId(anchor_id)
 
 const locale = Astro.props.locale ?? defaultLocale
-const defLoc = Astro.props.defaultLocale ?? defaultLocale
-const hrefCtx = { locale, defaultLocale: defLoc, pathIndex: Astro.props.pathIndex }
+// ONLY for `action_href`, the one editor-typed href this block renders. Each ITEM’s `path` below
+// is resolved server-side for the requested locale already — `PagePayload::resolveTeaserItem()`
+// stopped reading the default-locale column precisely so these cards keep the reader in their
+// language (#1454). Re-resolving it here would ask a default-locale-keyed index about a value
+// that is already localized: a miss today, a mis-resolution the first time some locale’s address
+// collides with another page’s default-locale one. Pinned by tests/href-call-sites.test.ts.
+const hrefCtx = await hrefContextFor(locale)
 const hasHeader = Boolean(eyebrow || heading)
 const isList = layout === 'list'
 const hasAction = Boolean(action_label && action_href)
@@ -109,7 +113,10 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
 
 {
   (hasHeader || items.length > 0) && (
-    <section id={sectionId} class:list={['section-teaser section-band py-16', backgroundClass(background), isList && 'is-list']}>
+    <section
+      id={sectionId}
+      class:list={['section-teaser section-band py-16', backgroundClass(background), isList && 'is-list']}
+    >
       <div class="container-global">
         <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
@@ -117,7 +124,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
         {items.length > 0 && !isList && (
           <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
             {items.map((item) => {
-              const href = hrefOf(item.path, hrefCtx)
+              const href = hrefOf(item.path)
               const image = cardImage(item)
               const img = imageUrl(image)
               const date = formatDate(item.date, locale)
@@ -167,7 +174,7 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
         {items.length > 0 && isList && (
           <ul class="m-0 flex list-none flex-col gap-3 p-0">
             {items.map((item) => {
-              const href = hrefOf(item.path, hrefCtx)
+              const href = hrefOf(item.path)
               const badge = dateBadge(item.date)
               const status = nonEmpty(item.status)
               const attachments = typeof item.attachment_count === 'number' ? item.attachment_count : 0

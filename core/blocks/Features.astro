@@ -3,13 +3,18 @@ import type { FeaturesBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { revealClass, revealsOnScroll } from '../../lib/reveal'
+import SectionReveal from '../SectionReveal.astro'
 import RichText from '../RichText.astro'
 import SectionHeader from '../SectionHeader.astro'
 interface Props {
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Forwarded to
+   *  RichText so the links inside the prose resolve to this locale (core/pathIndex.ts). */
+  locale?: string
   block: FeaturesBlock
 }
-const { block } = Astro.props
-const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, steps = [] } = block.data
+const { block, locale } = Astro.props
+const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, reveal, steps = [] } = block.data
 
 // Deep-link target — a process/steps section is a typical TOC entry (#1416). See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
@@ -20,9 +25,15 @@ const bandClass = backgroundClass(background)
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 // See lib/align.ts.
 const alignModifier = alignClass(align)
+// The shared `reveal` select (#1985) — `on` marks the section for the observer in
+// core/SectionReveal.astro, which is the only thing that ever hides it. See lib/reveal.ts.
+const revealModifier = revealClass(reveal)
 ---
 
-<section class:list={['section-features section-band relative', bandClass, alignModifier]} id={sectionId}>
+<section
+  class:list={['section-features section-band section-reveal relative', bandClass, alignModifier, revealModifier]}
+  id={sectionId}
+>
   <div class="features-inner">
     <div class="features-component">
       <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
@@ -37,7 +48,11 @@ const alignModifier = alignClass(align)
                 </div>
                 <div class="features-card-content">
                   <h3 class="font-brand font-bold text-[24px] leading-[1]">{step.title}</h3>
-                  <RichText class="text-[16px] text-text-secondary leading-[1.7] mt-2" html={step.description} />
+                  <RichText
+                    class="text-[16px] text-text-secondary leading-[1.7] mt-2"
+                    html={step.description}
+                    {locale}
+                  />
                 </div>
               </div>
             )
@@ -46,4 +61,8 @@ const alignModifier = alignClass(align)
       </div>
     </div>
   </div>
+  {
+    /* The observer, once per page and only for a section that asked to fade in (#1985). See core/SectionReveal.astro. */
+  }
+  {revealsOnScroll(reveal) && <SectionReveal />}
 </section>

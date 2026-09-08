@@ -66,9 +66,9 @@ describe('pathForLocale - no translations[] entry', () => {
   })
 })
 
-// buildPathIndex is what lets href() (lib/href.ts) turn an editor's hand-typed, default-locale
-// href into the CURRENT locale's own address for that page — see its own doc comment for why
-// that's the address an editor always types, regardless of which locale's copy they're editing.
+// buildPathIndex is what lets href() (lib/href.ts) turn an editor's hand-typed, default-locale href
+// into the CURRENT locale's own address for that page — see that module for why the default
+// locale's is the only address an editor ever types, whatever locale they are editing.
 describe('buildPathIndex', () => {
   test('keys by the default-locale path, values are every locale that page has an address for', () => {
     const contact = page({
@@ -79,33 +79,62 @@ describe('buildPathIndex', () => {
         { locale: 'pl', slug: 'kontakt', path: '/pl/kontakt/' },
       ],
     })
-    const index = buildPathIndex([contact], 'en')
-    expect(index['/contact/']).toEqual({ en: '/contact/', pl: '/pl/kontakt/' })
+    expect(buildPathIndex([contact], 'en')['/contact/']).toEqual({ en: '/contact/', pl: '/pl/kontakt/' })
   })
 
-  test('normalizes the default-locale key to a trailing slash even if the source lacked one', () => {
-    // A section_teaser item's `path` arrives without one (see href.ts); the index key must
-    // still match what href() normalizes an editor's literal value to.
+  test('normalizes the default-locale KEY to a trailing slash even if the source lacked one', () => {
+    // The key has to match what href() normalized an editor's literal to, or nothing ever hits.
     const p = page({ translations: [{ locale: 'en', slug: 'about', path: '/about' }] })
-    const index = buildPathIndex([p], 'en')
-    expect(Object.keys(index)).toEqual(['/about/'])
+    expect(Object.keys(buildPathIndex([p], 'en'))).toEqual(['/about/'])
+  })
+
+  test('normalizes each locale VALUE too, so a hit is an address the site actually serves', () => {
+    // Under `trailingSlash: 'always'` a bare path is a 404 — a resolved link must not be worse
+    // shaped than the literal it replaced.
+    const p = page({
+      path: '/about/',
+      translations: [
+        { locale: 'en', slug: 'about', path: '/about' },
+        { locale: 'pl', slug: 'o-nas', path: '/pl/o-nas' },
+      ],
+    })
+    expect(buildPathIndex([p], 'en')['/about/']).toEqual({ en: '/about/', pl: '/pl/o-nas/' })
   })
 
   test('falls back to page/slug for the default-locale path, same rule as pathForLocale', () => {
     const p = page({ path: '/about/', translations: [{ locale: 'pl', slug: 'o-nas', path: '/pl/o-nas/' }] })
-    const index = buildPathIndex([p], 'en')
-    expect(index['/about/']).toEqual({ pl: '/pl/o-nas/' })
+    expect(buildPathIndex([p], 'en')['/about/']).toEqual({ pl: '/pl/o-nas/' })
+  })
+
+  test('honours a CMS-resolved default locale that disagrees with this repo, like pathForLocale', () => {
+    const p = page({
+      path: '/about/',
+      translations: [
+        { locale: 'en', slug: 'about', path: '/en/about/' },
+        { locale: 'pl', slug: 'o-nas', path: '/o-nas/' },
+      ],
+    })
+    // With 'pl' routing at the root, the key is the Polish address — not this repo's 'en' one.
+    expect(buildPathIndex([p], 'pl')['/o-nas/']).toEqual({ en: '/en/about/', pl: '/o-nas/' })
   })
 
   test('skips a page with no resolvable default-locale address', () => {
     const p = page({ path: null, slug: '', translations: [{ locale: 'pl', slug: 'x', path: '/pl/x/' }] })
-    const index = buildPathIndex([p], 'en')
-    expect(index).toEqual({})
+    expect(buildPathIndex([p], 'en')).toEqual({})
   })
 
   test('skips a page with no translations at all rather than indexing an empty locale map', () => {
-    const p = page({ path: '/about/', translations: [] })
-    const index = buildPathIndex([p], 'en')
-    expect(index).toEqual({})
+    expect(buildPathIndex([page({ path: '/about/', translations: [] })], 'en')).toEqual({})
+  })
+
+  test('skips a translations row carrying no path of its own', () => {
+    const p = page({
+      path: '/about/',
+      translations: [
+        { locale: 'pl', slug: 'o-nas', path: null },
+        { locale: 'de', slug: 'ueber-uns', path: '/de/ueber-uns/' },
+      ],
+    } as Partial<PageApiItem>)
+    expect(buildPathIndex([p], 'en')['/about/']).toEqual({ de: '/de/ueber-uns/' })
   })
 })

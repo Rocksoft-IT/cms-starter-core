@@ -15,14 +15,11 @@ interface Props {
   /** Forwarded to the nested blocks — a gallery inside this one must not lose the locale on the
    *  way down (core/BlockRenderer.astro). */
   locale?: string
-  /** Locale context for resolving an internal href, forwarded to HeroCtas and to nested blocks
-   *  the same way `locale` is — from core/BlockRenderer.astro. */
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const { anchor_id,
+const { block, locale } = Astro.props
+const {
+  anchor_id,
   heading_icon,
   eyebrow,
   heading,
@@ -97,7 +94,10 @@ const tracks = [
 
 {
   multiColumn ? (
-    <section id={sectionId} class:list={['section-hero section-band', backgroundClass(background), alignModifier, hasBg && 'has-bg']}>
+    <section
+      id={sectionId}
+      class:list={['section-hero section-band', backgroundClass(background), alignModifier, hasBg && 'has-bg']}
+    >
       <div class="container-hero">
         <div class="hero-2col">
           {tracks.map((track) =>
@@ -105,14 +105,23 @@ const tracks = [
               <div class:list={['hero-2col-own', ...trackAlign]} style={`flex-grow:${track.grow}`}>
                 <HeadingIcon svg={heading_icon} />
                 {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-                <RichText class="heading-h1" html={heading} />
-                {subheading && <RichText class="subhero-text" html={subheading} />}
-              {paragraph && <RichText class="hero-paragraph" html={paragraph} />}
-                <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} {locale} {defaultLocale} {pathIndex} />
+                <RichText class="heading-h1" html={heading} {locale} />
+                {subheading && <RichText class="subhero-text" html={subheading} {locale} />}
+                {paragraph && <RichText class="hero-paragraph" html={paragraph} {locale} />}
+                <HeroCtas
+                  {ctas}
+                  {cta_note}
+                  {align}
+                  {cta_card_image}
+                  {cta_card_title}
+                  {cta_card_subtitle}
+                  {cta_card_href}
+                  {locale}
+                />
               </div>
             ) : (
               <div class="hero-2col-track" style={`flex-grow:${track.grow}`}>
-                <BlockRenderer blocks={track.column.blocks} {locale} {defaultLocale} {pathIndex} />
+                <BlockRenderer blocks={track.column.blocks} {locale} />
               </div>
             ),
           )}
@@ -122,18 +131,30 @@ const tracks = [
       <HeroBackground {background_image} {background_image_meta} {background_image_alt} />
     </section>
   ) : (
-    <section id={sectionId} class:list={['section-hero section-band', backgroundClass(background), alignModifier, hasBg && 'has-bg']}>
+    <section
+      id={sectionId}
+      class:list={['section-hero section-band', backgroundClass(background), alignModifier, hasBg && 'has-bg']}
+    >
       <div class="container-hero">
         <div class="hero-wrapper">
           <div class:list={['hero-col', ...trackAlign]}>
             <div class:list={['hero-text', ...alignClasses(align, 'align-column')]}>
               <HeadingIcon svg={heading_icon} />
               {eyebrow && <p class="section-eyebrow">{eyebrow}</p>}
-              <RichText class="heading-h1" html={heading} />
-              {subheading && <RichText class="subhero-text" html={subheading} />}
-              {paragraph && <RichText class="hero-paragraph" html={paragraph} />}
+              <RichText class="heading-h1" html={heading} {locale} />
+              {subheading && <RichText class="subhero-text" html={subheading} {locale} />}
+              {paragraph && <RichText class="hero-paragraph" html={paragraph} {locale} />}
             </div>
-            <HeroCtas {ctas} {cta_note} {align} {cta_card_image} {cta_card_title} {cta_card_subtitle} {cta_card_href} {locale} {defaultLocale} {pathIndex} />
+            <HeroCtas
+              {ctas}
+              {cta_note}
+              {align}
+              {cta_card_image}
+              {cta_card_title}
+              {cta_card_subtitle}
+              {cta_card_href}
+              {locale}
+            />
           </div>
         </div>
       </div>

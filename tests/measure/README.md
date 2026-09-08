@@ -12,7 +12,8 @@ They answer different halves of the same question, and porting a layout needs bo
 | | asks | answers with |
 | --- | --- | --- |
 | `../vrt` | **which** pages differ, and roughly where | a `% pixels differ` and a diff PNG |
-| this | **by what**, exactly | `600x462` against `800` tall, `gap: 48px` against `12px`, `16/25.6` against `18/29` |
+| this | **by what**, on the selectors a site named | `600x462` against `800` tall, `gap: 48px` against `12px`, `16/25.6` against `18/29` |
+| `../../scripts/parity-audit.mjs` | **by what**, without naming anything first | both sides walked element by element, plus a screenshot of each |
 
 VRT finds the section; this says what to type. Before it existed, the second half was done by
 pasting ad-hoc `getBoundingClientRect` snippets into a devtools console — a different set of
@@ -79,6 +80,40 @@ PR is a legible statement about what the port changed.
 | `MEASURE_WIDTH` / `MEASURE_HEIGHT` | viewport (default 1440x900) |
 | `MEASURE_NAMES` | `post,home` — narrow a run while iterating on one layout |
 | `MEASURE_TOLERANCE` | px difference treated as noise (default `0.5`) |
+| `MEASURE_REPO` | read the target list and the baseline from ANOTHER checkout — see below |
+
+## Measuring a checkout you are not standing in
+
+`MEASURE_REPO` points a run at another repo's list and baseline. The reason is that the tooling and
+the guidance around it — this file, the `measure-workflow` skill, `parity:audit` — live in the
+**starter dev tree**, while a client repo receives its copy once at provisioning and never again
+(dashboard#1694). Aiming the harness at a client checkout is cheaper than shipping the guidance
+seven ways, and it is what lets a port be driven from the tree that has the tools.
+
+```sh
+MEASURE_REPO=../../www/allteck \
+OLD_BASE_URL=https://www.old-allteck.no \
+NEW_BASE_URL=https://allteck.no \
+pnpm test:measure
+```
+
+The build under measurement is whatever `NEW_BASE_URL` answers — a local `pnpm preview` in that
+checkout, or the **deployed** site, which needs no checkout at all beyond the target list.
+
+**The two roots differ on purpose:**
+
+| what | where it goes | why |
+| --- | --- | --- |
+| `tests/measure.targets.json`, `tests/measure.baseline/` (read) | `MEASURE_REPO` | the site owns its list, wherever you happen to be standing |
+| `tests/measure.baseline/<name>.json` (written by `MEASURE_SAVE=1`) | `MEASURE_REPO` | it is committed, and it is the measured site's own data |
+| `test-results/measure/` | the **cwd** | scratch to be looked at once, git-ignored, belongs to whoever ran the comparison |
+
+Unset, everything resolves from the cwd exactly as before. Set to a path that is not a directory,
+the run fails naming the variable — rather than falling through to "no target list at …", which
+reads as a site that never wired the harness up and sends you editing the wrong repo.
+
+`VRT_REPO` does the same for the route list in `../vrt`; that harness has no baseline, so its PNGs
+and reports stay in the cwd.
 
 ## Notes
 
@@ -90,3 +125,15 @@ PR is a legible statement about what the port changed.
 - **Keep the property list in `compare-metrics.spec.js` shared, not per-site.** A run prints only
   what differs, so an irrelevant property costs a line in the JSON and nothing in the report; the
   cost of a per-site list is that two sites disagree about what "measured" means.
+- **This can only check what somebody already named.** Everything outside the target list is
+  invisible to it, and on one port that gap is where a footer's six rows, a quote's portrait and a
+  form's whole inline stylesheet shipped wrong while the run stayed green (dashboard#1966). Walk
+  the section with `pnpm parity:audit` instead of extending the list one selector after each miss.
+
+## See also
+
+- `../../scripts/README.md` — `parity:source` (what the reference authored) and `parity:audit` (a
+  whole section, both sides, with screenshots).
+- `../vrt/README.md` — the visual-regression harness.
+- The `measure-workflow` skill in a repo's `.claude/skills/`, which carries this in the form a
+  porting session reads.

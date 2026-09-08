@@ -5,20 +5,33 @@
 import type { HighlightsBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
 
 interface Props {
-  block: HighlightsBlock
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
   locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
+  block: HighlightsBlock
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
-const { anchor_id, heading_icon, eyebrow, heading, intro, categories = [], links = [], footnote, background } = block.data
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
+const {
+  anchor_id,
+  heading_icon,
+  eyebrow,
+  heading,
+  intro,
+  categories = [],
+  links = [],
+  footnote,
+  background,
+} = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 

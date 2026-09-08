@@ -96,6 +96,8 @@ if (ROUTE_FILTER?.length && !ROUTES.length) {
 // the installed package, so a path relative to this file would write a client's screenshots into
 // `node_modules/@rocksoft/cms-starter-core/` — outside the `test-results/` the repo git-ignores,
 // and gone on the next install.
+// The cwd, not `VRT_REPO`: that variable aims the run's LIST at another checkout, while the PNGs a
+// run produces are scratch for whoever ran it ({@link ../shared/site-root.js}).
 const outDir = path.join(process.cwd(), 'test-results', 'vrt')
 mkdirSync(outDir, { recursive: true })
 

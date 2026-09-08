@@ -19,6 +19,7 @@
 // keys, the convention `conformance.exemptions.json` already uses.
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
+import { siteRoot } from '../shared/site-root.js'
 
 export const ROUTES_FILE = path.join('tests', 'vrt.routes.json')
 
@@ -37,10 +38,10 @@ export const ROUTES_FILE = path.join('tests', 'vrt.routes.json')
  * the comparison never happened. A tool whose entire premise is "nobody was looking" must not have
  * that failure mode.
  *
- * @param {string} [cwd] the consuming repo's root; defaults to Playwright's cwd
+ * @param {string} [cwd] the repo whose list to read; defaults to `VRT_REPO` or Playwright's cwd
  * @returns {{ routes: VrtRoute[], oldDismiss: string | null }}
  */
-export function loadRoutes(cwd = process.cwd()) {
+export function loadRoutes(cwd = siteRoot('VRT_REPO', 'vrt')) {
   const file = path.join(cwd, ROUTES_FILE)
   if (!existsSync(file)) {
     throw new Error(

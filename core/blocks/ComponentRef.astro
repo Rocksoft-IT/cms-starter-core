@@ -19,6 +19,8 @@ interface Props {
   locale?: string
 }
 
+// This block renders CtaBanner and Cards DIRECTLY, not through BlockRenderer, so nothing hands
+// them the locale on its way past — it has to be forwarded by hand for their hrefs to resolve.
 const { locale } = Astro.props
 const { data } = Astro.props.block
 const type = data.component_type
@@ -60,6 +62,6 @@ const cardsData: CardsBlock['data'] | null =
     : null
 ---
 
-{ctaData && <CtaBanner block={{ type: 'cta_banner', data: ctaData }} />}
-{cardsData && <Cards block={{ type: 'cards', data: cardsData }} />}
+{ctaData && <CtaBanner block={{ type: 'cta_banner', data: ctaData }} {locale} />}
+{cardsData && <Cards block={{ type: 'cards', data: cardsData }} {locale} />}
 {type === 'block' && <BlockRenderer blocks={data.blocks ?? []} {locale} />}

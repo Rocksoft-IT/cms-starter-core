@@ -90,4 +90,19 @@ describe('loadRoutes', () => {
   test('throws on an empty list rather than reporting a run with nothing in it', () => {
     expect(() => loadRoutes(repoWith({ routes: [] }))).toThrow(/lists no routes/)
   })
+
+  test('reads the checkout named by VRT_REPO when called with no argument', () => {
+    // The dev-tree case: the harness and the guidance are here, the route list is in the client
+    // repo (dashboard#1694). Covered here as well as in site-root.test.ts because the wiring — a
+    // default parameter — is the part that would silently stop honouring it.
+    const root = repoWith({ routes: [{ name: 'home', path: '/' }] })
+    const saved = process.env.VRT_REPO
+    process.env.VRT_REPO = root
+    try {
+      expect(loadRoutes().routes[0].name).toBe('home')
+    } finally {
+      if (saved === undefined) delete process.env.VRT_REPO
+      else process.env.VRT_REPO = saved
+    }
+  })
 })

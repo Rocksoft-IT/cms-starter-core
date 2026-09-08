@@ -1,5 +1,5 @@
 import type { MenuLink } from './api'
-import { href } from './href'
+import { href, type HrefLocaleContext } from './href'
 
 /**
  * The *shape* rules for a header/footer menu item, in one place.
@@ -52,8 +52,8 @@ export function isDropdown(item: MenuLink): boolean {
  * Only a dropdown has a "group href": a leaf renders from `item.href` directly, so asking this of
  * one is a category error and gets `undefined`.
  */
-export function groupHref(item: MenuLink): string | undefined {
-  return isDropdown(item) ? href(item.href) : undefined
+export function groupHref(item: MenuLink, ctx?: HrefLocaleContext): string | undefined {
+  return isDropdown(item) ? href(item.href, ctx) : undefined
 }
 
 /** External items (`url`) leave the site, so they open in a new tab; internal ones navigate in place. */

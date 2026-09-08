@@ -17,6 +17,8 @@ import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { revealClass, revealsOnScroll } from '../../lib/reveal'
+import SectionReveal from '../SectionReveal.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 
 interface Props {
@@ -26,7 +28,18 @@ interface Props {
 }
 
 const { block, locale } = Astro.props
-const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, layout = 'slider', items = [] } = block.data
+const {
+  anchor_id,
+  heading_icon,
+  eyebrow,
+  heading,
+  intro,
+  align,
+  background,
+  reveal,
+  layout = 'slider',
+  items = [],
+} = block.data
 
 const sectionId = sectionAnchorId(anchor_id)
 
@@ -36,6 +49,9 @@ const bandClass = backgroundClass(background)
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 // See lib/align.ts.
 const alignModifier = alignClass(align)
+// The shared `reveal` select (#1985) — `on` marks the section for the observer in
+// core/SectionReveal.astro, which is the only thing that ever hides it. See lib/reveal.ts.
+const revealModifier = revealClass(reveal)
 
 const hasHeader = Boolean(eyebrow || heading)
 
@@ -74,7 +90,10 @@ function initial(name?: string) {
 
 {
   (hasHeader || items.length > 0) && (
-    <section id={sectionId} class:list={['section-testimonials section-band py-16', bandClass, alignModifier]}>
+    <section
+      id={sectionId}
+      class:list={['section-testimonials section-band section-reveal py-16', bandClass, alignModifier, revealModifier]}
+    >
       <div class="container-global">
         <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} {align} />
 
@@ -104,7 +123,7 @@ function initial(name?: string) {
                           </div>
                         )}
                         <blockquote class="m-0 p-0 border-0 flex-1 text-left">
-                          <RichText class="section-intro" html={item.quote} />
+                          <RichText class="section-intro" html={item.quote} {locale} />
                         </blockquote>
                         <figcaption class="flex items-center gap-3 text-left">
                           {item.photo ? (
@@ -187,6 +206,8 @@ function initial(name?: string) {
           </div>
         )}
       </div>
+      {/* The observer, once per page and only for a section that asked to fade in (#1985). See core/SectionReveal.astro. */}
+      {revealsOnScroll(reveal) && <SectionReveal />}
     </section>
   )
 }

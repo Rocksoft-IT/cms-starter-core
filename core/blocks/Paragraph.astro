@@ -4,10 +4,13 @@ import { variantClasses } from '../../lib/variant'
 import RichText from '../RichText.astro'
 
 interface Props {
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Forwarded to
+   *  RichText so the links inside the prose resolve to this locale (core/pathIndex.ts). */
+  locale?: string
   block: ParagraphBlock
 }
 
-const { block } = Astro.props
+const { block, locale } = Astro.props
 ---
 
 <div class="section-content">
@@ -27,6 +30,7 @@ const { block } = Astro.props
   }
   <div class="content-inner">
     <RichText
+      {locale}
       class={['rich-body', ...variantClasses(block.data.variant, 'paragraph-variant')].join(' ')}
       html={block.data.body}
     />

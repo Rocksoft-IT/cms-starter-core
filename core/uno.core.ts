@@ -224,6 +224,44 @@ export const coreShortcuts: Record<string, string> = {
   'align-column': '[&.is-align-left]:items-start [&.is-align-center]:items-center',
   'align-row': '[&.is-align-left]:justify-start [&.is-align-center]:justify-center',
 
+  // ── Section reveal (the shared `reveal` select) ─────────────────────────────
+  // The `is-reveal` / `is-reveal-off` modifiers from lib/reveal.ts (`default` emits nothing).
+  // EIGHT blocks declared the field and none of them read it — an editor picked "Fade in on
+  // scroll", the panel saved it and the page was unchanged (#1985), the third instance of the
+  // silent no-op `background` was until #1498 and `align` until #1643.
+  //
+  // SELF-TARGETING like the align keys, and carried as the literal key `section-reveal` by each
+  // block's <section> for the same extraction reason spelled out above: UnoCSS does not scan
+  // `lib/*.ts`, so what has to appear in a `.astro` class attribute is this KEY. The `is-reveal*`
+  // half never needs extracting — these definitions bake it into the generated selector.
+  //
+  // `is-reveal` on its own paints NOTHING. It is a marker the observer in core/SectionReveal.astro
+  // selects on, and the hidden state arrives only as `is-reveal-armed`, which that script is the
+  // sole writer of. A section whose JS never ran therefore looks exactly like one that was never
+  // revealing, instead of being invisible forever.
+  //
+  // Only `is-revealed` carries a transition. CSS takes the transition from the AFTER-change style,
+  // so removing `is-reveal-armed` and adding `is-revealed` together animates opacity and transform
+  // in — while ARMING, which adds a class with no transition on it, is instant and cannot be seen
+  // as a fade-out. Putting the transition on `is-reveal` instead would do exactly that.
+  //
+  // `is-reveal-off` pins the end state. Core animates nothing by default, so it suppresses nothing
+  // here yet; it is the value's hook, and a site that reveals these bands from its own CSS gets
+  // "not this section" for free by respecting it rather than inventing a second spelling.
+  //
+  // OPACITY ONLY, no `translate-y-0`. Nothing ever translates a section that is not armed, so the
+  // identity transform had nothing to undo — and it is not free: any `transform`, even at identity,
+  // makes the element a stacking context and a containing block for `position: fixed` descendants.
+  // That would leave the value meaning "No animation" as the one that quietly changes the band's
+  // layout semantics while `default` leaves them alone, inside bands whose consumers are client
+  // sites writing their own CSS.
+  'section-reveal':
+    '[&.is-reveal-armed]:opacity-0 [&.is-reveal-armed]:translate-y-6 ' +
+    '[&.is-revealed]:opacity-100 [&.is-revealed]:translate-y-0 ' +
+    '[&.is-revealed]:transition-[opacity,transform] [&.is-revealed]:duration-700 ' +
+    '[&.is-revealed]:ease-out [&.is-revealed]:motion-reduce:transition-none ' +
+    '[&.is-reveal-off]:opacity-100 [&.is-reveal-off]:transition-none',
+
   // ── Hero block ──────────────────────────────────────────────────────────
   // Hero used to nest three arbitrary measures (1080 / 1040 / 990) inside each other. One
   // container is enough: the inner rows sit inside it and centre their own content.

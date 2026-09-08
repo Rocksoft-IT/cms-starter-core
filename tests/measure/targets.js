@@ -15,6 +15,7 @@
 // stripping depends on the consumer's Node minor. Prose lives under `_`-prefixed keys.
 import { readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
+import { siteRoot } from '../shared/site-root.js'
 
 export const TARGETS_FILE = path.join('tests', 'measure.targets.json')
 
@@ -33,10 +34,10 @@ export const TARGETS_FILE = path.join('tests', 'measure.targets.json')
  * falls back to something reports a green-looking run and hides that the comparison never
  * happened. A tool whose entire premise is "nobody was looking" must not have that failure mode.
  *
- * @param {string} [cwd] the consuming repo's root; defaults to Playwright's cwd
+ * @param {string} [cwd] the repo whose list to read; defaults to `MEASURE_REPO` or Playwright's cwd
  * @returns {{ targets: MeasureTarget[], oldDismiss: string | null }}
  */
-export function loadTargets(cwd = process.cwd()) {
+export function loadTargets(cwd = siteRoot('MEASURE_REPO', 'measure')) {
   const file = path.join(cwd, TARGETS_FILE)
   if (!existsSync(file)) {
     throw new Error(

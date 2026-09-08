@@ -1,6 +1,6 @@
 import type { FooterLink, MenuLink } from './api'
 import { groupHref, isDropdown, linkRel, linkTarget } from './menu'
-import { href } from './href'
+import { href, type HrefLocaleContext } from './href'
 
 /**
  * The footer's link columns, from whichever of the two CMS sources has them.
@@ -44,12 +44,12 @@ export interface FooterColumn {
 }
 
 /** A `footer_links` entry has no target of its own — the CMS stores a bare href. */
-function fromFooterLink(link: FooterLink): FooterColumnLink | null {
-  return link.href ? { label: link.label ?? link.href, href: href(link.href) ?? link.href } : null
+function fromFooterLink(link: FooterLink, ctx?: HrefLocaleContext): FooterColumnLink | null {
+  return link.href ? { label: link.label ?? link.href, href: href(link.href, ctx) ?? link.href } : null
 }
 
-function fromMenuLink(item: MenuLink, ownHref?: string): FooterColumnLink | null {
-  const destination = ownHref ?? href(item.href)
+function fromMenuLink(item: MenuLink, ownHref?: string, ctx?: HrefLocaleContext): FooterColumnLink | null {
+  const destination = ownHref ?? href(item.href, ctx)
 
   return destination
     ? { label: item.label ?? destination, href: destination, target: linkTarget(item), rel: linkRel(item) }
@@ -63,23 +63,28 @@ function push(columns: Map<string, FooterColumnLink[]>, heading: string, link: F
   columns.get(heading)!.push(link)
 }
 
-export function footerColumns(footerLinks: FooterLink[] | undefined, menu: MenuLink[] | null): FooterColumn[] {
+/** `ctx` resolves each link to the current locale’s address; omitted, every href is what it was. */
+export function footerColumns(
+  footerLinks: FooterLink[] | undefined,
+  menu: MenuLink[] | null,
+  ctx?: HrefLocaleContext,
+): FooterColumn[] {
   const columns = new Map<string, FooterColumnLink[]>()
 
   if (footerLinks && footerLinks.length > 0) {
-    for (const link of footerLinks) push(columns, link.column ?? '', fromFooterLink(link))
+    for (const link of footerLinks) push(columns, link.column ?? '', fromFooterLink(link, ctx))
   } else {
     for (const item of menu ?? []) {
       if (!isDropdown(item)) {
-        push(columns, '', fromMenuLink(item))
+        push(columns, '', fromMenuLink(item, undefined, ctx))
         continue
       }
 
       // A linked group keeps its own entry, at the top of its column — the overview page an editor
       // deliberately attached to the group, which "children ⇒ no link of its own" used to discard.
       const heading = item.label ?? ''
-      push(columns, heading, fromMenuLink(item, groupHref(item)))
-      for (const child of item.children ?? []) push(columns, heading, fromMenuLink(child))
+      push(columns, heading, fromMenuLink(item, groupHref(item, ctx), ctx))
+      for (const child of item.children ?? []) push(columns, heading, fromMenuLink(child, undefined, ctx))
 
       // A group an editor has not filled yet is still a column, so its heading does not disappear.
       if (!columns.has(heading)) columns.set(heading, [])

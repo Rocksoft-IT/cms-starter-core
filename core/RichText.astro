@@ -1,12 +1,32 @@
 ---
 import { sanitize } from '../lib/sanitize'
+import { localizeHtmlHrefs } from '../lib/html-hrefs'
+import { hrefContextFor } from './pathIndex'
 
 interface Props {
   html: string | null | undefined
   class?: string
+  /**
+   * The locale tree this prose is being rendered into, so the internal links INSIDE it resolve to
+   * that locale's own page addresses (lib/html-hrefs.ts).
+   *
+   * Editor prose is the one place an internal link never reached `href()` at all — it arrives as a
+   * markup string and goes straight to `set:html`, so no renderer ever saw an href to resolve. A
+   * `<a href="/contact">` typed into a rich-text body on a translated page therefore linked to the
+   * default locale's page, silently, exactly like the CTA fields did.
+   *
+   * Optional, and a no-op without it: absent, on the default tree, or in a build with no path
+   * index, the HTML is passed through byte-identical.
+   */
+  locale?: string
 }
 
-const { html, class: className } = Astro.props
+const { html, class: className, locale } = Astro.props
+
+// Localize BEFORE sanitizing, so the sanitizer keeps the final word on what actually ships: an
+// href this rewrote is still subject to every rule in lib/sanitize.ts, rather than being spliced
+// into already-cleaned markup.
+const body = sanitize(localizeHtmlHrefs(html, await hrefContextFor(locale)))
 ---
 
-<div class={className} set:html={sanitize(html)} />
+<div class={className} set:html={body} />

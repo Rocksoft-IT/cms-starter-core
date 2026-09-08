@@ -7,6 +7,7 @@
 // The 2-col split only applies when an image is set; a copy-only panel stays single-column.
 import type { PromoSplitBlock } from '../../types/blocks'
 import { href as hrefOf } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
 import { headingTag } from '../../lib/headingLevel'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
@@ -15,19 +16,33 @@ import { usableCtas } from '../../lib/ctas'
 import HeadingIcon from '../HeadingIcon.astro'
 
 interface Props {
-  block: PromoSplitBlock
-  /** Locale context for resolving an internal href — from core/BlockRenderer.astro. */
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
   locale?: string
-  defaultLocale?: string
-  pathIndex?: Record<string, Record<string, string>>
+  block: PromoSplitBlock
 }
 
-const { block, locale, defaultLocale, pathIndex } = Astro.props
-const hrefCtx = locale && defaultLocale ? { locale, defaultLocale, pathIndex } : undefined
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts). `undefined` on the
+// default tree, which is what makes this a no-op there.
+const hrefCtx = await hrefContextFor(locale)
 // `intro`, not `body`: this block's standfirst was renamed onto the shared `intro` universal part
 // (dashboard#1977). A NAME change only — the field was already a textarea, and `promo-split-body`
 // below keeps its class, because the element is this panel's own and the site layer styles it.
-const { anchor_id, heading_icon, eyebrow, heading, heading_level, intro, src, src_meta, alt = '', reverse, background } = block.data
+const {
+  anchor_id,
+  heading_icon,
+  eyebrow,
+  heading,
+  heading_level,
+  intro,
+  src,
+  src_meta,
+  alt = '',
+  reverse,
+  background,
+} = block.data
 
 // ONE link — the panel holds this block to `max => 1` (dashboard#1959). It used to read a
 // `cta_label` + `cta_href` pair behind its own `cta_label && cta_href` gate; that rule is now

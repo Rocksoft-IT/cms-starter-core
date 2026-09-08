@@ -1,5 +1,5 @@
 import type { PageApiItem } from '../lib/api'
-import { buildPathIndex, localePrefix, pathForLocale, uriFromPath } from './i18n'
+import { localePrefix, pathForLocale, uriFromPath } from './i18n'
 
 export interface RoutingContext {
   pages: PageApiItem[]
@@ -56,10 +56,7 @@ export function isEnabled(collection: string | null | undefined, enabledSections
  * callers that build hrefs via `pathForLocale` already apply that by dropping null hrefs.
  */
 export function isRoutable(page: PageApiItem, registeredTypes: string[], enabledSections: string[] | null): boolean {
-  return (
-    registeredTypes.includes(page.type) &&
-    isEnabled(page.collection as string | null | undefined, enabledSections)
-  )
+  return registeredTypes.includes(page.type) && isEnabled(page.collection as string | null | undefined, enabledSections)
 }
 
 /**
@@ -84,12 +81,6 @@ export async function buildStaticPaths(
 ): Promise<Array<{ params: { uri?: string }; props: Record<string, unknown> }>> {
   const registeredTypes = Object.keys(pageTypes)
   const ctx: RoutingContext = { pages, branding, cta, enabledSections, locale, defaultLocale, registeredTypes }
-
-  // Built once per locale tree from THIS locale's `pages` — but every page in it carries
-  // `translations[]` for every enabled locale, so the index itself is locale-agnostic; a
-  // page missing from one locale's list only means it isn't routable there, not that its
-  // cross-locale addresses are wrong for the entries that ARE present.
-  const pathIndex = buildPathIndex(pages, defaultLocale)
 
   // A page whose type has no registry entry cannot be rendered and is dropped — but never
   // silently: a green build with missing pages surfaces as production 404s (#821). Tally
@@ -122,11 +113,7 @@ export async function buildStaticPaths(
       // remembering to add it to its own config.
       return {
         params: { uri },
-        // `pathIndex` rides along unconditionally, same reasoning as `defaultLocale`: a
-        // component resolving an internal href needs it, and threading it through every
-        // `pageTypes[...].props` shaper individually would mean every site remembering to
-        // add it themselves.
-        props: { pageType: p.type, locale, defaultLocale, path, pathIndex, ...shapeProps(p, ctx) },
+        props: { pageType: p.type, locale, defaultLocale, path, ...shapeProps(p, ctx) },
       }
     })
     .filter((x): x is NonNullable<typeof x> => x !== null)
@@ -152,7 +139,7 @@ export async function buildStaticPaths(
       // uri — a canonical pointing at another locale's page. A rule may still override it.
       return {
         params: { uri: uriFromPath(path) },
-        props: { pageType, locale, defaultLocale, path, pathIndex, ...props },
+        props: { pageType, locale, defaultLocale, path, ...props },
       }
     })
   })
@@ -177,7 +164,10 @@ export async function buildStaticPaths(
  * fails outright over stale content an editor has not fixed yet is worse than one that says which
  * page it dropped.
  */
-function warnOnDuplicateUris(paths: Array<{ params: { uri?: string }; props: Record<string, unknown> }>, locale: string): void {
+function warnOnDuplicateUris(
+  paths: Array<{ params: { uri?: string }; props: Record<string, unknown> }>,
+  locale: string,
+): void {
   const seen = new Map<string, string[]>()
 
   for (const { params, props } of paths) {

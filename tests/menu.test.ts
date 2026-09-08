@@ -94,3 +94,23 @@ describe('dropdownId()', () => {
     expect(dropdownId(link({ label: '' }))).toBe('nav-group-group')
   })
 })
+
+// groupHref wraps href(), so a linked dropdown's own destination (#1072) resolves like any other
+// editor-typed internal href — it is a page an editor picked, on a tree they were not looking at.
+describe('groupHref - locale resolution', () => {
+  const ctx = { locale: 'pl', defaultLocale: 'en', pathIndex: { '/about/': { pl: '/pl/o-nas/' } } }
+
+  it('resolves the group’s own href to the current locale', () => {
+    const item = { label: 'O nas', href: '/about', children: [{ label: 'x', href: '/x', children: [] }] } as never
+    expect(groupHref(item, ctx)).toBe('/pl/o-nas/')
+  })
+
+  it('still answers undefined for a group that links nowhere', () => {
+    expect(groupHref({ label: 'O nas', target: 'group', children: [] } as never, ctx)).toBeUndefined()
+  })
+
+  it('is unchanged with no context', () => {
+    const item = { label: 'O nas', href: '/about', children: [{ label: 'x', href: '/x', children: [] }] } as never
+    expect(groupHref(item)).toBe('/about/')
+  })
+})

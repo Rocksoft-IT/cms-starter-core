@@ -22,6 +22,7 @@ import { mkdirSync, writeFileSync, readFileSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { test, expect } from '@playwright/test'
 import { loadTargets, TARGETS_FILE } from './targets.js'
+import { siteRoot } from '../shared/site-root.js'
 import {
   scrollThroughPage,
   dismissConsent,
@@ -52,7 +53,10 @@ if (!OLD_BASE_URL && !USE_BASELINE) {
   )
 }
 
-const { targets: ALL_TARGETS, oldDismiss: OLD_DISMISS } = loadTargets()
+// The repo this run reads its list and baseline from — the cwd unless `MEASURE_REPO` names another
+// checkout, which is how the starter dev tree measures a client site it does not contain.
+const SITE_ROOT = siteRoot('MEASURE_REPO', 'measure')
+const { targets: ALL_TARGETS, oldDismiss: OLD_DISMISS } = loadTargets(SITE_ROOT)
 
 const VIEWPORT = {
   width: Number(process.env.MEASURE_WIDTH ?? 1440),
@@ -73,11 +77,15 @@ if (FILTER?.length && !TARGETS.length) {
   )
 }
 
-// `process.cwd()` is the consuming repo's root, and it has to be: `import.meta.url` resolves inside
-// the installed package, so a path relative to this file would write a client's artefacts into
+// Resolved from the cwd, never from `import.meta.url`: that one points inside the installed
+// package, so a path relative to this file would write a client's artefacts into
 // `node_modules/@rocksoft/cms-starter-core/` — gone on the next install.
+//
+// The two roots differ on purpose once `MEASURE_REPO` aims a run at another checkout
+// ({@link ../shared/site-root.js}). A report is scratch and belongs to whoever ran the comparison;
+// the baseline is COMMITTED and belongs to the site it describes.
 const OUT_DIR = path.join(process.cwd(), 'test-results', 'measure')
-const BASELINE_DIR = path.join(process.cwd(), 'tests', 'measure.baseline')
+const BASELINE_DIR = path.join(SITE_ROOT, 'tests', 'measure.baseline')
 
 // The properties worth reading, chosen from what actually decided a port rather than from what
 // `getComputedStyle` happens to expose: every one of these was the answer to a real "why does ours
