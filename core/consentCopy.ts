@@ -32,13 +32,28 @@ const FALLBACK_LOCALE = 'en'
 const TABLE: Record<string, Partial<ConsentCopy>> = defaults
 
 /**
- * The built-in copy for `locale`, with any key that locale does not translate filled from English.
+ * The code this project writes a locale's LANGUAGE under: `de-at` → `de`, `nb-no` → `no`, `pl` → `pl`.
  *
- * Locale codes are the CMS's own (config/languages.php) and are bare — `no`, never `nb` or `no-NO` —
- * because that is what Layout.astro threads through to this component. So there is deliberately no
- * regional-tag or language-alias handling here: it would be guessing logic no caller exercises. A
- * site that wants to pass a tag of its own should normalize it at the prop boundary.
+ * Locale codes are the CMS's own (config/languages.php). Most are bare, but a code may carry a
+ * region so that its URL prefix does (rocksoft.pl keeps `/de-at/` and `/nb-no/`); the language is
+ * what this table is written in, so such a code reads its language's row before falling back to
+ * English. Norwegian is the one language whose ISO subtags (`nb`, `nn`) differ from the code the
+ * project carries it under (`no`), hence the map. Mirrors `Locale::baseLanguage()` in the
+ * dashboard, which resolves the same table's panel placeholders — the two must not diverge.
+ */
+export function baseLanguage(locale: string): string {
+  const language = locale.split('-', 1)[0].toLowerCase()
+  return ({ nb: 'no', nn: 'no' } as Record<string, string>)[language] ?? language
+}
+
+/**
+ * The built-in copy for `locale`, with any key that locale does not translate filled from its
+ * language's row and then from English.
  */
 export function consentCopyDefaults(locale: string): ConsentCopy {
-  return { ...(TABLE[FALLBACK_LOCALE] as ConsentCopy), ...(TABLE[locale] ?? {}) }
+  return {
+    ...(TABLE[FALLBACK_LOCALE] as ConsentCopy),
+    ...(TABLE[baseLanguage(locale)] ?? {}),
+    ...(TABLE[locale] ?? {}),
+  }
 }

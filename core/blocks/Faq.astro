@@ -24,7 +24,7 @@ import type { FaqBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
-import { href as hrefOf } from '../../lib/href'
+import { href as hrefOf, isExternalHref, externalLinkAttrs } from '../../lib/href'
 import { hrefContextFor } from '../pathIndex'
 import { usableCtas } from '../../lib/ctas'
 import HeadingIcon from '../HeadingIcon.astro'
@@ -67,7 +67,7 @@ const isList = layout === 'list'
 const cta = usableCtas(ctas)[0]
 // An absolute http(s) target leaves the site, so it opens in a new tab and gets the external glyph.
 // A path stays in place, plain.
-const ctaExternal = /^https?:\/\//.test(cta?.href ?? '')
+const ctaExternal = isExternalHref(cta?.href)
 
 // Exclusive-accordion group name (the list layout has no groups). Derived from the heading
 // (deterministic — no build-to-build churn) so two FAQ blocks with different headings on one page
@@ -96,8 +96,7 @@ const groupName = `faq-${slug || 'section'}`
               <a
                 class="faq-action surface-light"
                 href={hrefOf(cta.href, hrefCtx)}
-                target={ctaExternal ? '_blank' : undefined}
-                rel={ctaExternal ? 'noopener noreferrer' : undefined}
+                {...externalLinkAttrs(cta.href)}
               >
                 {cta.label}
                 {ctaExternal && (

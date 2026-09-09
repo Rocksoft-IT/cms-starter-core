@@ -45,7 +45,9 @@ describe('responsiveImageAttrs()', () => {
   // `h-8 w-auto max-w-[7rem]`, so it is ≤112px at every viewport on every site whatever
   // `container-global` is overridden to. Adding a key here is the deliberate act; a new entry that
   // is not listed falls under the vw rule below and fails until someone justifies it.
-  const CONTAINER_INDEPENDENT = new Set(['planLogo'])
+  // `comparisonLogo` is the same shape one block over: a mark capped at `max-h-10 max-w-[160px]`
+  // in the comparison table's column header, ≤160px whatever the container.
+  const CONTAINER_INDEPENDENT = new Set(['planLogo', 'comparisonLogo'])
 
   it('never bakes a container-dependent pixel width into a sizes value', () => {
     // The slot's pixel width depends on `container-global`, which every client repo overrides — so

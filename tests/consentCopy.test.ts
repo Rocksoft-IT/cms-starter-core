@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import defaults from '../core/consent-copy.json' with { type: 'json' }
-import { consentCopyDefaults } from '../core/consentCopy'
+import { baseLanguage, consentCopyDefaults } from '../core/consentCopy'
 
 const TABLE: Record<string, Record<string, string>> = defaults
 const LOCALES = Object.keys(TABLE)
@@ -39,5 +39,17 @@ describe('consentCopyDefaults', () => {
   // the fallback exists for. It used to be `de`, and this test is how adding German was noticed.
   test('an untranslated locale falls back to English', () => {
     expect(consentCopyDefaults('fr')).toEqual(consentCopyDefaults('en'))
+  })
+
+  // A code that carries a region for its URL prefix (rocksoft.pl's `de-at`, `nb-no`) is still a
+  // language this table translates — the banner must read that row, not English. `nb-no` is the
+  // case that needs the map: Bokmål's subtag is `nb`, the project's code for Norwegian is `no`.
+  test('a region-tagged code reads its language before English', () => {
+    expect(baseLanguage('de-at')).toBe('de')
+    expect(baseLanguage('nb-no')).toBe('no')
+    expect(baseLanguage('pl')).toBe('pl')
+
+    expect(consentCopyDefaults('de-at')).toEqual(consentCopyDefaults('de'))
+    expect(consentCopyDefaults('nb-no')).toEqual(consentCopyDefaults('no'))
   })
 })

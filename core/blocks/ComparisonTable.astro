@@ -1,0 +1,134 @@
+---
+// Core comparison table block: criteria (rows) against offerings (columns), each cell a yes / no /
+// partly with an optional one-line note — the "why us over the alternatives" argument.
+//
+// Cells pair with offerings BY POSITION and the row stops at whichever is shorter: a row that has one
+// cell too few renders an empty cell in the last column, never a cell shifted under the wrong
+// heading. Offerings are therefore rendered exactly as stored — dropping an unlabelled one would
+// shift every cell after it. An offering may head itself with a logo; the label stays as the
+// accessible name either way.
+//
+// Below the tablet breakpoint the matrix folds: each criterion becomes a card with its cells in a
+// row under it, and each cell repeats its offering's label since the header row is hidden. All of
+// it is display utilities — nothing here needs scoped CSS.
+import type { ComparisonTableBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
+import { href as hrefOf, externalLinkAttrs } from '../../lib/href'
+import { hrefContextFor } from '../pathIndex'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
+import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
+import { usableCtas } from '../../lib/ctas'
+import { coreString, type CoreStrings } from '../ui-strings'
+
+interface Props {
+  /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
+   *  editor-typed href needs it; everything else about the context is build-scoped (core/pathIndex.ts). */
+  locale?: string
+  block: ComparisonTableBlock
+}
+
+const { block, locale } = Astro.props
+// Editor-typed hrefs: on a translated tree they carry the DEFAULT locale’s address, because that is
+// the only one the panel shows while editing any locale’s copy (lib/href.ts).
+const hrefCtx = await hrefContextFor(locale)
+const { anchor_id, heading_icon, eyebrow, heading, intro, offerings = [], rows = [], ctas, background } = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
+
+const criteria = rows.filter((row) => row.title || (row.cells ?? []).length > 0)
+
+// Mirrors the `state` select's option keys in the backend registry, pair for pair — the mark is
+// what the eye gets, the CoreStrings key is what a screen reader gets, in the page's language.
+// Hand-kept like lib/tab-label.ts's mirror; an unknown state draws nothing rather than breaking.
+type CellState = NonNullable<NonNullable<ComparisonTableBlock['data']['rows']>[number]['cells']>[number]['state']
+const CELL: Record<NonNullable<CellState>, { mark: string; name: keyof CoreStrings; className: string }> = {
+  // Palette keys only (uno.core.test pins it): a "no" is the quiet cell, not a red one — the brand
+  // decides what its accent means, and a hard-coded red would read as an error on every site.
+  yes: { mark: '✓', name: 'cellYes', className: 'bg-primary-soft text-primary' },
+  no: { mark: '✕', name: 'cellNo', className: 'bg-surface-alt text-muted' },
+  partial: { mark: '◐', name: 'cellPartial', className: 'bg-surface-tint text-text-secondary' },
+}
+
+// The closing link, held to ONE by the panel (`max => 1`) and to a filled row by usableCtas().
+const cta = usableCtas(ctas)[0]
+---
+
+<section id={sectionId} class:list={['section-comparison-table section-band', backgroundClass(background)]}>
+  <div class="container-global py-16">
+    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
+
+    {
+      offerings.length > 0 && criteria.length > 0 && (
+        <table class="block w-full [border-collapse:collapse] text-left md:table">
+          <thead class="hidden md:table-header-group">
+            <tr>
+              <th scope="col" class="w-2/5 border-b-2 border-b-solid border-border pb-4 align-bottom">
+                {heading && <span class="sr-only">{heading}</span>}
+              </th>
+              {offerings.map((offering) => (
+                <th scope="col" class="border-b-2 border-b-solid border-border px-3 pb-4 text-center align-bottom text-[16px] font-bold text-heading">
+                  {offering.logo ? (
+                    <img
+                      src={offering.logo}
+                      alt={offering.label ?? ''}
+                      loading="lazy"
+                      decoding="async"
+                      class="mx-auto block max-h-10 w-auto max-w-[160px]"
+                      {...responsiveImageAttrs(offering.logo_meta, IMAGE_SIZES.comparisonLogo)}
+                    />
+                  ) : (
+                    offering.label
+                  )}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody class="block md:table-row-group">
+            {criteria.map((row) => {
+              const cells = row.cells ?? []
+              return (
+                <tr class="block border-b border-b-solid border-border py-4 md:table-row md:py-0">
+                  <th scope="row" class="block pb-3 pr-4 align-top font-normal md:table-cell md:py-5 md:pb-5">
+                    {row.title && <p class="m-0 text-[17px] font-semibold text-heading">{row.title}</p>}
+                    {row.description && <p class="m-0 mt-1 text-[15px] leading-[1.5] text-text-secondary">{row.description}</p>}
+                  </th>
+                  {offerings.map((offering, index) => {
+                    const cell = cells[index]
+                    const state = cell?.state ? CELL[cell.state] : undefined
+                    return (
+                      <td class="inline-flex min-w-[30%] flex-col items-center gap-1.5 px-2 py-1 text-center align-top md:table-cell md:px-3 md:py-5">
+                        <span class="text-[12px] uppercase tracking-[0.06em] text-muted md:hidden">{offering.label}</span>
+                        {state && (
+                          <span
+                            class:list={['inline-flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-bold', state.className]}
+                            role="img"
+                            aria-label={coreString(locale, state.name)}
+                            data-state={cell?.state}
+                          >
+                            {state.mark}
+                          </span>
+                        )}
+                        {cell?.note && <p class="m-0 mt-1 text-[14px] leading-[1.45] text-text-secondary md:mt-2">{cell.note}</p>}
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      )
+    }
+
+    {
+      cta && (
+        <p class="mt-8 text-center">
+          <a href={hrefOf(cta.href, hrefCtx)} class="link-inline text-[16px] font-semibold" {...externalLinkAttrs(cta.href)}>
+            {cta.label}
+          </a>
+        </p>
+      )
+    }
+  </div>
+</section>

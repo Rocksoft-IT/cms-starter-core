@@ -52,6 +52,13 @@ export interface CoreStrings {
   goToSlide: string
   /** Announced on each slide, so a screen reader knows where it is in the set. */
   slidePosition: string
+  /**
+   * The comparison table's cell states. Drawn as a mark (✓ ✕ ◐) that a screen reader cannot read
+   * as the word it stands for, so the word is announced instead — in the page's language.
+   */
+  cellYes: string
+  cellNo: string
+  cellPartial: string
 }
 
 /**
@@ -79,6 +86,9 @@ const BUILT_IN: Record<string, CoreStrings> = {
     nextSlide: 'Next slide',
     goToSlide: 'Go to slide {n}',
     slidePosition: 'Slide {n} of {total}',
+    cellYes: 'Yes',
+    cellNo: 'No',
+    cellPartial: 'Partly',
   },
   pl: {
     galleryZoomNamed: 'Powiększ: {name}',
@@ -95,6 +105,9 @@ const BUILT_IN: Record<string, CoreStrings> = {
     nextSlide: 'Następny slajd',
     goToSlide: 'Przejdź do slajdu {n}',
     slidePosition: 'Slajd {n} z {total}',
+    cellYes: 'Tak',
+    cellNo: 'Nie',
+    cellPartial: 'Częściowo',
   },
 }
 

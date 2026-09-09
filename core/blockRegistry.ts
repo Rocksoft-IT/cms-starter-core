@@ -43,6 +43,8 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   carousel: () => import('./blocks/Carousel.astro'),
   pricing_teaser: () => import('./blocks/PricingTeaser.astro'),
   highlights: () => import('./blocks/Highlights.astro'),
+  // Comparison table — criteria × offerings with tri-state cells (dashboard: comparison-table-block).
+  comparison_table: () => import('./blocks/ComparisonTable.astro'),
   // Documents — a titled list of downloadable files from the Files library; the API resolves each
   // file id into { id, name, description, url, size }. DocumentFile is hand-authored in blocks.ts.
   documents: () => import('./blocks/Documents.astro'),

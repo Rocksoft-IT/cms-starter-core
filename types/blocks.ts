@@ -821,6 +821,25 @@ export interface HoursBlock {
   }
 }
 
+export interface ComparisonTableBlock {
+  type: 'comparison_table'
+  data: {
+    heading_icon?: string
+    eyebrow?: string
+    heading?: string
+    intro?: string
+    offerings?: Array<{ label?: string; logo?: string | null; logo_meta?: ResponsiveImageMeta }>
+    rows?: Array<{
+      title?: string
+      description?: string
+      cells?: Array<{ state?: 'yes' | 'no' | 'partial'; note?: string }>
+    }>
+    ctas?: Array<{ label?: string; href?: string }>
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    anchor_id?: string
+  }
+}
+
 export interface MapBlock {
   type: 'map'
   data: {
@@ -882,6 +901,7 @@ export type Block =
   | HighlightsBlock
   | QuoteBlock
   | HoursBlock
+  | ComparisonTableBlock
   | MapBlock
   | ContactBlock
   | CustomHtmlBlock

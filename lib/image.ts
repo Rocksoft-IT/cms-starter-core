@@ -78,4 +78,6 @@ export const IMAGE_SIZES = {
    * since the browser then assumes `100vw` and picks the largest rung for a 112px picture.
    */
   planLogo: '112px',
+  /** A brand mark heading a comparison-table column: `max-h-10 max-w-[160px]`, same rule as above. */
+  comparisonLogo: '160px',
 } as const

@@ -2042,6 +2042,132 @@
             }
         }
     },
+    "comparison_table": {
+        "label": "Comparison table",
+        "description": "A matrix of criteria against offerings — each cell a yes, a no or a partly, with an optional note — for a \"why us over the alternatives\" argument the client edits row by row.",
+        "icon": "heroicon-o-scale",
+        "preview": [
+            "heading",
+            "eyebrow",
+            "intro"
+        ],
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "intro"
+            ],
+            "Offerings": [
+                "offerings"
+            ],
+            "Criteria": [
+                "rows"
+            ],
+            "Call to action": [
+                "ctas"
+            ]
+        },
+        "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
+            },
+            "offerings": {
+                "type": "repeater",
+                "add_label": "Add offering",
+                "upload": {
+                    "field": "logo",
+                    "max_size": 10240,
+                    "max_files": 10
+                },
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "logo": {
+                        "type": "image"
+                    }
+                }
+            },
+            "rows": {
+                "type": "repeater",
+                "add_label": "Add criterion",
+                "fields": {
+                    "title": {
+                        "type": "text"
+                    },
+                    "description": {
+                        "type": "textarea"
+                    },
+                    "cells": {
+                        "type": "repeater",
+                        "table": [
+                            "State",
+                            "Note"
+                        ],
+                        "add_label": "Add cell",
+                        "help": "One cell per offering, in the order the offerings are listed above.",
+                        "fields": {
+                            "state": {
+                                "type": "select",
+                                "options": {
+                                    "yes": "Yes",
+                                    "no": "No",
+                                    "partial": "Partly"
+                                }
+                            },
+                            "note": {
+                                "type": "text"
+                            }
+                        }
+                    }
+                }
+            },
+            "ctas": {
+                "type": "repeater",
+                "label": "Call to action",
+                "table": [
+                    "Label",
+                    "Target"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "label": {
+                        "type": "text"
+                    },
+                    "href": {
+                        "type": "href"
+                    }
+                },
+                "max": 1
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
+                    "dark": "Dark"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
     "map": {
         "label": "Map embed",
         "description": "A standalone, composable map embed (GDPR-relevant; a renderer may consent-gate it).",

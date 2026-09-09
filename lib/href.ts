@@ -112,3 +112,18 @@ export function href(value: string | null | undefined, ctx?: HrefLocaleContext):
 
   return `${resolveLocalePath(normalizedPath, ctx) ?? normalizedPath}${rest}`
 }
+
+/** Whether a resolved href leaves the site — an absolute http(s) URL, as opposed to a path or a fragment. */
+export function isExternalHref(value: string | null | undefined): boolean {
+  return /^https?:\/\//.test(value ?? '')
+}
+
+/**
+ * The attribute pair an external link carries, or nothing for an internal one — spread onto the
+ * `<a>` like `responsiveImageAttrs`. `noopener noreferrer` and `_blank` never travel separately:
+ * a new tab without `noopener` hands the opener to a third party (lib/menu.ts states the same
+ * rule for menu links).
+ */
+export function externalLinkAttrs(value: string | null | undefined): { target?: string; rel?: string } {
+  return isExternalHref(value) ? { target: '_blank', rel: 'noopener noreferrer' } : {}
+}

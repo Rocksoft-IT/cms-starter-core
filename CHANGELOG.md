@@ -27,6 +27,10 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.59.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@8d6a0976` on 2026-09-09 — heading written by `publish_core`. Nothing was under **Unreleased** when the tag was cut._
+
 ## v0.58.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@67729ef7` on 2026-09-08 — heading written by `publish_core`._
