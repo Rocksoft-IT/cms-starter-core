@@ -69,6 +69,16 @@ export interface PageApiItem {
   // whether a page is routable in THIS locale: that is `pathForLocale()`, off `translations[]`.
   path?: string | null
   collection?: string | null // parent collection type, e.g. 'blog' for posts; null for others
+  /** A LANDING's own section key — the value its items carry in `collection`. The CMS states it
+   *  because it is not derivable from the landing row: it is the landing's slug for a data-driven
+   *  section, its TYPE for a config landing (blog/portfolio/glossary), and the ITEM TYPE for the
+   *  canonical landing of a landing-less one (`service` at slug `services`). Null on anything that
+   *  is not a landing, and on a landing the CMS could not key — that null is a decision, not an
+   *  absence, which is why the field is ABSENT rather than null on an API that predates it. Read it
+   *  through `sectionKeyOf()` (core/routing), never directly: it is what keeps those two apart.
+   *  Carried by the LIST payload (`GET /api/pages`), as `collection` and `path` are; a single page
+   *  from `GET /api/pages/{path}` has none of the three. */
+  section_key?: string | null
   seo_description?: string | null
   // Derived social-share metadata (og:*, canonical). Present once the backend ships #469;
   // the <Seo> renderer falls back to name/seo_description while it's absent.

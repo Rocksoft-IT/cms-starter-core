@@ -59,6 +59,62 @@ export function isRoutable(page: PageApiItem, registeredTypes: string[], enabled
   return registeredTypes.includes(page.type) && isEnabled(page.collection as string | null | undefined, enabledSections)
 }
 
+// Set the first time the derivation below runs, so a build says once that it is guessing rather
+// than once per landing. Module state: an SSG build is one process, and the tests that assert it
+// take a fresh module rather than depending on running first.
+let warnedOfDerivedSectionKey = false
+
+/**
+ * The key that identifies a LANDING — the string its own items carry in `collection`, and the one
+ * `/api/sections` enables it by. Shared for the same reason `isRoutable` is: a landing listing its
+ * items must ask this rather than guess, or it silently lists none.
+ *
+ * A landing's key is NOT its slug. The CMS resolves it three ways (`Page::sectionKeyOf`): a config
+ * landing (`blog`, `portfolio`, `glossary`) by its own TYPE, the canonical landing of a landing-less
+ * item type by that ITEM TYPE (`service`, at slug `services` — dashboard #522), and every other
+ * data-driven `section` by its default-locale slug. Only the last of the three agrees with the slug,
+ * which is why comparing against it emptied a Blog landing the moment an editor renamed it: a page
+ * that still built and still answered 200, the silent shape of dashboard #2061 one step further in.
+ *
+ * So the value is READ from the payload — `section_key` on a row of `GET /api/pages` is the CMS's
+ * own answer, and the only one that can be right in all three cases. What decides whether to read it
+ * is the FIELD'S PRESENCE, never its value: the CMS emits the key on every row and sets it null both
+ * for anything that is not a landing and for a landing whose key it could not resolve, and that
+ * second null is a decision ("this landing keys nothing"), not an absence.
+ *
+ * The derivation is therefore reached only by an API that predates the field. It recovers a config
+ * landing (its type) and an ordinary data-driven one (its default-locale slug — the same string in
+ * every locale, unlike `page.slug`), and CANNOT recover the canonical `service`-at-`services` case,
+ * where it returns the slug and is simply wrong. It says so out loud rather than leaving that
+ * indistinguishable from a recovered one, because what it produces is an empty listing on a page
+ * that still builds — the failure nobody sees.
+ *
+ * Null means "matches nothing", and a caller must treat it as that rather than as a key of its own:
+ * every non-item page carries `collection: null`, so a nullish key that reached the comparison would
+ * claim the home page and every standalone page as this landing's items.
+ */
+export function sectionKeyOf(landing: PageApiItem, defaultLocale: string): string | null {
+  if ('section_key' in landing) {
+    // Checked, not cast — the payload is untyped JSON. '' never survives the CMS's own normalization
+    // and reads as "no key" here for the same reason it does there: it matches no enabled section.
+    return typeof landing.section_key === 'string' && landing.section_key !== '' ? landing.section_key : null
+  }
+
+  if (landing.type !== 'section') return landing.type
+
+  if (!warnedOfDerivedSectionKey) {
+    warnedOfDerivedSectionKey = true
+    console.warn(
+      '[cms] This API sends no `section_key`, so the key of a data-driven landing is being derived from ' +
+        'its default-locale slug. That is right for an ordinary section and WRONG for the canonical ' +
+        'landing of a landing-less item type (slug "services", key "service"), which will list none ' +
+        'of its items. Update the CMS, or pin this build to the API that answers it.',
+    )
+  }
+
+  return landing.translations?.find((t) => t.locale === defaultLocale)?.slug || landing.slug || null
+}
+
 /**
  * Every route for ONE locale. The caller loops the CMS's enabled locales and concatenates
  * the results (see src/pages/[...uri].astro); each call receives that locale's own page tree

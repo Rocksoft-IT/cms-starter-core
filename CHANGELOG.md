@@ -27,6 +27,32 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.60.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@8e0f0277` on 2026-09-09 — heading written by `publish_core`._
+
+### `sectionKeyOf()` — a landing's items match its KEY, which is not its slug
+
+A section landing listed its items by comparing each page's `collection` against the landing's own
+default-locale slug. The CMS keys a landing three ways: a config landing (`blog`, `portfolio`,
+`glossary`) by its own TYPE, the canonical landing of a landing-less item type by that ITEM TYPE
+(`service`, at slug `services`), and every other data-driven `section` by its default-locale slug.
+Only the last agrees with the slug — so `/services/` listed nothing by construction, and a Blog
+landing renamed to `/insights/` listed nothing from the moment it was renamed: its posts keep
+`collection: "blog"`, the config constant. The page still builds and still answers 200.
+
+`core/routing.ts` now exports `sectionKeyOf(landing, defaultLocale)` beside `isRoutable`, for the
+same reason that one is shared. It reads the CMS's own answer — `section_key`, new on every landing
+row in `GET /api/pages` (dashboard #2061) — and falls back to a type-or-slug derivation for an older
+API, warning once when it does: that fallback cannot recover the `service`-at-`services` case and
+returns a plausible wrong key there.
+
+**A repo that wants the fix must call it**, and its own `src/sections/SectionLanding.astro` is the
+caller — the pin alone changes nothing. Replace the slug derivation with
+`sectionKeyOf(page, defaultLocale)` and treat a `null` key as matching no item: every non-item page
+carries `collection: null`, so a nullish key that reaches the comparison lists the home page and
+every standalone page as this landing's items.
+
 ## v0.59.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@8d6a0976` on 2026-09-09 — heading written by `publish_core`. Nothing was under **Unreleased** when the tag was cut._
