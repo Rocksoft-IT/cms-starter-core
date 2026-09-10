@@ -27,6 +27,24 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.64.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@ad2a6061` on 2026-09-10 — heading written by `publish_core`._
+
+### `.btn-outline` is readable on a dark or brand band
+
+`btn-outline`'s border/text colour is the brand's own button-fill colour by default (Layout.astro's
+`button-primary-outline-text ??= button-primary-border ??= button-primary`), which reads fine on a
+light band but sits a few RGB values from `.section-band.is-dark`'s `#000` fill or an `is-brand`
+band's own solid fill — the same defect class as #1498/#1475/#1693, one component further in.
+`.section-band.is-dark`/`.is-brand` already re-map the text-role tokens for exactly this; they now
+also re-map `--color-button-{primary,secondary}-border` and `-outline-text` to the band's own ink,
+restored on `.surface-light` for a card sitting on top of one. The outline's hover fill (this same
+ink, solid) also no longer labels itself with the brand's `-text` colour — usually white, invisible
+on the now-white pill — reusing the same `--band-text-base` capture `.surface-light` already relies
+on. Found via `parity:audit` against rocksoft-client's hero secondary CTA (dashboard#2164). No
+client edit needed.
+
 ## v0.63.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@29f26500` on 2026-09-10 — heading written by `publish_core`. Nothing was under **Unreleased** when the tag was cut._

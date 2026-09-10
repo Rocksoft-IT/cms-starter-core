@@ -114,6 +114,15 @@
      on :root against :root's palette, so this holds the light-context value — since dashboard#1941
      the DERIVED brand accent — and never the value a band shadows it with. */
   --band-eyebrow-base: var(--color-eyebrow, #3b5aff);
+  /* `btn-outline`'s own ink, captured the same way (dashboard#2164): the outline treatment reads
+     `--color-button-{primary,secondary}-border` / `-outline-text` (the brand's own fill by
+     default — see Layout.astro's `button-${key}-outline-text ??= button-${key}-border ??=
+     button-${key}` chain), so a light card inside an inverted band needs its own copy back for
+     the same reason the four roles above do. */
+  --band-btn-primary-border-base: var(--color-button-primary-border, #101841);
+  --band-btn-primary-outline-text-base: var(--color-button-primary-outline-text, #101841);
+  --band-btn-secondary-border-base: var(--color-button-secondary-border, #101841);
+  --band-btn-secondary-outline-text-base: var(--color-button-secondary-outline-text, #101841);
 }
 
 /*
@@ -226,6 +235,13 @@
     --color-muted: var(--band-dark-text-secondary, #b3b3b3);
     --color-eyebrow: var(--band-dark-eyebrow, var(--band-dark-text, #fff));
     --color-border: var(--band-dark-border, rgb(255 255 255 / 14%));
+    /* `btn-outline` (dashboard#2164): both brand ink tokens default to the brand's own FILL
+       colour (see the capture above), which sits a few RGB values from this band's own `#000` —
+       the same defect class the six roles above exist to fix, one component further in. */
+    --color-button-primary-border: var(--band-dark-text, #fff);
+    --color-button-primary-outline-text: var(--band-dark-text, #fff);
+    --color-button-secondary-border: var(--band-dark-text, #fff);
+    --color-button-secondary-outline-text: var(--band-dark-text, #fff);
   }
 
   /*
@@ -246,6 +262,10 @@
     --color-muted: var(--band-brand-text, #fff);
     --color-eyebrow: var(--band-brand-eyebrow, var(--band-brand-text, #fff));
     --color-border: var(--band-brand-border, rgb(255 255 255 / 24%));
+    --color-button-primary-border: var(--band-brand-text, #fff);
+    --color-button-primary-outline-text: var(--band-brand-text, #fff);
+    --color-button-secondary-border: var(--band-brand-text, #fff);
+    --color-button-secondary-outline-text: var(--band-brand-text, #fff);
   }
 
   /*
@@ -279,6 +299,10 @@
     --color-muted: var(--band-text-secondary-base);
     --color-eyebrow: var(--band-eyebrow-base);
     --color-border: var(--band-border-base);
+    --color-button-primary-border: var(--band-btn-primary-border-base);
+    --color-button-primary-outline-text: var(--band-btn-primary-outline-text-base);
+    --color-button-secondary-border: var(--band-btn-secondary-border-base);
+    --color-button-secondary-outline-text: var(--band-btn-secondary-outline-text-base);
   }
 
   /*
