@@ -1,5 +1,13 @@
-import type { PageApiItem } from '../lib/api'
+import type { ArchiveApiItem, PageApiItem } from '../lib/api'
+import { CATEGORY_ARCHIVE_PAGE_TYPE } from './config'
 import { localePrefix, pathForLocale, uriFromPath } from './i18n'
+
+// Re-exported for convenience: everything that reaches for a page-type registry (this module,
+// cms.config.ts, tests) reads the same one string from wherever is handiest. Declared in
+// ./config, not here, because THIS module imports ./i18n, which imports `~site/cms.config` — a
+// site's cms.config.ts importing this constant as a VALUE from routing.ts would close that loop
+// at its own module-evaluation time. config.ts has no runtime imports of its own, so it can't.
+export { CATEGORY_ARCHIVE_PAGE_TYPE }
 
 export interface RoutingContext {
   pages: PageApiItem[]
@@ -16,13 +24,16 @@ export interface RoutingContext {
    * `isRoutable` and never link to a page `buildStaticPaths` dropped.
    */
   registeredTypes: string[]
+  /** The category archives this route tree is being built for — see `buildStaticPaths`. */
+  archives: ArchiveApiItem[]
 }
 
 export interface PageTypeConfig {
   /** Lazy component loader — same pattern as BlockLoader */
   component: () => Promise<any>
-  /** Shape props for the component. Default: `{ page, branding, cta }`. */
-  props?: (page: PageApiItem, ctx: RoutingContext) => Record<string, unknown>
+  /** Shape props for the component. Default: `{ page, branding, cta }`. `item` is a `PageApiItem`
+   *  for every ordinary page type, or an `ArchiveApiItem` for `CATEGORY_ARCHIVE_PAGE_TYPE`. */
+  props?: (item: PageApiItem | ArchiveApiItem, ctx: RoutingContext) => Record<string, unknown>
 }
 
 export interface ExtraRouteRule {
@@ -134,9 +145,19 @@ export async function buildStaticPaths(
   enabledSections: string[] | null,
   locale: string,
   defaultLocale: string,
+  archives: ArchiveApiItem[] = [],
 ): Promise<Array<{ params: { uri?: string }; props: Record<string, unknown> }>> {
   const registeredTypes = Object.keys(pageTypes)
-  const ctx: RoutingContext = { pages, branding, cta, enabledSections, locale, defaultLocale, registeredTypes }
+  const ctx: RoutingContext = {
+    pages,
+    branding,
+    cta,
+    enabledSections,
+    locale,
+    defaultLocale,
+    registeredTypes,
+    archives,
+  }
 
   // A page whose type has no registry entry cannot be rendered and is dropped — but never
   // silently: a green build with missing pages surfaces as production 404s (#821). Tally
@@ -193,9 +214,44 @@ export async function buildStaticPaths(
     )
   }
 
-  // A project's derived routes (e.g. a blog's category pages) are built from this locale's
-  // pages and are locale-agnostic by construction, so core — not each rule — applies the
-  // prefix. A rule that never heard of locales therefore cannot emit an unprefixed duplicate.
+  // Category archives (#2130) — a derived route with no `pages` row, built the same way a
+  // page's own address already is above, not through the extraRoutes contract below: `archive.path`
+  // is already this locale's full, correct address (the backend builds it with the identical
+  // `Page::assemblePath()` a page's own `translations[].path` uses), so it needs only
+  // `uriFromPath()` and never the prefix-adding gymnastics a hand-synthesized, locale-agnostic
+  // extraRoutes uri would. Gating is already complete server-side (`GET /api/archives` only ever
+  // lists a category whose section opted in and that has a published item), so nothing here
+  // re-checks `enabledSections` — the one thing left to check is whether the site registered a
+  // renderer for it at all, and that gets the same "will 404, here's how to fix it" warning an
+  // unregistered page type gets above.
+  const archiveConfig = pageTypes[CATEGORY_ARCHIVE_PAGE_TYPE]
+  if (archives.length > 0 && !archiveConfig) {
+    console.warn(
+      `[cms] Skipped ${archives.length} category archive page(s) (locale "${locale}") — their URLs ` +
+        `will 404. Register "${CATEGORY_ARCHIVE_PAGE_TYPE}" in cms.config.ts \`pageTypes\`.`,
+    )
+  }
+  const archivePaths = !archiveConfig
+    ? []
+    : archives.map((archive) => {
+        const shapeProps =
+          archiveConfig.props ?? ((item, c) => ({ archive: item, branding: c.branding, cta: c.cta, locale: c.locale }))
+        return {
+          params: { uri: uriFromPath(archive.path) },
+          props: {
+            pageType: CATEGORY_ARCHIVE_PAGE_TYPE,
+            locale,
+            defaultLocale,
+            path: archive.path,
+            ...shapeProps(archive, ctx),
+          },
+        }
+      })
+
+  // A project's derived routes (e.g. a facet the backend cannot see, like a section's `status`
+  // custom field) are built from this locale's pages and are locale-agnostic by construction, so
+  // core — not each rule — applies the prefix. A rule that never heard of locales therefore
+  // cannot emit an unprefixed duplicate.
   const prefix = localePrefix(locale, defaultLocale)
   const extraPaths = extraRoutes.flatMap((rule) => {
     if (rule.enabledBy && !isEnabled(rule.enabledBy, enabledSections)) return []
@@ -211,7 +267,7 @@ export async function buildStaticPaths(
     })
   })
 
-  const all = [...mainPaths, ...extraPaths]
+  const all = [...mainPaths, ...extraPaths, ...archivePaths]
   warnOnDuplicateUris(all, locale)
 
   return all

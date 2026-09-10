@@ -139,6 +139,49 @@ describe('getFooter()', () => {
   })
 })
 
+describe('getArchives()', () => {
+  it('fetches once for repeated calls with the same locale', async () => {
+    const { getArchives } = await freshApi()
+    fetchMock.mockResolvedValue(ok([{ category_id: 101, slug: 'investments', collection: 'news' }]))
+
+    const [first, second, third] = await Promise.all([getArchives('en'), getArchives('en'), getArchives('en')])
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(second).toEqual(first)
+    expect(third).toEqual(first)
+  })
+
+  it('keys the cache by locale, so a second locale is its own request', async () => {
+    const { getArchives } = await freshApi()
+    fetchMock.mockResolvedValue(ok([]))
+
+    await getArchives('en')
+    await getArchives('pl')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('evicts a failed request, so the next caller retries instead of inheriting the failure', async () => {
+    const { getArchives } = await freshApi()
+    fetchMock.mockRejectedValueOnce(new Error('socket hang up'))
+
+    await expect(getArchives('en')).rejects.toThrow('socket hang up')
+
+    fetchMock.mockResolvedValue(ok([{ category_id: 101, slug: 'investments', collection: 'news' }]))
+    expect(await getArchives('en')).toHaveLength(1)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('requests the resolved-locale endpoint', async () => {
+    const { getArchives } = await freshApi()
+    fetchMock.mockResolvedValue(ok([]))
+
+    await getArchives('de')
+
+    expect(fetchMock.mock.calls[0]![0]).toContain('/api/archives?locale=de')
+  })
+})
+
 describe('ApiError', () => {
   it('carries the status and keeps the message format callers already read', async () => {
     const { ApiError } = await freshApi()

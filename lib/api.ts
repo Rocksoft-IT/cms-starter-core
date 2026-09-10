@@ -11,6 +11,7 @@ import {
   getMockLocales,
   getMockSiteSettings,
   getMockCookieConsent,
+  getMockArchives,
 } from '~site/fixtures'
 
 /** A resolved media item for social sharing, as serialized by the CMS's MediaUrls.for(). */
@@ -83,6 +84,12 @@ export interface PageApiItem {
   // Derived social-share metadata (og:*, canonical). Present once the backend ships #469;
   // the <Seo> renderer falls back to name/seo_description while it's absent.
   seo?: PageSeo | null
+  /** The taxonomy category this item carries, resolved by `PagePayload::resolveCategory()` from
+   *  its raw `meta.category_id` — present on any item type that carries one (section items,
+   *  blog posts, portfolio case studies). This is the join key back to the archive that lists
+   *  it: `item.collection === archive.collection && item.category?.id === archive.category_id`
+   *  (see `getArchives`). Absent on an item with no category set. */
+  category?: { id: number; slug: string; name: string | null } | null
   /** A collection LANDING's own intro, above its item list: a plain-text headline and a
    *  sanitized rich-text paragraph. Declared `extra_fields` on all four landing types
    *  (`blog`, `portfolio`, `glossary`, data-driven `section`), so the panel offers them and
@@ -308,6 +315,51 @@ export function getPages(locale = 'en'): Promise<PageApiItem[]> {
     pages.catch(() => pagesByLocale.delete(locale))
   }
   return pages
+}
+
+/**
+ * A category archive — a listing narrowed to one taxonomy category (`/aktualnosci/inwestycje/`),
+ * as `GET /api/archives?locale=` resolves it for the requested locale. It has no `pages` row of
+ * its own (see `ArchivesApiController`'s docblock): no `id`, no `type`, no `blocks`. `path`/`url`
+ * are already this locale's full, correct address — built server-side the same way a page's own
+ * `translations[].path` is, so a route built from it needs no further locale-prefix handling.
+ */
+export interface ArchiveApiItem {
+  category_id: number
+  /** The category's URL segment in THIS locale — the last segment of `path`. */
+  slug: string
+  name: string | null
+  /** Resolved server-side: an authored title wins, else the client's
+   *  `category_archive:{taxonomy}` pattern, else null. */
+  seo_title: string | null
+  seo_description: string | null
+  /** The same value an item carries in its own `collection` field — the join key back to the
+   *  items this archive lists (see `PageApiItem.category`). */
+  collection: string | null
+  section_id: number
+  /** This locale's full address, already slash-wrapped and locale-prefixed. */
+  path: string
+  /** Absolute URL, or null when the client has no frontend URL configured. */
+  url: string | null
+  /** How many published items it lists — never zero, since having one is what creates the archive. */
+  count: number
+  translations: Array<{ locale: string; slug: string; name: string | null; path: string; url?: string | null }>
+}
+
+// Memoize archives per locale, exactly like getPages: every build needs them once per locale,
+// and a rejected fetch is evicted so one transient failure isn't cached for the whole build.
+const archivesByLocale = new Map<string, Promise<ArchiveApiItem[]>>()
+
+export function getArchives(locale = 'en'): Promise<ArchiveApiItem[]> {
+  let archives = archivesByLocale.get(locale)
+  if (!archives) {
+    archives = MOCK_MODE
+      ? getMockArchives(locale)
+      : apiFetch(`/api/archives?locale=${locale}`).then((json) => json.data as ArchiveApiItem[])
+    archivesByLocale.set(locale, archives)
+    archives.catch(() => archivesByLocale.delete(locale))
+  }
+  return archives
 }
 
 /**

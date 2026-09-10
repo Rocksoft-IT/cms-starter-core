@@ -266,7 +266,11 @@ export const coreShortcuts: Record<string, string> = {
   // Hero used to nest three arbitrary measures (1080 / 1040 / 990) inside each other. One
   // container is enough: the inner rows sit inside it and centre their own content.
   'container-hero': 'container-global pt-[100px]',
-  'section-hero': 'relative overflow-hidden bg-transparent',
+  // `isolate` establishes a stacking context: without it, the `-z-1` background layer in
+  // HeroBackground.astro (or a site's own override, e.g. a video background) escapes to the
+  // nearest ancestor stacking context and paints BEFORE this section's own background, so an
+  // opaque `section-band` hero background hides it completely (dashboard#2136).
+  'section-hero': 'relative isolate overflow-hidden bg-transparent',
   'hero-wrapper': 'flex flex-col items-stretch pb-12 pt-[60px]',
   'hero-col': 'flex flex-col items-stretch text-center gap-8',
   'hero-text': 'flex flex-col items-center gap-3',

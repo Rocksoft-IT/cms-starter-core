@@ -9,7 +9,7 @@
 // about and to test. This one does I/O — it is the orchestration layer above it — so keeping the
 // two apart preserves that property rather than giving routing.ts a hidden network dependency.
 
-import { getPages, getBranding, getCtaBanner, getEnabledSections, getLocales } from '../lib/api'
+import { getPages, getBranding, getCtaBanner, getEnabledSections, getLocales, getArchives } from '../lib/api'
 import type { CmsConfig } from './config'
 import { getEffectiveConfig } from './effectiveConfig'
 import { buildStaticPaths } from './routing'
@@ -43,7 +43,13 @@ export async function getSitePaths(config: CmsConfig): Promise<SitePath[]> {
 
   const perLocale = await Promise.all(
     codes.map(async (locale) => {
-      const [pages, cta] = await Promise.all([getPages(locale).catch(() => []), getCtaBanner(locale)])
+      const [pages, cta, archives] = await Promise.all([
+        getPages(locale).catch(() => []),
+        getCtaBanner(locale),
+        // A transient failure here must not blank the whole locale's build — same degrade-not-
+        // fail rule getPages already applies on this same line.
+        getArchives(locale).catch(() => []),
+      ])
       return buildStaticPaths(
         config.pageTypes ?? {},
         config.extraRoutes ?? [],
@@ -53,6 +59,7 @@ export async function getSitePaths(config: CmsConfig): Promise<SitePath[]> {
         enabledSections,
         locale,
         defaultLocale,
+        archives,
       )
     }),
   )

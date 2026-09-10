@@ -12,6 +12,16 @@ import type { Block } from '../types/blocks'
 // value import would be a real cycle; a type import is erased before any module ever runs.
 import type { CoreStrings } from './ui-strings'
 
+/**
+ * The `pageTypes` key a category archive route carries — mirrors the backend's own name for the
+ * same concept (`Rocksoft\Cms\Support\CategoryArchives::TYPE`), so a site registers exactly this
+ * string rather than inventing its own. Declared here, not in ./routing (which imports ./i18n,
+ * which imports `~site/cms.config`) — a site's cms.config.ts importing this constant as a value
+ * from ./routing would close that loop at its own module-evaluation time. This module has no
+ * runtime imports of its own (everything above is `import type`), so it can't.
+ */
+export const CATEGORY_ARCHIVE_PAGE_TYPE = 'category_archive'
+
 export interface BrandTokens {
   /**
    * Brand palette. Keys become UnoCSS theme color names and `--color-<key>` CSS vars.

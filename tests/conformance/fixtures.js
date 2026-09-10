@@ -60,20 +60,35 @@ export function pages() {
 }
 
 /**
+ * The default locale's category archives (#2130), as `GET /api/archives` returns them — or `[]`
+ * when the site has none. Unlike `pages()`, a missing fixture here is NOT an error: a client with
+ * no `meta.section.archives`-enabled section legitimately ships no `archives.<locale>.json` at
+ * all, and that must not fail every conformance run on a site that never opted in.
+ */
+export function archives() {
+  const file = `archives.${defaultLocale()}.json`
+  return existsSync(path.join(fixturesDir(), file)) ? read(file) : []
+}
+
+/**
  * Every address the built site actually answers at, home included.
  *
  * The home singleton carries `path: null` because it is served at the root, so it has to be
  * added by hand — and it must be, since it is the page a visitor is likeliest to land on. Sites
- * whose fixtures omit `path` on a page (an unroutable draft) drop out.
+ * whose fixtures omit `path` on a page (an unroutable draft) drop out. Category archives have no
+ * `pages` row at all, so their paths are unioned in from their own fixture.
  */
 export function routes() {
   const listed = pages()
     .map((p) => p.path)
     .filter((p) => Boolean(p))
+  const archived = archives()
+    .map((a) => a.path)
+    .filter((p) => Boolean(p))
   // De-duplicated: the home singleton normally carries `path: null` and is added here, but nothing
   // enforces that — a site whose home fixture spells out '/' would otherwise get the route twice,
   // and every check would run twice under an identical test title.
-  return [...new Set(['/', ...listed])]
+  return [...new Set(['/', ...listed, ...archived])]
 }
 
 /**

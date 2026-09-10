@@ -18,14 +18,22 @@
 // happened because the check after a change looked at what the change touched instead of at what it
 // broke.
 //
-//   pnpm parity:audit <build-url> <ref-url> <build-selector> [ref-selector] [--shot DIR]
+//   pnpm parity:audit <build-url> <ref-url> <build-selector> [ref-selector] [--shot DIR] [--viewport WxH]
 //
 // `--shot` writes build.png and reference.png of the two sections and is the FIRST thing to look
 // at, before any table. Numbers can all agree while the thing looks wrong: one portrait reported
 // the right class and the right border-radius — a green check — while rendering at a third of its
 // size beside the text instead of above it. One screenshot showed it immediately.
 //
+// `--viewport WxH` overrides the default 1440x900 — REQUIRED for anything breakpoint-shaped
+// (container centering, responsive padding steps, an element that only exists below a breakpoint).
+// A component measured only at the default width can look correct while being wrong at every other
+// one: a navbar's centered column read as edge-to-edge padding at ~1180px, where the missing
+// centering margin is near zero, and was visibly wrong at a real 1440px desktop. Run this once per
+// breakpoint that has its own rule in the source CSS, not once and done.
+//
 //   pnpm parity:audit http://localhost:4321/ https://example.com/ '.site-footer' '.footer'
+//   pnpm parity:audit http://localhost:4321/ https://example.com/ '.navbar' --viewport 991x900
 //
 // Prints BOTH walks in full, side by side, and only then a positional diff — and the order matters.
 // Positional pairing assumes the two trees have the same shape, which is exactly what a CMS block
@@ -43,14 +51,34 @@ import { chromium } from '@playwright/test'
 const argv = process.argv.slice(2)
 const shotAt = argv.indexOf('--shot')
 const shotDir = shotAt > -1 ? argv[shotAt + 1] : null
-const [buildUrl, refUrl, buildSel, refSel] = argv.filter((a, i) => i !== shotAt && i !== shotAt + 1)
+const viewportAt = argv.indexOf('--viewport')
+const viewportArg = viewportAt > -1 ? argv[viewportAt + 1] : null
+// `shotAt`/`viewportAt` are -1 when the flag is absent, and `-1 + 1 === 0` — without the `> -1`
+// guards below, an absent `--shot` silently dropped positional arg 0 (buildUrl) from the filter,
+// shifting every other positional argument left by one. Only ever surfaced by a call that omits
+// `--shot`, which is why it went unnoticed: every prior use of this script in practice passed it.
+const [buildUrl, refUrl, buildSel, refSel] = argv.filter(
+  (a, i) =>
+    !(shotAt > -1 && (i === shotAt || i === shotAt + 1)) &&
+    !(viewportAt > -1 && (i === viewportAt || i === viewportAt + 1)),
+)
 
 if (!buildUrl || !refUrl || !buildSel) {
   console.error(
-    'usage: pnpm parity:audit <build-url> <ref-url> <build-selector> [ref-selector] [--shot DIR]\n' +
+    'usage: pnpm parity:audit <build-url> <ref-url> <build-selector> [ref-selector] [--shot DIR] [--viewport WxH]\n' +
       "  e.g. pnpm parity:audit http://localhost:4321/ https://example.com/ '.site-footer' '.footer'",
   )
   process.exit(1)
+}
+
+let viewport = { width: 1440, height: 900 }
+if (viewportArg) {
+  const m = /^(\d+)x(\d+)$/.exec(viewportArg)
+  if (!m) {
+    console.error(`[parity] --viewport must look like "991x900", got "${viewportArg}"`)
+    process.exit(1)
+  }
+  viewport = { width: Number(m[1]), height: Number(m[2]) }
 }
 
 // The properties worth reading. Deliberately the same shape as tests/measure's list — box first,
@@ -93,7 +121,7 @@ const READ = `(root, props) => {
 }`
 
 async function walk(browser, url, selector, shotFile) {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const page = await browser.newPage({ viewport })
   try {
     await page.goto(url, { waitUntil: 'load', timeout: 60_000 })
     await page.waitForTimeout(2000)
@@ -145,7 +173,8 @@ if (!reference) {
   process.exit(1)
 }
 
-console.log(`\nbuild      ${buildUrl}  ${buildSel}   → ${build.length} elements`)
+console.log(`\nviewport   ${viewport.width}x${viewport.height}`)
+console.log(`build      ${buildUrl}  ${buildSel}   → ${build.length} elements`)
 console.log(`reference  ${refUrl}  ${refSel ?? buildSel}   → ${reference.length} elements`)
 
 const table = (rows, label) => {
