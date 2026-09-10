@@ -27,6 +27,46 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.61.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@e7032835` on 2026-09-10 — heading written by `publish_core`._
+
+### `rendersH1()` sees `heading_level: h1` — a BEHAVIOUR change, so read this before bumping
+
+`blocksCarryHeading()` decides whether `Layout` supplies the page's `<h1 class="sr-only">` or stands
+down because the body already carries one. It recognised two sources: a `hero` heading authored as
+`<h1>` markup, and a `heading` block at level `h1`. It did **not** recognise `heading_level`, which
+`rich_content` and `promo_split` both declare and both render through core's own `headingTag()` —
+and whose `h1` option reads "this section is the page title", i.e. exactly this. So a page whose
+`rich_content` was set to H1 shipped that authored `<h1>` **and** Layout's, with the page name
+outranking the headline for assistive tech and search.
+
+**What a pin bump changes on such a page:** Layout's `sr-only` heading disappears, leaving the
+authored one. That is the fix, and it is the only page shape affected — a site where no block sets
+`heading_level: h1` sees no difference. Worth a look at any page you deliberately gave an H1
+section: its outline entry is now the section's own words rather than the page name.
+
+Keyed off the FIELD, not a list of block types, so the next block to declare `heading_level` is
+covered without another release. Found while shipping the entry below — dashboard#2099 made the
+same predicate decide *where* a collection landing's intro sits, where under-reporting would have
+placed that intro above the real headline.
+
+### `PageApiItem.items_heading` — a landing's item list has a heading of its own
+
+`hero_heading` and `hero_paragraph` were already typed here; `items_heading` — the heading of a
+landing's item LIST, as opposed to the landing's own headline — was not, though `PagePayload` has
+emitted it flat at the top level all along. It is an open meta-bag key (nothing declares it), which
+is precisely why nothing had noticed: no schema names it, and the MCP tool descriptions recommend it
+by name to callers whose sites then dropped it (dashboard#2099).
+
+**This entry is type only** (the release is not — see the behaviour change above). The renderer is each repo's own
+`src/sections/SectionLanding.astro`, and the starter's version of it now reads all three fields.
+That is the [Core capability needs per-client wiring](../../../docs/agents/frontend-and-fleet.md)
+case again: bump the pin first, edit the component second, both on one `starter-update` branch —
+the component reads a field the older pin's type does not carry, so `astro check` fails on a config
+edit that lands first. Per-repo rollout is tracked on dashboard#2097 with the rest of the landing
+work.
+
 ## v0.60.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@8e0f0277` on 2026-09-09 — heading written by `publish_core`._

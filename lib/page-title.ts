@@ -53,24 +53,44 @@ export function nestedBlocks(block: Block): Block[] {
 /**
  * Does this one block put an `<h1>` into the document?
  *
- * Two block types can:
+ * Three ways it can:
  *
  * - `hero` renders its heading as RICH TEXT (`Hero.astro` -> `RichText` -> `div.heading-h1`), so
  *   whatever markup the editor saved reaches the page intact, and `sanitize()` keeps `h1`-`h6`.
  *   Its heading is only an `<h1>` when the editor actually wrote one.
  * - `heading` renders the authored level AS the element (`Heading.astro` -> `<Tag>`), and `h1` is
  *   one of the four levels its schema offers. No markup is involved: the level IS the answer.
+ * - **any block carrying `heading_level`** does the same through core's own `headingTag()` —
+ *   `rich_content` and `promo_split` today, and both offer `h1` ("this section is the page
+ *   title") precisely so a page composed only of blocks has one. Read the FIELD rather than a
+ *   list of types: the field IS the contract `headingTag()` serves, so the next block to declare
+ *   it is covered the day it ships instead of the day someone remembers this function. Those two
+ *   guard on a non-empty heading (`{heading && <Heading …>}`), so an empty one puts no element on
+ *   the page and must not count here — whereas `Heading.astro` renders its `<Tag>`
+ *   unconditionally, so a blank `heading` block at level h1 ships an EMPTY `<h1>` that still
+ *   occupies the slot. The question this answers is "is an `<h1>` element in the document", not
+ *   "does the page have a headline"; the two branches differ because the components do.
  *
  * Every other block renders its heading as text inside an element core chooses (`SectionHeader`
  * emits `h2`), so markup in those fields is escaped rather than honoured, and none of them can
  * ever contribute an `<h1>`.
+ *
+ * Getting this wrong used to cost a duplicate `sr-only` heading. Since dashboard#2099 it also
+ * decides WHERE a collection landing's own intro sits, so an under-report puts that intro above
+ * the real headline as well.
  */
 function rendersH1(block: Block): boolean {
+  const data = block.data as { heading?: unknown; heading_level?: unknown; level?: unknown }
+
   if (block.type === 'hero') {
-    return /<h1[\s/>]/i.test(String((block.data as { heading?: unknown }).heading ?? ''))
+    return /<h1[\s/>]/i.test(String(data.heading ?? ''))
   }
 
-  return block.type === 'heading' && (block.data as { level?: unknown }).level === 'h1'
+  if (data.heading_level === 'h1') {
+    return typeof data.heading === 'string' && data.heading.trim() !== ''
+  }
+
+  return block.type === 'heading' && data.level === 'h1'
 }
 
 /**

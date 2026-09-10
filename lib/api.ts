@@ -83,8 +83,19 @@ export interface PageApiItem {
   // Derived social-share metadata (og:*, canonical). Present once the backend ships #469;
   // the <Seo> renderer falls back to name/seo_description while it's absent.
   seo?: PageSeo | null
+  /** A collection LANDING's own intro, above its item list: a plain-text headline and a
+   *  sanitized rich-text paragraph. Declared `extra_fields` on all four landing types
+   *  (`blog`, `portfolio`, `glossary`, data-driven `section`), so the panel offers them and
+   *  `PagePayload` resolves them per locale like any other translatable field. */
   hero_heading?: string | null
   hero_paragraph?: string | null
+  /** The heading of a landing's item LIST, as opposed to the landing's own headline — "Tidligere
+   *  innlegg" over a blog's posts, "What type of project are you looking for?" over a portfolio's
+   *  case studies. An open meta-bag key (nothing declares it), carried per locale on
+   *  `meta_translated` (dashboard#1061) and emitted flat at the top level by `PagePayload`, which
+   *  is why it is typed here rather than reached through `page.meta`. Absent on a landing that
+   *  never set one — the list then keeps its own default labelling. */
+  items_heading?: string | null
   /** The page's rich-text body (sanitized HTML) — posts and bare standalone pages keep their
    *  copy here, not in blocks; the default renderers show it below the blocks. */
   content?: string | null
