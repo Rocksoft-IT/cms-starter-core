@@ -62,6 +62,18 @@ cd "$FRONTEND_DIR"
 
 RELEASE_PATH="$RELEASES_DIR/$RELEASE_NAME"
 
+# A committed node_modules survives every deploy on this host, and so does Vite's dependency-
+# optimizer cache inside it (node_modules/.vite) — unlike a fresh CI checkout, which never has
+# one. scripts/load-cms-config.mjs (used by verify-block-coverage.mjs, first thing pnpm build
+# runs) spins up a throwaway Vite server per invocation and closes it immediately; once that
+# cache exists from a PRIOR deploy, the next run can detect it as stale, try to re-optimize, and
+# that re-optimization can crash the whole build near-instantly with no error output ("[vite]
+# scanning dependencies..." then exit 1) — reproduced consistently once the cache was warm
+# (diligently-dashboard#2117). load-cms-config.mjs's own fix (disabling that unused optimizer)
+# should make this moot, but it is unverified on an actual host — Windows never reproduces the
+# race — so this stays as a cheap, unconditional belt-and-suspenders.
+rm -rf node_modules/.vite
+
 begin "pnpm build"
 pnpm build
 finish

@@ -140,13 +140,24 @@ export async function buildStaticPaths(
 
   // A page whose type has no registry entry cannot be rendered and is dropped — but never
   // silently: a green build with missing pages surfaces as production 404s (#821). Tally
-  // only pages that fell to the registry (enabled-section filtering is intentional).
+  // only pages that fell to the registry (enabled-section filtering is intentional) AND that
+  // would actually have gotten a URL in THIS locale had the type been registered — collection-
+  // ref backing data (a pricing_table's `plans`, a `testimonials` block's items) is stored as a
+  // page row with `path: null` in every locale on purpose, resolved inline wherever the block
+  // that references it renders, and never meant to route on its own. Tallying those produced a
+  // confident, wrong "will 404" (nothing was ever going to be there) whose own fix instructions
+  // ("register the type in pageTypes") actively make it worse: every such item shares the same
+  // null path, so registering the type collides them all onto one route (diligently-dashboard#2119).
   const skipped = new Map<string, number>()
 
   const mainPaths = pages
     .filter((p) => {
       if (isRoutable(p, registeredTypes, enabledSections)) return true
-      if (!registeredTypes.includes(p.type) && isEnabled(p.collection as string | null | undefined, enabledSections)) {
+      if (
+        !registeredTypes.includes(p.type) &&
+        isEnabled(p.collection as string | null | undefined, enabledSections) &&
+        pathForLocale(p, locale, defaultLocale) !== null
+      ) {
         skipped.set(p.type, (skipped.get(p.type) ?? 0) + 1)
       }
       return false

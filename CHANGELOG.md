@@ -27,6 +27,43 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.62.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@c6cc987a` on 2026-09-10 — heading written by `publish_core`._
+
+### A collection-ref item's own build census no longer warns about a URL it never had
+
+`pricing_table.plans` and a `testimonials` block's items are collection-ref: stored as a page row
+with `path: null` in every locale, resolved inline wherever the block referencing them renders,
+never meant to route on their own. `buildStaticPaths()`'s unregistered-page-type census did not
+know that, and warned "Skipped N page(s) of unregistered page type ... their URLs will 404" —
+confidently wrong, since nothing was ever going to be there. Worse, its own fix instruction
+("register the type in cms.config.ts `pageTypes`") is actively dangerous for this class of
+record: every item of a reference type shares the same `path: null`, so registering the type
+routes them all to the same URL. Confirmed on diligently.pl — 50 routes collided on `/`, caught
+only by the build's separate duplicate-path guard (dashboard#2119).
+
+The census now also requires `pathForLocale(...) !== null` before tallying a skip — a page whose
+type is genuinely unregistered but that would have gotten a real address still warns (dashboard#821,
+what this gate exists for); only an item that was never going to route anywhere, register or not,
+is silent. No client edit needed.
+
+### `deploy.sh` clears a stale Vite dependency-optimizer cache before every build
+
+`node_modules` (and its `node_modules/.vite` optimizer cache) survives between deploys on a host
+that reuses it, unlike a fresh CI checkout. `scripts/load-cms-config.mjs`'s throwaway Vite server
+(used by `verify-block-coverage.mjs`, the first thing `pnpm build` runs) closes itself immediately
+after loading `cms.config.ts`; once that cache existed from a prior deploy, the next build's
+re-optimization could race that close and crash `pnpm build` near-instantly with no error output
+at all (`[vite] scanning dependencies...` then exit 1). Reproduced consistently on a production
+host once the cache was warm; never on a fresh checkout (dashboard#2117 — diligently.pl's outage).
+
+`deploy.sh` now runs `rm -rf node_modules/.vite` immediately before `pnpm build`, so a build never
+runs against a stale cache. Belt-and-suspenders alongside `load-cms-config.mjs`'s own fix
+(disabling the unused `client`-environment optimizer entirely) — only reaches a repo already on
+the core-delegated deploy model (dashboard#1195 step 8); an older repo still carrying the full
+inline `deploy.sh` needs "Re-stamp repo" first.
+
 ## v0.61.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@e7032835` on 2026-09-10 — heading written by `publish_core`._

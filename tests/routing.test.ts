@@ -66,3 +66,41 @@ describe('buildStaticPaths() duplicate uri reporting', () => {
     expect(warn.mock.calls[0]![0]).toContain('2 routes resolve to "/kontakt"')
   })
 })
+
+// A pricing_table's `plans` field and a `testimonials` block's `items` are collection-ref: the
+// CMS stores each referenced item as a page row, but with `path: null` in every locale, and
+// resolves it inline wherever the block that references it renders — it is never meant to route
+// on its own. diligently-dashboard#2119: registering these as unregistered-page-type drops
+// warned "will 404" when nothing was ever going to be there, and its own "register the type"
+// instruction actively made things worse (every such item shares the null path, so registering
+// the type collided them all onto one route).
+const referenceItem = (id: number, type: string): PageApiItem =>
+  ({
+    id,
+    type,
+    slug: null,
+    name: `ref-${id}`,
+    path: null,
+    translations: [{ locale: 'en', path: null }],
+  }) as unknown as PageApiItem
+
+describe('buildStaticPaths() unregistered-type reporting', () => {
+  it('warns about an unregistered type that would otherwise have gotten a URL', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const paths = await build([page(1, 'plan', 'starter')])
+
+    expect(paths).toHaveLength(0)
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(warn.mock.calls[0]![0]).toContain('Skipped 1 page(s) of unregistered page type "plan"')
+  })
+
+  it('says nothing about an unregistered type whose items never had a URL', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const paths = await build([referenceItem(1, 'plan'), referenceItem(2, 'testimonial')])
+
+    expect(paths).toHaveLength(0)
+    expect(warn).not.toHaveBeenCalled()
+  })
+})
