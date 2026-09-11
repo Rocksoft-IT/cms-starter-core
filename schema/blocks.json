@@ -1181,6 +1181,18 @@
                     },
                     "highlighted": {
                         "type": "toggle"
+                    },
+                    "cta_label": {
+                        "type": "text"
+                    },
+                    "bullets": {
+                        "type": "repeater",
+                        "simple": true,
+                        "fields": {
+                            "text": {
+                                "type": "text"
+                            }
+                        }
                     }
                 }
             },

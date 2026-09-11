@@ -25,7 +25,17 @@ export const TARGETS_FILE = path.join('tests', 'measure.targets.json')
  * @property {string} path                    the address on the NEW build
  * @property {string} oldPath                 the address on the reference — `path` unless overridden
  * @property {Record<string,string>} selectors label → CSS selector, measured on BOTH sides
+ * @property {string} baselineName            `name` with a trailing `-ref` stripped — see below
  */
+
+// A site whose export shares no class names with its build lists a page TWICE: a build-flavoured
+// target and a reference-flavoured one, named by convention `<x>` and `<x>-ref` (documented in the
+// measure-workflow skill). Recording a baseline naturally happens against the `-ref` entry — its
+// selectors are the ones that resolve on the reference — but `MEASURE_BASELINE=1` later compares
+// against the BUILD entry, `<x>`. Without this, `MEASURE_SAVE=1` writes `<x>-ref.json` while the
+// read side looks for `<x>.json`, and pairing them needs the file renamed by hand every time
+// (dashboard#1966). Stripping the suffix once, here, means both sides agree on one filename.
+const REF_SUFFIX = '-ref'
 
 /**
  * Reads the site's list, or THROWS with the path it looked at.
@@ -79,7 +89,13 @@ export function loadTargets(cwd = siteRoot('MEASURE_REPO', 'measure')) {
     // `old_path` is what makes this usable for porting a STATIC PROTOTYPE and not only for
     // replacing a live site: a prototype answers at `/kontakt.html` where the built site answers at
     // `/kontakt/`. Defaults to `path`, which is the old-site case where they agree.
-    targets.push({ name: entry.name, path: entry.path, oldPath: entry.old_path ?? entry.path, selectors })
+    targets.push({
+      name: entry.name,
+      path: entry.path,
+      oldPath: entry.old_path ?? entry.path,
+      selectors,
+      baselineName: entry.name.endsWith(REF_SUFFIX) ? entry.name.slice(0, -REF_SUFFIX.length) : entry.name,
+    })
   }
 
   if (!targets.length) {

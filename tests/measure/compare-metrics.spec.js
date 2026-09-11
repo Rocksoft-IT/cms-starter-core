@@ -159,6 +159,13 @@ async function readMetrics(page, selectors, properties) {
           width: round(r.width),
           height: round(r.height),
         }
+        // Side-channel, not a measured property: the CSS box is laid out whether or not the image's
+        // bytes arrive, so a wrong `src` (dashboard#1966: a full CDN URL written where the field
+        // stores a public-disk path) measures identically to a correct one. `naturalWidth` is the
+        // one signal that tells the two apart, and it belongs to neither side's PROPERTIES list —
+        // comparing it between build and reference would flag every image as "differing" whenever
+        // the two sites simply used different photos.
+        if (el.tagName === 'IMG') entry.naturalWidth = el.naturalWidth
         for (const p of properties) entry[p] = cs[p]
         out[label] = entry
       }
@@ -207,6 +214,9 @@ function diffEntry(oldEntry, newEntry) {
   const rows = []
   let boxMatches = true
   for (const key of Object.keys(oldEntry)) {
+    // `naturalWidth` is read for the broken-image check below, never for this table — see the note
+    // where it is captured in `readMetrics`.
+    if (key === 'naturalWidth') continue
     const norm = NORMALISERS[key]
     const a = norm ? norm(oldEntry[key]) : oldEntry[key]
     const b = norm ? norm(newEntry[key]) : newEntry[key]
@@ -321,10 +331,13 @@ for (const target of TARGETS) {
 
       const oldMetrics = oldPage
         ? await readMetrics(oldPage, target.selectors, PROPERTIES)
-        : JSON.parse(readFileSync(path.join(BASELINE_DIR, `${target.name}.json`), 'utf8')).metrics
+        : JSON.parse(readFileSync(path.join(BASELINE_DIR, `${target.baselineName}.json`), 'utf8')).metrics
 
       if (SAVE_BASELINE) {
-        const file = path.join(BASELINE_DIR, `${target.name}.json`)
+        // `baselineName`, not `name`: a paired `<x>-ref` target's selectors resolve on the
+        // reference, but the recording belongs under `<x>` — the name `MEASURE_BASELINE=1` will
+        // later look for when it runs the BUILD-flavoured target. See targets.js.
+        const file = path.join(BASELINE_DIR, `${target.baselineName}.json`)
         writeFileSync(
           file,
           `${JSON.stringify(
@@ -370,6 +383,22 @@ for (const target of TARGETS) {
       expect(
         missing.map(([label, r]) => `${label} (${r.selector}) missing on ${r.missing}`),
         `selectors in ${TARGETS_FILE} must match on both sides`,
+      ).toEqual([])
+
+      // An <img> whose bytes never arrived is the other broken-run-that-reads-as-a-match
+      // (dashboard#1966): the box is laid out from CSS alone, so every geometric property still
+      // agrees while the visitor sees nothing. Unconditional, like the missing-selector check above
+      // — a 0×0 image is not a "difference from the reference" for MEASURE_STRICT to gate, it is the
+      // run failing to measure what it claims to.
+      const brokenImages = Object.entries(target.selectors).flatMap(([label, selector]) => {
+        const sides = []
+        if (oldMetrics[label]?.naturalWidth === 0) sides.push(`${label} (${selector}) on the reference`)
+        if (newMetrics[label]?.naturalWidth === 0) sides.push(`${label} (${selector}) on the build`)
+        return sides
+      })
+      expect(
+        brokenImages,
+        `these <img> selectors rendered a box but no image loaded (naturalWidth 0)`,
       ).toEqual([])
 
       if (STRICT) {

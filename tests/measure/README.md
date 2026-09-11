@@ -70,6 +70,12 @@ MEASURE_BASELINE=1 pnpm test:measure                                    # offlin
 The baseline is committed (it is small JSON), which also makes it reviewable: a diff against it in a
 PR is a legible statement about what the port changed.
 
+A site whose export shares no class names with its build lists a page **twice** — a build-flavoured
+target and a reference-flavoured one, named by convention `post` and `post-ref`. Recording naturally
+happens against `post-ref` (its selectors are the ones that resolve on the reference), and the file
+lands under `post.json` regardless — the name `MEASURE_BASELINE=1` will look for once it runs the
+build-flavoured target — rather than needing a rename by hand (dashboard#1966).
+
 | env | effect |
 | --- | --- |
 | `OLD_BASE_URL` | the reference origin — **required** unless `MEASURE_BASELINE=1` |
@@ -122,6 +128,9 @@ and reports stay in the cwd.
   image measures `height: 0` and sends you hunting a CSS bug that is not there.
 - **A selector matching nothing FAILS the run** rather than reporting "no differences". The two are
   indistinguishable in a report, and the second is the more comforting of the two lies.
+- **An `<img>` with `naturalWidth: 0` FAILS the run**, for the same reason: its box is laid out by
+  CSS whether or not the bytes arrive, so a wrong `src` (a full CDN URL where the field stores a
+  public-disk path, say) measures perfectly while rendering nothing (dashboard#1966).
 - **Keep the property list in `compare-metrics.spec.js` shared, not per-site.** A run prints only
   what differs, so an irrelevant property costs a line in the JSON and nothing in the report; the
   cost of a per-site list is that two sites disagree about what "measured" means.

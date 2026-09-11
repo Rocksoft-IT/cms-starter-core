@@ -59,6 +59,8 @@ export interface CoreStrings {
   cellYes: string
   cellNo: string
   cellPartial: string
+  /** The `cards` block's `bento` layout CTA button, when an item sets no `cta_label` of its own. */
+  cardCta: string
 }
 
 /**
@@ -89,6 +91,7 @@ const BUILT_IN: Record<string, CoreStrings> = {
     cellYes: 'Yes',
     cellNo: 'No',
     cellPartial: 'Partly',
+    cardCta: 'Learn more',
   },
   pl: {
     galleryZoomNamed: 'Powiększ: {name}',
@@ -108,6 +111,7 @@ const BUILT_IN: Record<string, CoreStrings> = {
     cellYes: 'Tak',
     cellNo: 'Nie',
     cellPartial: 'Częściowo',
+    cardCta: 'Dowiedz się więcej',
   },
 }
 

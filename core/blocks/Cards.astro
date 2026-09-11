@@ -46,6 +46,7 @@ import { hrefContextFor } from '../pathIndex'
 import { iconPath } from '../../lib/icons'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
+import { coreString } from '../ui-strings'
 
 interface Props {
   /** The locale tree this block is being built into, from core/BlockRenderer.astro. Resolving an
@@ -131,14 +132,22 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.capt
         <ul class="cards-grid">
           {entries.map((item) => {
             const link = hrefOf(item.href, hrefCtx)
-            const Tag = link ? 'a' : 'div'
+            const isBento = mode === 'bento'
+            // Every other layout's item IS the link (a whole clickable tile). `bento` items
+            // typically pair an image with a few lines of prose and their own "Read more"/"See
+            // prices" button — a whole-card link there leaves the button with nothing distinct
+            // to do and no room to say something else than the tile itself, so bento never wraps
+            // the tile in `<a>`; its own CTA link (below) carries `href` instead (#1692 follow-up).
+            const Tag = link && !isBento ? 'a' : 'div'
             const glyph = item.image ? undefined : iconPath(item.icon)
+            const ctaLabel = item.cta_label || coreString(locale, 'cardCta')
+            const bullets = (item.bullets ?? []).filter((b) => typeof b === 'string' && b.trim() !== '')
 
             return (
               <li>
                 <Tag
-                  class:list={['card', item.highlighted && mode === 'tiles' && 'is-highlighted']}
-                  {...(link ? { href: link } : {})}
+                  class:list={['card', item.highlighted && (mode === 'tiles' || isBento) && 'is-highlighted']}
+                  {...(link && !isBento ? { href: link } : {})}
                 >
                   {item.image ? (
                     <span class="card-media" aria-hidden="true">
@@ -168,9 +177,28 @@ const entries = items.filter((i) => i?.label || i?.value || i?.marker || i?.capt
                       emits `is-cards`/`is-tiles`/`is-steps`, so a site can lay the column out
                       (e.g. put the caption under the portrait) without keying on an unnamed div. */}
                   <div class="card-text">
+                    {/* Every OTHER layout's marker renders in the media slot above, but only when
+                        there is no image/glyph to show instead — bento's items are the one case
+                        that routinely carries both an image AND a marker (a "New packaged
+                        service!" pill beside a photo), so it gets its own copy here rather than
+                        losing the marker to the image. Real text, not decorative: `aria-hidden`
+                        is for the OTHER marker's glyph-like role, not this one's. */}
+                    {isBento && item.marker && (item.image || glyph) && <div class="card-marker">{item.marker}</div>}
                     {item.caption && <div class="card-caption">{item.caption}</div>}
                     {item.label && <div class="card-label">{item.label}</div>}
                     {item.value && <div class="card-value">{item.value}</div>}
+                    {isBento && bullets.length > 0 && (
+                      <ul class="card-bullets">
+                        {bullets.map((bullet) => (
+                          <li>{bullet}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {isBento && link && (
+                      <a href={link} class="card-cta">
+                        {ctaLabel}
+                      </a>
+                    )}
                   </div>
                 </Tag>
               </li>

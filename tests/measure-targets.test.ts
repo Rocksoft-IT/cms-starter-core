@@ -37,7 +37,13 @@ afterEach(() => {
 describe('loadTargets', () => {
   test('reads the site list and defaults oldPath to path', () => {
     expect(loadTargets(repoWith(ONE_TARGET)).targets).toEqual([
-      { name: 'post', path: '/blogg/x/', oldPath: '/blogg/x/', selectors: { cover: '.post-cover img' } },
+      {
+        name: 'post',
+        path: '/blogg/x/',
+        oldPath: '/blogg/x/',
+        selectors: { cover: '.post-cover img' },
+        baselineName: 'post',
+      },
     ])
   })
 
@@ -48,6 +54,21 @@ describe('loadTargets', () => {
     })
 
     expect(loadTargets(root).targets[0]).toMatchObject({ path: '/kontakt/', oldPath: '/kontakt.html' })
+  })
+
+  test('strips a trailing "-ref" for baselineName, so a paired target records under the build name', () => {
+    // The documented pairing for a site whose export shares no class names with its build: a
+    // build-flavoured target `post` and a reference-flavoured one `post-ref` (dashboard#1966).
+    const root = repoWith({
+      targets: [
+        { name: 'post', path: '/blogg/x/', selectors: { cover: '.post-cover img' } },
+        { name: 'post-ref', path: '/blogg/x/', old_path: '/blog/x.html', selectors: { cover: '.cover' } },
+      ],
+    })
+
+    const [post, postRef] = loadTargets(root).targets
+    expect(post.baselineName).toBe('post')
+    expect(postRef.baselineName).toBe('post')
   })
 
   test('refuses a target with no selectors, which would measure nothing and still pass', () => {

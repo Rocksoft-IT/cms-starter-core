@@ -27,6 +27,65 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.65.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@d1880417` on 2026-09-11 — heading written by `publish_core`._
+
+### `tests/measure` catches an unloaded `<img>` and no longer needs a baseline renamed by hand
+
+The last two of dashboard#1966's three findings — the whole-section audit shipped separately as
+`parity:audit` in v0.56.0:
+
+- **`naturalWidth > 0` is now asserted on every `<img>` selector**, unconditionally — like a
+  selector matching nothing, it fails the run rather than reading as a match. The box a wrong `src`
+  produces (a full CDN URL where the field stores a public-disk path, say) is laid out by CSS alone
+  and previously measured identically to a correctly-loaded image.
+- **A `<name>-ref` target's `MEASURE_SAVE=1` recording now lands under `<name>.json`**, the file the
+  build-flavoured target reads with `MEASURE_BASELINE=1` — the pairing a site with no shared class
+  names between build and export needs, and previously required renaming the file by hand.
+
+### `cards` block, `bento` layout: a visible CTA button, a marker beside an image, and a `bullets` checklist
+
+Three related gaps, all found porting a real client's Webflow export 1:1 (rocksoft #71/#22): the
+`bento` layout wraps the whole item in `<a>` when it has an `href`, so a reference design with its
+own "Read more"/"See prices" button per card had no equivalent — every item was one big link with
+no visible button at all. `marker` only ever rendered in the media slot, which is skipped whenever
+an item also carries an `image` — so a promo item pairing a photo with a "New packaged service!"
+pill silently dropped the pill. And there was no way to carry 2-4 short proof points under a bento
+item's `value` short of cramming them into one paragraph.
+
+Additive, `bento`-only, and backward compatible — every other layout (`tiles`/`cards`/`steps`/
+`stats`) is unchanged, and a `bento` item that sets none of the new fields renders exactly as
+before:
+
+- `bento` items no longer wrap in `<a>`; the item's own `card-cta` link carries `href` instead,
+  labelled by the new `cta_label` field (falls back to the new `cardCta` core string — "Learn
+  more"/"Dowiedz się więcej" — when unset).
+- `marker` now also renders inside `card-text` for `bento` when the item has an `image` (or an
+  icon), not just in the media-slot fallback every other layout still uses.
+- A new `bullets` field (`config/cms.php` → `cards.items.fields.bullets`, a `simple` repeater —
+  stored as a flat string array, same shape as `highlights`/`key_takeaways`) renders as a
+  `card-bullets` list when non-empty.
+- `is-highlighted` (previously `tiles`-only) now also applies to a highlighted `bento` item.
+
+No look shipped for any of the four new class hooks (`card-cta`, `card-bullets`, the `bento`
+marker's placement, `is-highlighted` on bento) — same "hooks, not looks" rule the rest of this
+block's layouts follow; a site paints them in its own `uno.ts`/stylesheet.
+
+**Also fixes `gen-block-types.mjs` for every existing `simple` repeater, not just this one:** it
+generated a `simple` field's TypeScript type as `Array<{ <subKey>: T }>`, the row shape a repeater
+declares — but `simple: true` (`Repeater::simple()`) stores and serves the row as the ONE
+sub-field's own value, so the real payload is `T[]`, confirmed against a live `key_takeaways` row
+(a flat string array, not `[{"key_takeaways": "…"}]`). Every site whose generated `blocks.ts`
+carries a `simple` repeater field (`highlights`, `key_takeaways`, `challenges`, and now `bullets`)
+had a type describing a payload the API never sent — a regenerate now needed to pick up the fix.
+
+**Same blind spot in `field-coverage.mjs`** (the `cms:blocks:verify` field-coverage gate): it
+recursed into a `simple` repeater's declared `fields` the same way, so it demanded a renderer
+mention `cards.items.bullets.text` — a key that, per the fix above, is never actually present in
+the data a renderer reads. A `simple` repeater's own name is now the leaf the gate checks
+(`cards.items.bullets`), matching what a renderer can actually reference.
+
 ## v0.64.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@ad2a6061` on 2026-09-10 — heading written by `publish_core`._

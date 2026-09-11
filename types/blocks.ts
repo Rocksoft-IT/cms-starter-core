@@ -693,6 +693,8 @@ export interface CardsBlock {
       value?: string
       href?: string
       highlighted?: boolean
+      cta_label?: string
+      bullets?: string[]
     }>
     anchor_id?: string
   }
