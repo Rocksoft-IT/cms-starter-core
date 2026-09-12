@@ -27,6 +27,31 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.66.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@40193eb6` on 2026-09-12 — heading written by `publish_core`._
+
+### `tests/vrt` compares sections, not just the whole page
+
+The whole-page comparison skips pixel-diffing entirely the instant either side's TOTAL height
+differs from the other's — which is the normal state for a page being ported section by section,
+not the exception. A page can have five sections already pixel-perfect and one still the wrong
+height, and the old report said only "dimension mismatch — compare the two PNGs directly" for the
+whole page, hiding the five that already matched.
+
+Every route now also gets a `<route>-sections/` directory: the page's top-level elements (`body >
+*` by default), paired old-vs-new by POSITION, each cropped to its own PNG pair — plus a diff PNG
+when that one section's height happens to match. `<route>-report.txt` gets a matching table. This
+runs regardless of whether the whole-page comparison can, and section pairing survives an
+individual section's height differing (though not a section being inserted or removed — see
+`tests/vrt/README.md` § "Section-by-section breakdown" for the full explanation, the
+`section_selector`/`old_section_selector` override, and why this is a static, at-rest comparison
+only, not a substitute for checking scroll/hover/parallax behaviour by hand).
+
+Found and built while porting rocksoft's home page (rocksoft#71): a session had been hand-rolling
+this exact walk (`document.querySelectorAll('body > *')`, cropped screenshots, one comparison per
+section) every time, because the harness had no answer narrower than "the page differs somewhere".
+
 ## v0.65.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@d1880417` on 2026-09-11 — heading written by `publish_core`._

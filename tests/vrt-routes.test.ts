@@ -91,6 +91,26 @@ describe('loadRoutes', () => {
     expect(() => loadRoutes(repoWith({ routes: [] }))).toThrow(/lists no routes/)
   })
 
+  test('defaults both section selectors to `body > *`', () => {
+    const root = repoWith({ routes: [{ name: 'home', path: '/' }] })
+
+    const { sectionSelector, oldSectionSelector } = loadRoutes(root)
+    expect(sectionSelector).toBe('body > *')
+    expect(oldSectionSelector).toBe('body > *')
+  })
+
+  test('section_selector overrides both sides; old_section_selector overrides only the reference', () => {
+    const root = repoWith({ section_selector: 'main > *', routes: [{ name: 'home', path: '/' }] })
+    expect(loadRoutes(root)).toMatchObject({ sectionSelector: 'main > *', oldSectionSelector: 'main > *' })
+
+    const root2 = repoWith({
+      section_selector: 'main > *',
+      old_section_selector: '.wf-section',
+      routes: [{ name: 'home', path: '/' }],
+    })
+    expect(loadRoutes(root2)).toMatchObject({ sectionSelector: 'main > *', oldSectionSelector: '.wf-section' })
+  })
+
   test('reads the checkout named by VRT_REPO when called with no argument', () => {
     // The dev-tree case: the harness and the guidance are here, the route list is in the client
     // repo (dashboard#1694). Covered here as well as in site-root.test.ts because the wiring — a

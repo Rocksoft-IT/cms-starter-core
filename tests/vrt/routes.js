@@ -39,7 +39,7 @@ export const ROUTES_FILE = path.join('tests', 'vrt.routes.json')
  * that failure mode.
  *
  * @param {string} [cwd] the repo whose list to read; defaults to `VRT_REPO` or Playwright's cwd
- * @returns {{ routes: VrtRoute[], oldDismiss: string | null }}
+ * @returns {{ routes: VrtRoute[], oldDismiss: string | null, sectionSelector: string, oldSectionSelector: string }}
  */
 export function loadRoutes(cwd = siteRoot('VRT_REPO', 'vrt')) {
   const file = path.join(cwd, ROUTES_FILE)
@@ -93,5 +93,14 @@ export function loadRoutes(cwd = siteRoot('VRT_REPO', 'vrt')) {
   // then the run pays nothing for it. The NEW side's banner is core's own and the spec knows it.
   const oldDismiss = (typeof raw.old_dismiss === 'string' ? raw.old_dismiss.trim() : '') || null
 
-  return { routes, oldDismiss }
+  // The top-level elements `section-compare.js` pairs by position. `body > *` is a safe default
+  // for BOTH sides: every core-built page is architecturally `<body><Navbar/><slot/><Footer/>…`
+  // (Layout.astro) with each CMS block rendering its own top-level `<section>`, and a reference
+  // export commonly nests one wrapper per section directly under `body` too — but the reference is
+  // whatever the site being replaced authored, so it is overridable per site, not guaranteed.
+  const sectionSelector = (typeof raw.section_selector === 'string' ? raw.section_selector.trim() : '') || 'body > *'
+  const oldSectionSelector =
+    (typeof raw.old_section_selector === 'string' ? raw.old_section_selector.trim() : '') || sectionSelector
+
+  return { routes, oldDismiss, sectionSelector, oldSectionSelector }
 }

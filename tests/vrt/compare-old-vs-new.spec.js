@@ -21,8 +21,11 @@
 //
 // Usage — start the new build (`pnpm dev` or `pnpm preview`) and the reference, then:
 //   OLD_BASE_URL=http://localhost:8080 pnpm test:vrt
-// Artefacts land in `test-results/vrt/` (git-ignored): a PNG per side, a diff PNG, and a
-// `<route>-report.txt` carrying either a `% pixels differ` number or a dimension mismatch.
+// Artefacts land in `test-results/vrt/` (git-ignored): a full-page PNG per side, a diff PNG when
+// the two are the same size, a `<route>-report.txt`, and a `<route>-sections/` directory — see
+// `section-compare.js` for why the section breakdown exists and runs even when the whole-page
+// comparison cannot (a page ported section by section spends most of its life at a different
+// TOTAL height than its reference, which is exactly what used to make the whole-page diff skip).
 import { test } from '@playwright/test'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
@@ -36,6 +39,7 @@ import {
   NEW_CONSENT_REJECT,
   withTrailingSlash,
 } from '../shared/page-prep.js'
+import { sectionBands, compareSections, formatSectionReport } from './section-compare.js'
 
 // NO DEFAULT, deliberately. diligently.pl's copy defaulted this to its own production host, which
 // is how a shared harness starts lying on the other six sites — a run with a forgotten env var
@@ -52,7 +56,12 @@ if (!OLD_BASE_URL) {
 // Astro's dev/preview default, and site-neutral, so this one may keep a default.
 const NEW_BASE_URL = process.env.NEW_BASE_URL ?? 'http://localhost:4321'
 
-const { routes: ALL_ROUTES, oldDismiss: OLD_DISMISS } = loadRoutes()
+const {
+  routes: ALL_ROUTES,
+  oldDismiss: OLD_DISMISS,
+  sectionSelector: SECTION_SELECTOR,
+  oldSectionSelector: OLD_SECTION_SELECTOR,
+} = loadRoutes()
 
 // Every site built on this core sets `trailingSlash: 'always'`, so both `astro dev` and `astro
 // preview` hard-404 on the slashless form — `/contact` is NOT redirected to `/contact/`. The route
@@ -148,7 +157,11 @@ for (const route of ROUTES) {
 
       await Promise.all([scrollThroughPage(oldPage), scrollThroughPage(newPage)])
 
-      const [oldBuffer, newBuffer] = await Promise.all([
+      // Section bands are read from the live pages before either is screenshotted or closed —
+      // `sectionBands()` needs `getBoundingClientRect()`, which a closed page cannot answer.
+      const [oldBands, newBands, oldBuffer, newBuffer] = await Promise.all([
+        sectionBands(oldPage, OLD_SECTION_SELECTOR),
+        sectionBands(newPage, SECTION_SELECTOR),
         oldPage.screenshot({ fullPage: true }),
         newPage.screenshot({ fullPage: true }),
       ])
@@ -160,19 +173,42 @@ for (const route of ROUTES) {
       const newPng = PNG.sync.read(newBuffer)
       const footer = `reference: ${oldTarget}\nnew: ${newTarget}\nviewport: ${VIEWPORT.width}x${VIEWPORT.height}\n`
 
+      // Section bands pair by position and tolerate each side having its own total height — this
+      // still finds every OTHER section's drift even while one is a known, unfinished work in
+      // progress, which is the state a page spends most of its porting life in. Runs regardless of
+      // whether the whole-page comparison below can (see its own comment): it is the answer to
+      // exactly the case that skips.
+      const sectionResult = compareSections(oldPng, newPng, oldBands, newBands)
+      const sectionsDir = path.join(outDir, `${route.name}${SUFFIX}-sections`)
+      mkdirSync(sectionsDir, { recursive: true })
+      sectionResult.rows.forEach((row) => {
+        if (!row.crop) return
+        const n = String(row.index).padStart(2, '0')
+        writeFileSync(path.join(sectionsDir, `${n}-old.png`), PNG.sync.write(row.crop.old))
+        writeFileSync(path.join(sectionsDir, `${n}-new.png`), PNG.sync.write(row.crop.new))
+        if (row.crop.diff) {
+          writeFileSync(path.join(sectionsDir, `${n}-diff.png`), PNG.sync.write(row.crop.diff))
+        }
+      })
+      const sectionReport = formatSectionReport(sectionResult)
+
       // Different page lengths are themselves a meaningful signal (a missing or extra section) —
-      // report it rather than cropping or padding to force a pixel-level diff that would then be
-      // describing the crop instead of the site.
+      // report it rather than cropping or padding to force a whole-page pixel diff that would then
+      // be describing the crop instead of the site. The section breakdown above still ran, so this
+      // is no longer "nothing to compare" — see `${route.name}${SUFFIX}-sections/`.
       if (oldPng.width !== newPng.width || oldPng.height !== newPng.height) {
         writeFileSync(
           path.join(outDir, `${route.name}${SUFFIX}-report.txt`),
           `${route.name}: dimension mismatch — reference ${oldPng.width}x${oldPng.height}, ` +
             `new ${newPng.width}x${newPng.height}\n` +
-            `Skipped the pixel diff (dimensions must match). Compare the two PNGs directly.\n` +
-            footer,
+            `Whole-page pixel diff skipped (dimensions must match) — see the per-section ` +
+            `breakdown below instead.\n` +
+            footer +
+            sectionReport,
         )
         console.log(
-          `[vrt] ${route.name}: dimension mismatch — ${oldPng.width}x${oldPng.height} vs ${newPng.width}x${newPng.height}`,
+          `[vrt] ${route.name}: dimension mismatch — ${oldPng.width}x${oldPng.height} vs ${newPng.width}x${newPng.height}` +
+            sectionReport,
         )
         return
       }
@@ -185,9 +221,9 @@ for (const route of ROUTES) {
       writeFileSync(path.join(outDir, `${route.name}${SUFFIX}-diff.png`), PNG.sync.write(diffPng))
       writeFileSync(
         path.join(outDir, `${route.name}${SUFFIX}-report.txt`),
-        `${route.name}: ${diffPercent}% of pixels differ (${diffPixels}/${width * height})\n` + footer,
+        `${route.name}: ${diffPercent}% of pixels differ (${diffPixels}/${width * height})\n` + footer + sectionReport,
       )
-      console.log(`[vrt] ${route.name}: ${diffPercent}% pixels differ`)
+      console.log(`[vrt] ${route.name}: ${diffPercent}% pixels differ` + sectionReport)
     } finally {
       // In a `finally` so a bad response or a decode failure does not leak two pages per route into
       // a run that still has to open two more for the next one.

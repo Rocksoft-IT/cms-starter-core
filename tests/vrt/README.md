@@ -1,9 +1,11 @@
 # Visual-regression harness — what core owns and what a site must wire
 
 `compare-old-vs-new.spec.js` screenshots a representative set of routes on a **reference** and on
-**this build**, then pixel-diffs them. Artefacts land in the consuming repo's `test-results/vrt/`
-(git-ignored): a PNG per side, a diff PNG, and a `<route>-report.txt` carrying either a
-`% pixels differ` number or a dimension mismatch.
+**this build**, then pixel-diffs them — both as one whole page AND section by section (see
+"Section-by-section breakdown" below). Artefacts land in the consuming repo's `test-results/vrt/`
+(git-ignored): a full-page PNG per side, a whole-page diff PNG when the two are the same size, a
+`<route>-report.txt`, and a `<route>-sections/` directory with a PNG pair (plus a diff PNG when
+that one section's heights happen to match) per section.
 
 The reference is whatever the build is supposed to look like — the site being replaced, or a
 **static HTML/CSS prototype served locally** while its design is ported into CMS blocks. The
@@ -98,3 +100,41 @@ all: check whether that page has any blocks in the CMS before touching a compone
 For confirming one specific fix, compare `getBoundingClientRect()` / `getComputedStyle()` on the
 element. Pixel-diff percentages are good at _finding_ differences across many routes at once and
 noisy at _confirming_ a single one.
+
+## Section-by-section breakdown
+
+Every route also gets a `<route>-sections/` directory: the page's top-level elements (`body > *`
+by default — one `<section>` per CMS block, plus the header and footer), paired old-vs-new by
+POSITION, each cropped to its own PNG pair (and a diff PNG when that one section's height happens
+to match between the two sides). `<route>-report.txt` gets a matching table.
+
+**This is why it exists, and when to reach for it instead of the whole-page numbers above:** a
+page ported section by section spends most of its life at a different TOTAL height than its
+reference — one section is still mid-fix while the rest already matches. The whole-page comparison
+sees that as a single dimension mismatch and gives up on pixel-diffing entirely ("compare the two
+PNGs directly"), which is exactly the state a page is in for most of a port, not an edge case.
+Section pairing survives an individual section's height differing; the whole page's total does
+not have to. Read `<route>-sections/NN-old.png` / `NN-new.png` (and `NN-diff.png` where present)
+directly — the report's per-section line is the index into which pair to open.
+
+**Both sides' selector are overridable per site** (`section_selector` / `old_section_selector` in
+`tests/vrt.routes.json`, both default to `body > *`) because a Webflow export's own nesting is not
+guaranteed to put one wrapper per visual section directly under `body` — some exports bury a
+section a level deeper, or wrap the whole content column in one extra `div`. If the reference
+side's row count in the report looks wrong (far more or fewer rows than the page visibly has
+sections), read the export's actual markup and point `old_section_selector` at whatever IS the
+right level, rather than trusting `body > *` blindly.
+
+**Pairing is positional, not by tag/class/id**, and only tolerates a HEIGHT difference — inserting
+or removing a section shifts every pairing after it, the same way the whole-page comparison always
+could not tell "everything moved down by one section" from "everything is wrong". A section-count
+mismatch is reported as its own line (`⚠ section count differs`) rather than silently truncated,
+which is the signal to re-check by eye rather than trust the rows past that point.
+
+**Static, at-rest comparison only — not a substitute for checking motion.** A scroll-triggered
+reveal, a hover state, a parallax offset, or a decorative canvas/video-driven effect computes to
+its RESTING value in a screenshot (usually `none`/its initial frame), never to what a visitor
+actually sees while scrolling or pointing at it — matching or not matching at rest says nothing
+about either. Read the export's own interaction data instead (`pnpm parity:source --motion` in the
+`webflow-parity` skill, which decodes Webflow's IX2 action lists directly) and verify anything
+scroll/hover/parallax-driven by hand in a real browser, not from these PNGs.
