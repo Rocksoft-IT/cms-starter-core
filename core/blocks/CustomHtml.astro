@@ -30,3 +30,28 @@ const sectionId = sectionAnchorId(anchor_id)
   }
   {full_width ? <div set:html={localized} /> : <div class="custom-html-inner" set:html={localized} />}
 </section>
+
+{
+  /* A <script> that arrives via `set:html` (innerHTML under the hood) carries the HTML spec's
+     "already started" flag and never executes its own JS — confirmed live against a real embed
+     (a Pipedrive web form): the script's own network request still fires, which is what makes
+     this look like a slow-loading widget rather than a script that silently never ran. Cloning
+     each inert script into a freshly created node is what actually gets the browser to run it —
+     the same technique `core/customCode.ts`'s `CUSTOM_CODE_ACTIVATOR_JS` already uses for
+     site-wide snippets, applied here unconditionally: an editor pasting a `<script>` into this
+     block clearly wants it to run, with no consent gate to wait on (unlike a site-wide snippet,
+     which IS subject to cookie-consent rules — this field has no such category).
+     Astro deduplicates identical inline `<script>` tags across every instance of this component
+     on one page, so this runs exactly once per page regardless of how many `custom_html` blocks
+     it holds, and the query scans all of them in that one pass — scoped to `.section-custom-html`
+     (present on both the `full_width` and default wrapper) so it never touches an unrelated
+     script elsewhere on the page. */
+}
+<script>
+  document.querySelectorAll('.section-custom-html script').forEach((old) => {
+    const fresh = document.createElement('script')
+    for (const { name, value } of old.attributes) fresh.setAttribute(name, value)
+    fresh.text = old.textContent ?? ''
+    old.replaceWith(fresh)
+  })
+</script>

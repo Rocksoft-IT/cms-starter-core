@@ -402,8 +402,14 @@ export const coreShortcuts: Record<string, string> = {
   // and no top one — so without this the label would sit flush against the heading.
   'rich-eyebrow': 'section-eyebrow mb-2',
   'rich-heading': 'text-[40px] font-bold leading-[1.2] mb-6',
+  // `[&_a]:underline` (dashboard#1952): global.css's `a { color: inherit }` (dashboard#1847) left a
+  // link the client authors in here — the one anchor core does not already style — indistinguishable
+  // from the running text around it, failing WCAG 1.4.1 (colour is not even in play; there was none
+  // to begin with). The conservative fix: restore the underline and nothing else. No colour token —
+  // `link-inline`/`quote-source-link`/the footer already spell out a brand colour where one is
+  // wanted, and picking one here is a design call this shortcut has no basis to make on its own.
   'rich-body':
-    'text-[18px] font-normal leading-[1.7] text-text-secondary [&_p]:mb-4 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto',
+    'text-[18px] font-normal leading-[1.7] text-text-secondary [&_p]:mb-4 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_a]:underline',
 
   // ── Paragraph block: the `variant` select ───────────────────────────────────
   // The `is-note` modifier from lib/variant.ts (`default` emits nothing). `paragraph` declared the
@@ -486,7 +492,9 @@ export const coreShortcuts: Record<string, string> = {
   'faq-answer-wrap':
     'pt-1 px-6 pb-[22px] before:content-[""] before:block before:h-px before:mb-4 before:bg-border ' +
     'motion-reduce:animate-none',
-  'faq-answer': 'text-[15.5px] leading-[1.7] max-w-[74ch] text-text-secondary',
+  // `[&_a]:underline` (dashboard#1952 follow-up): `item.answer` is CMS rich text — the same
+  // `RichText`/`set:html` path as `rich-body` above, and the same WCAG 1.4.1 gap without it.
+  'faq-answer': 'text-[15.5px] leading-[1.7] max-w-[74ch] text-text-secondary [&_a]:underline',
   // The `list` layout adds ONE key, worn alongside `faq-item` — it is the same card, minus the
   // disclosure. Deliberately not a second card definition: a site that remaps `faq-item`,
   // `faq-question` or `faq-answer` (most do) must not have to discover a parallel set of keys to
@@ -628,7 +636,10 @@ export const coreShortcuts: Record<string, string> = {
   // instead of a leading rule. Shipped that way on every site rendering a `quote` block until
   // core's conformance floor caught it (diligently-dashboard#1699 follow-up).
   'quote-mark': 'm-0 pl-6 border-0 border-l-4 border-solid border-primary',
-  'quote-text': 'text-[clamp(1.35rem,2.5vw,1.75rem)] font-medium leading-[1.4] [&_p]:mb-3 [&_p:last-child]:mb-0',
+  // `[&_a]:underline` (dashboard#1952 follow-up): the quote itself is CMS rich text, same gap as
+  // `rich-body` — `quote-source-link` below already carries its own underline, this is the body.
+  'quote-text':
+    'text-[clamp(1.35rem,2.5vw,1.75rem)] font-medium leading-[1.4] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:underline',
   'quote-cite': 'flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-6 text-[1rem]',
   'quote-attribution': 'font-bold',
   'quote-source-link': 'text-primary underline underline-offset-2',
@@ -649,7 +660,10 @@ export const coreShortcuts: Record<string, string> = {
   // an alias so the treatment has a single definition.
   'section-eyebrow': 'eyebrow',
   'section-heading': 'font-brand font-bold text-[40px] leading-[1.2]',
-  'section-intro': 'text-[18px] text-text-secondary leading-[1.7]',
+  // `[&_a]:underline` (dashboard#1952 follow-up): shared key, but Testimonials feeds it CMS rich
+  // text (`item.quote` via RichText) — same gap as `rich-body`. A no-op everywhere else, since a
+  // plain `<p>{intro}</p>` never contains an `<a>`.
+  'section-intro': 'text-[18px] text-text-secondary leading-[1.7] [&_a]:underline',
   // The box for the optional illustration under a section heading (core/SectionHeader.astro). Core
   // sizes it and stops: what goes inside is whichever player the SITE mounts on
   // `[data-animation-src]`, so the box has to reserve its space before anything is in it.
@@ -1058,7 +1072,10 @@ export const coreShortcuts: Record<string, string> = {
   'footer-social': 'list-reset flex flex-wrap gap-4 pt-6 border-0 border-t border-solid border-border [&_a]:capitalize',
   // `company_text` is CMS rich text — one or more <p>, which the site's global.css resets to
   // `margin: 0`, so consecutive paragraphs would collide without this.
-  'footer-legal': '[&>p+p]:mt-2',
+  // `[&_a]:underline` (dashboard#1952 follow-up): `footer-anchors` above (via `site-footer`)
+  // already gives a link in here a colour change on hover/focus, but nothing at rest — still a
+  // WCAG 1.4.1 gap, same as `rich-body`.
+  'footer-legal': '[&>p+p]:mt-2 [&_a]:underline',
 }
 
 /**

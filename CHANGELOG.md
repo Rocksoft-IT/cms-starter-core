@@ -27,6 +27,42 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.67.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@97d82644` on 2026-09-12 — heading written by `publish_core`._
+
+### `custom_html`'s own `<script>` tags never ran (rocksoft#25)
+
+`CustomHtml.astro` renders the block's raw HTML through `set:html` — `innerHTML` under the hood —
+which per the HTML spec marks any `<script>` inside it "already started": the element exists, the
+browser still fires the network request for its `src`, but its JS body never executes. Found on a
+Pipedrive web-form embed (a `<div data-pd-webforms>` + a loader `<script src>`) that looked like a
+slow-loading third-party widget — the loader's own request completed fine, but nothing it should
+have injected ever appeared, on every page and every client using this block for anything more
+than static markup.
+
+`core/customCode.ts`'s `CUSTOM_CODE_ACTIVATOR_JS` already solved the identical browser behavior
+for site-wide custom code, by cloning each inert `<script>` into a freshly created node — that is
+what actually gets the browser to run it. `CustomHtml.astro` now does the same, unconditionally
+(this field has no consent category to gate on, unlike site-wide snippets): one inline `<script>`
+emitted alongside the block's own section, scoped to `.section-custom-html script` so it only
+touches this block's own markup. Astro deduplicates identical inline scripts across every instance
+of a component on one page, so a page with several `custom_html` blocks still runs this exactly
+once and handles all of them in that one pass.
+
+### CMS rich-text links are underlined again (dashboard#1952)
+
+A deferred finding from #1847 / PR #1920: that fix's `a { color: inherit }` was the right call for
+the reported bug, but it left CMS rich-text links — rendered through `RichText.astro`'s
+`set:html`, with no component styling of their own — with no affordance at all, colour or
+otherwise. The first pass fixed only `rich-body` (`core/uno.core.ts`); tracing every
+`<RichText class="...">` call site against its backing field's `richtext` type in `config/cms.php`
+turned up the same gap in `faq-answer` (FAQ items), `quote-text` (the `quote` block), `section-intro`
+(testimonials) and `footer-legal` (the footer's company text). `link-inline`, `quote-source-link`
+and (on hover/focus) `footer-anchors` already spell out a brand colour where one is wanted; each of
+these five keys now adds `[&_a]:underline` and nothing else, the conservative fix that needs no
+palette decision.
+
 ## v0.66.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@40193eb6` on 2026-09-12 — heading written by `publish_core`._
