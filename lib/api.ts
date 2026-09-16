@@ -725,9 +725,34 @@ export interface CookieConsentData {
   allow_selection_label?: string
 }
 
-export async function getCookieConsent(locale = 'en'): Promise<CookieConsentData | null> {
+export function getCookieConsent(locale = 'en'): Promise<CookieConsentData | null> {
   if (MOCK_MODE) return getMockCookieConsent(locale)
-  return apiFetch(`/api/components/cookie_consent?locale=${locale}`)
-    .then((json) => json.data as CookieConsentData)
-    .catch(() => null) // 404 (copy not authored) / offline → built-in defaults in the renderer
+
+  let copy = cookieConsentByLocale.get(locale)
+  if (!copy) {
+    copy = fetchCookieConsent(locale)
+    cookieConsentByLocale.set(locale, copy)
+    copy.catch(() => cookieConsentByLocale.delete(locale))
+  }
+  return copy
+}
+
+// Memoized per locale, like getFooter above and for the same reason — the banner is chrome, mounted
+// by the layout on EVERY page, so its copy is fetched once per BUILD rather than once per page
+// (which, with Astro rendering routes one at a time, was most of a large site's build).
+//
+// Same split as fetchFooter: a 404 IS the answer (the copy has not been authored; the renderer
+// falls back to consent-copy.json) and caches; anything else rejects, evicts, and reaches the
+// renderer's own `.catch(() => null)` — so a transient failure costs that one page its authored
+// copy, never every page of the build.
+const cookieConsentByLocale = new Map<string, Promise<CookieConsentData | null>>()
+
+async function fetchCookieConsent(locale: string): Promise<CookieConsentData | null> {
+  try {
+    const json = await apiFetch(`/api/components/cookie_consent?locale=${locale}`)
+    return json.data as CookieConsentData
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) return null
+    throw error
+  }
 }

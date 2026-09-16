@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // `getMenu` and `getFooter` back the two pieces of chrome a layout mounts on EVERY page, so an
 // unmemoized fetch is one request per built page — the cost grows with the site while the answer
 // cannot change within a build. `getPages` and `getBranding` have been memoized for exactly this
-// reason; these two were the ones left out.
+// reason; these two were the ones left out — and `getCookieConsent`, the banner's copy, after them.
 //
 // The half that is easy to get wrong is not the caching, it is the eviction. A footer that
 // answered `null` for both "no footer component" (404) and "the request failed" could not be
@@ -136,6 +136,51 @@ describe('getFooter()', () => {
     await getFooter('en')
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+})
+
+describe('getCookieConsent()', () => {
+  // The banner mounts on every page, so this was one request per built page until it was
+  // memoized like the footer it sits next to.
+  it('fetches once per build, not once per page', async () => {
+    const { getCookieConsent } = await freshApi()
+    fetchMock.mockResolvedValue(ok({ message: 'We use cookies.' }))
+
+    const pages = await Promise.all(Array.from({ length: 12 }, () => getCookieConsent('de')))
+
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(pages.every((p) => p?.message === 'We use cookies.')).toBe(true)
+  })
+
+  it('caches a 404 as null — the copy has not been authored, the renderer falls back', async () => {
+    const { getCookieConsent } = await freshApi()
+    fetchMock.mockResolvedValue(status(404))
+
+    expect(await getCookieConsent('de')).toBeNull()
+    expect(await getCookieConsent('de')).toBeNull()
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('rejects on a server error rather than resolving null, and does not cache it', async () => {
+    const { getCookieConsent } = await freshApi()
+    fetchMock.mockResolvedValueOnce(status(503))
+
+    await expect(getCookieConsent('de')).rejects.toThrow('API 503')
+
+    fetchMock.mockResolvedValue(ok({ message: 'Back' }))
+    expect((await getCookieConsent('de'))?.message).toBe('Back')
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+  })
+
+  it('keys the cache by locale', async () => {
+    const { getCookieConsent } = await freshApi()
+    fetchMock.mockResolvedValue(ok({ message: 'x' }))
+
+    await getCookieConsent('de')
+    await getCookieConsent('en')
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(fetchMock.mock.calls[0]![0]).toContain('/api/components/cookie_consent?locale=de')
   })
 })
 

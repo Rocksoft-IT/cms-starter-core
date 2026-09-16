@@ -27,9 +27,16 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
-## v0.68.0
+### `getCookieConsent()` is memoized per locale — the banner copy no longer costs one request per page
 
-_Cut from `Rocksoft-IT/diligently-dashboard@89146f8e` on 2026-09-16 — heading written by `publish_core`._
+`lib/api.ts`'s `getCookieConsent()` was the one chrome fetcher without a memo: `CookieConsent.astro`
+mounts on every page, so a site with consent enabled paid one `/api/components/cookie_consent`
+request per built page. Measured on rocksoft-pl (750 pages, 3 locales): 750 of the build's 780
+requests, ~55s of a 74s build, all serial because Astro renders routes one at a time. It now
+follows `getFooter()` exactly — one fetch per locale per build; a 404 (copy not authored) is the
+answer and caches, anything else rejects, evicts, and reaches the renderer's own `.catch(() =>
+null)`, so a transient failure costs one page its authored copy instead of pinning it onto all of
+them. No API or rendering change; a pin bump is the whole upgrade.
 
 ### A `social_links` block, and the first network glyphs in core (dashboard: social-links-block)
 
