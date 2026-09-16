@@ -1,0 +1,70 @@
+---
+import type { SocialLinksBlock } from '../../types/blocks'
+import { externalLinkAttrs } from '../../lib/href'
+import { socialNetwork } from '../../lib/social-networks'
+
+/**
+ * Social links - a row of profile anchors, each carrying its network's glyph
+ * (dashboard: context/changes/social-links-block).
+ *
+ * A `<div>` in the content flow like ButtonGroup, not a section: it sits beside a `contact`
+ * block, in a `columns` cell, under a `heading`. The look is the site's: every anchor carries
+ * `data-social="<network>"` so a client stylesheet can replace a glyph with its own artwork,
+ * exactly the hook Footer.astro's socials have always offered, and the root carries the variant
+ * as `data-variant` so the three layouts can be restyled apart.
+ *
+ * Three variants, one markup. The glyph is `aria-hidden` and the NAME is always in the DOM as a
+ * `<span>`, `sr-only` when the variant hides it - not an `aria-label` on the anchor - so a client
+ * override that hides the glyph cannot take the accessible name with it (allteck's footer CSS
+ * comment records why). `label` falls back to the network's own name, so no variant ever renders
+ * a nameless or empty anchor.
+ *
+ * A row renders only when it has a url AND a network this core knows. The panel refuses an
+ * unknown network at the write (FieldRules' select rule), so the second half guards a core older
+ * than the registry; either way the answer is nothing, never a dead or blank link.
+ */
+interface Props {
+  block: SocialLinksBlock
+  locale?: string
+}
+
+const { block } = Astro.props
+const { links = [], variant = 'icons' } = block.data
+
+const rows = links.flatMap((row) => {
+  const network = socialNetwork(row.network)
+  const url = typeof row.url === 'string' ? row.url.trim() : ''
+  // `network` resolving is what proves `row.network` is a known, non-empty key.
+  if (!network || url === '') return []
+  return [{ key: row.network as string, url, network, label: row.label?.trim() || network.label }]
+})
+
+// `rel="me"` on top of the external pair: a profile link is what it exists for, and it is what
+// Mastodon and Bluesky read to verify a site owns the profile. `externalLinkAttrs` yields nothing
+// for `mailto:`, and the `me` then stays off too - an address is not a profile.
+function linkAttrs(url: string): { target?: string; rel?: string } {
+  const attrs = externalLinkAttrs(url)
+  return attrs.rel ? { ...attrs, rel: `${attrs.rel} me` } : attrs
+}
+---
+
+{
+  rows.length > 0 && (
+    <div class="social-links" data-variant={variant}>
+      <ul class="social-links-list">
+        {rows.map((row) => (
+          <li>
+            <a class="social-link" href={row.url} data-social={row.key} {...linkAttrs(row.url)}>
+              {variant !== 'labels' && (
+                <svg class="social-link-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d={row.network.path} />
+                </svg>
+              )}
+              <span class:list={['social-link-label', variant === 'icons' && 'sr-only']}>{row.label}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

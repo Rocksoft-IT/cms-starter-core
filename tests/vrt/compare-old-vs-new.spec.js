@@ -40,6 +40,7 @@ import {
   withTrailingSlash,
 } from '../shared/page-prep.js'
 import { sectionBands, compareSections, formatSectionReport } from './section-compare.js'
+import { resolveReferenceOrigin } from '../shared/static-reference.js'
 
 // NO DEFAULT, deliberately. diligently.pl's copy defaulted this to its own production host, which
 // is how a shared harness starts lying on the other six sites — a run with a forgotten env var
@@ -49,8 +50,8 @@ const OLD_BASE_URL = process.env.OLD_BASE_URL
 if (!OLD_BASE_URL) {
   throw new Error(
     '[vrt] OLD_BASE_URL is required and has no default — it is the reference this build is ' +
-      'compared against (the site being replaced, or a static prototype served locally). ' +
-      'e.g. OLD_BASE_URL=http://localhost:8080 pnpm test:vrt',
+      'compared against: a deployed site (https://…) or, as a PATH, the static design repo to ' +
+      'serve. e.g. OLD_BASE_URL=../design-export pnpm test:vrt',
   )
 }
 // Astro's dev/preview default, and site-neutral, so this one may keep a default.
@@ -110,6 +111,24 @@ if (ROUTE_FILTER?.length && !ROUTES.length) {
 const outDir = path.join(process.cwd(), 'test-results', 'vrt')
 mkdirSync(outDir, { recursive: true })
 
+// The reference may be a FOLDER rather than an origin — the usual shape here, since a design is
+// handed over as a static HTML/CSS/JS repo and there is nothing deployed to compare against until
+// somebody puts one somewhere ({@link ../shared/static-reference.js}). Resolved once per worker;
+// `closeReference` is a no-op when it was a URL all along.
+let oldOrigin = null
+let closeReference = async () => {}
+
+test.beforeAll(async () => {
+  const resolved = await resolveReferenceOrigin(OLD_BASE_URL, 'vrt')
+  oldOrigin = resolved.origin
+  closeReference = resolved.close
+  if (resolved.served) console.log(`[vrt] serving reference from ${OLD_BASE_URL} at ${oldOrigin}`)
+})
+
+test.afterAll(async () => {
+  await closeReference()
+})
+
 for (const route of ROUTES) {
   test(`${route.name}: visual diff old vs new`, async ({ browser }) => {
     const [oldPage, newPage] = await Promise.all([
@@ -118,7 +137,7 @@ for (const route of ROUTES) {
     ])
 
     try {
-      const oldTarget = `${OLD_BASE_URL}${route.oldPath}`
+      const oldTarget = `${oldOrigin}${route.oldPath}`
       const newTarget = newUrl(route.path)
       const [oldResponse, newResponse] = await Promise.all([
         oldPage.goto(oldTarget, { waitUntil: 'networkidle' }),

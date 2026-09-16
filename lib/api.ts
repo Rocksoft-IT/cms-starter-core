@@ -119,10 +119,13 @@ export interface PageApiItem {
   // render a field it did not know at build time. `label` and the translatable values (text,
   // list, a select's option label) arrive already resolved for the requested locale — no lookup
   // here. A `select` value is `{ key, label }`; the stable `key` is never shown to the user.
-  // Rendered generically by core/CustomFields.astro; absent on an API that predates them.
+  // A `relation` value is a list of `{ id, type, name, slug, path }` (#1884); a `color` is one
+  // CSS hex colour, `#rrggbb`/`#rrggbbaa` lower-case, meant for a custom property or an inline
+  // style rather than for display. Rendered generically by core/CustomFields.astro (which shows
+  // the text-like types and skips the rest); absent on an API that predates them.
   custom_fields?: Array<{
     key: string
-    type: 'text' | 'select' | 'date' | 'list'
+    type: 'text' | 'select' | 'date' | 'list' | 'relation' | 'color'
     label: string
     value: unknown
   }>

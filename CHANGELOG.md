@@ -27,6 +27,66 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.68.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@89146f8e` on 2026-09-16 — heading written by `publish_core`._
+
+### A `social_links` block, and the first network glyphs in core (dashboard: social-links-block)
+
+New block: a row of social-profile anchors — LinkedIn, X, Facebook, Instagram, YouTube, TikTok,
+GitHub, Behance, Dribbble, Bluesky, Threads, WhatsApp, Telegram, Messenger, an email address, a
+website — each carrying its network's glyph inline. Three variants via `data-variant`: `icons`
+(default; the name stays in the DOM as `sr-only`), `icons_labels`, `labels`. A `<div>` in the
+content flow like `button_group`, so no section header and no band.
+
+`lib/social-networks.ts` is the filled sibling of `lib/icons.ts` (Simple Icons, CC0). Every anchor
+carries `data-social="<network>"` — the hook the footer's socials already offer — so a site can
+replace any glyph from its own stylesheet; new shortcuts `social-links`, `social-links-list`,
+`social-link`, `social-link-icon`, `social-link-label`. A row without a url, or with a network this
+core does not know, renders nothing. External profiles get `rel="noopener noreferrer me"`.
+
+The footer's three fixed social fields are unchanged; they adopt the same row shape in a
+follow-up (dashboard#2109).
+
+### The `cta_label`/`cta_href`/`body` payload aliases are gone (dashboard#1978)
+
+The two deprecated aliases v0.56.0 introduced — `cta_label`/`cta_href` on `promo_split`/`faq`
+(dashboard#1959) and `body` on `pricing_teaser`/`cta_banner`/`promo_split` (dashboard#1977) — are
+deleted from the API payload. Nothing in this package changes: every renderer here has read `ctas`
+and `intro` since those bumps, so this entry matters only to a repo that still reads the retired
+keys.
+
+**Measured before deletion** (dashboard#1978): every client repo pins a core ≥ v0.59.0, and a
+fleet-wide search found no remaining read of `cta_label`, `cta_href` or the retired `body` on these
+blocks, in the registry or in any repo's own override. `kaffemaskin-til-bedrift`, the one repo with
+no expiry on its own core pin, renders no CMS content at all and was never in scope.
+
+If your repo still reads any of the retired keys directly, port it to `ctas` / `intro` before
+taking this bump — the payload will no longer carry the old spelling.
+
+### `parity-audit.mjs` gains `--viewports` and `--check-overflow`; `webflow-parity` closes the "documented but not reproduced" loophole
+
+Prompted by rocksoft#123: a port shipped with two real bugs that screenshot review alone did not
+catch — a click-to-reveal interaction was read correctly out of the export's IX2 data (`--motion`)
+and then quietly swapped for a static `sr-only` fallback with a comment explaining why, reported as
+"matches"; separately, a flexbox `min-width: auto` overflow clipped equally on both edges of a row,
+invisible at the one width tested first.
+
+- `pnpm parity:audit ... --viewports 1280x900,1440x900,1920x900` runs the same check across every
+  width in one invocation (plural; singular `--viewport WxH` still works for one width) — the
+  `webflow-parity` skill's own "at every breakpoint" instruction (§1 step 6) is easy to read and
+  not actually do when it means re-typing the command by hand per width.
+- `pnpm parity:audit ... --check-overflow` walks every element under the selector, finds its
+  nearest clipping ancestor (`overflow`/`overflow-x`/`overflow-y: hidden`, or `clip`), and flags
+  any box that escapes it — the specific silent-failure shape above, where clipped content prints
+  nothing rather than an obvious visual bug. The one flag in this script that exits non-zero;
+  everything else here stays "no baseline, no pass/fail" by design.
+- `webflow-parity` SKILL.md (v2.5.0): a new §1 step 7 documents `--check-overflow`; the "Motion and
+  JS-driven behavior" section (§6) now says explicitly that recovering an IX2 trigger and shipping
+  a static fallback instead, unilaterally, is not the same as the client's own request for parity —
+  a skipped interaction needs the client/reviewer's sign-off in the issue/PR, the same standing
+  bar an acknowledged layout gap already has, not a code comment recording the decision alone.
+
 ## v0.67.0
 
 _Cut from `Rocksoft-IT/diligently-dashboard@97d82644` on 2026-09-12 — heading written by `publish_core`._

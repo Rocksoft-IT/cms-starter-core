@@ -379,6 +379,21 @@ export const coreShortcuts: Record<string, string> = {
   // ── Button group block ─────────────────────────────────────────────────────
   'section-buttons': 'py-8 container-narrow actions-row',
 
+  // Social links (dashboard: social-links-block) - a row of profile anchors in the content flow,
+  // start-aligned like body copy rather than centred like the CTA row above: it usually sits
+  // beside a contact block or under a heading, not on its own between sections. The glyph takes
+  // `currentColor`, so the anchor's colour IS the icon's; hover and focus move both to the brand.
+  // The three variants share one paint - only the label's visibility differs, which the markup
+  // decides with `sr-only` - so a client restyles them apart via `[data-variant=...]`.
+  'social-links': 'py-4 container-narrow',
+  'social-links-list': 'list-reset flex flex-wrap items-center gap-4',
+  'social-link':
+    'inline-flex items-center gap-2 text-text-primary no-underline transition-colors ' +
+    'hover:text-primary focus-visible:text-primary focus-visible:outline focus-visible:outline-2 ' +
+    'focus-visible:outline-offset-2 focus-visible:outline-primary',
+  'social-link-icon': 'w-6 h-6 shrink-0',
+  'social-link-label': 'text-[15px] leading-[1.4]',
+
   // ── Rich content block ───────────────────────────────────────────────────────
   // THE PAIR IS THE RULE, and every caller has to honour both halves: `section-content` is a
   // full-bleed band carrying vertical rhythm and NO measure, and the measure goes on an inner

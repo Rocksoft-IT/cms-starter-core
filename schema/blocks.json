@@ -1650,6 +1650,63 @@
             }
         }
     },
+    "social_links": {
+        "label": "Social links",
+        "description": "A row of social-profile links — LinkedIn, X, GitHub, an email address — each shown as the network's icon, with or without its name.",
+        "icon": "heroicon-o-share",
+        "fields": {
+            "links": {
+                "type": "repeater",
+                "table": [
+                    "Network",
+                    "URL",
+                    "Label"
+                ],
+                "add_label": "Add link",
+                "fields": {
+                    "network": {
+                        "type": "select",
+                        "options": {
+                            "linkedin": "LinkedIn",
+                            "x": "X",
+                            "facebook": "Facebook",
+                            "instagram": "Instagram",
+                            "youtube": "YouTube",
+                            "tiktok": "TikTok",
+                            "github": "GitHub",
+                            "behance": "Behance",
+                            "dribbble": "Dribbble",
+                            "bluesky": "Bluesky",
+                            "threads": "Threads",
+                            "whatsapp": "WhatsApp",
+                            "telegram": "Telegram",
+                            "messenger": "Messenger",
+                            "email": "Email",
+                            "website": "Website"
+                        }
+                    },
+                    "url": {
+                        "type": "url",
+                        "pattern": "/^(https?:\\/\\/|mailto:)/i",
+                        "help": "The profile address — https://…, or mailto: for the email network."
+                    },
+                    "label": {
+                        "type": "text"
+                    }
+                }
+            },
+            "variant": {
+                "type": "select",
+                "advanced": true,
+                "default": "icons",
+                "options": {
+                    "icons": "Icons only",
+                    "icons_labels": "Icons with labels",
+                    "labels": "Labels only"
+                }
+            }
+        }
+    },
     "pricing_table": {
         "label": "Pricing table",
         "description": "Selects and orders shared Plan items (collection-ref) as cards; the billing toggle groups them into tabs by billing type, and the width setting gives a four-card set room to breathe.",

@@ -2,7 +2,7 @@
 // Generic renderer for CMS section-defined custom fields (diligently-dashboard #600/#601).
 //
 // A Super Admin can declare extra fields on a CMS section at runtime (label + immutable key +
-// type from `text | select | date | list`) without a code deploy. The API ships each record's
+// type from `text | select | date | list | relation | color`) without a code deploy. The API ships each record's
 // values inline with their schema, so this component renders a field it did not know at build
 // time — no per-field component, no cms.config.ts entry. These are NOT page-builder blocks.
 //
@@ -74,7 +74,10 @@ const items: Resolved[] = (fields ?? [])
         return li.length ? { key: f.key, label: f.label, kind: 'list', items: li } : null
       }
       default:
-        return null // unknown type — skip, don't crash
+        // `relation` (a list of linked records — a site renders those with its own cards) and
+        // `color` (a design token for a custom property, not copy to print) are skipped on
+        // purpose, alongside any type this component does not know yet — skip, don't crash.
+        return null
     }
   })
   .filter((x): x is Resolved => x !== null)

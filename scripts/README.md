@@ -8,10 +8,16 @@ Two commands, both shipped from here and both run from the consuming repo throug
 "parity:audit":  "node node_modules/@rocksoft/cms-starter-core/scripts/parity-audit.mjs"
 ```
 
-They sit beside the two harnesses in `../tests`, and the four together are one toolkit:
+They sit beside the two harnesses in `../tests`, and a fifth tool lives in the SITE tree rather
+than here — `scripts/webflow-tokens.mjs` (`pnpm tokens:resolve`), which reads the reference's
+stylesheets as files. It is there and not here because it must run on a bare export **before any
+repo exists**, which is before there is a `node_modules/` for these two to be reached through.
+
+Together they are one toolkit:
 
 | tool | question | answer |
 | --- | --- | --- |
+| `tokens:resolve` | **what does the source CALL this colour?** | every `--*` flattened to a literal, and the reverse index |
 | `parity:source` | **what is it?** | the reference's _authored_ values |
 | `test:vrt` | **which** pages differ? | a `% pixels differ` per route, plus a diff PNG |
 | `test:measure` | **by what**, on the selectors we named? | a property table per selector, against a committed baseline |
@@ -33,6 +39,12 @@ walks the section, and prints its DOM tree, every declared rule that owns each e
 value that element computes to, and (with `--motion`) the Webflow IX2 action lists decoded into
 keyframe tables. The source root comes from `--source`, `$PARITY_SOURCE`, or `./reference-site`; it
 is not committed, so the path is configuration rather than a default worth guessing at.
+
+`--page` accepts both layouts a source comes in: a mirror's `<page>/index.html` and a Webflow
+export's flat `<page>.html` — `--page /code-audit`, `/code-audit/` and `/code-audit.html` all read
+`code-audit.html` when there is no `code-audit/` directory (`/de-at/code-audit` → `de-at/code-audit.html`).
+A page in neither place falls back to `index.html` and says so on the `page` line — read that line;
+a section measured on the wrong page is the exact mistake this tool exists to prevent.
 
 **Why it exists at all.** A rendered page — which is what VRT, `tests/measure`, `parity:audit` and
 any `getComputedStyle` check read — structurally cannot report three things, and each was guessed

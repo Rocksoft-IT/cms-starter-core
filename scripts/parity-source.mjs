@@ -38,15 +38,23 @@
 // (thousands of files, most of them images), so the path is configuration, not a default worth
 // guessing at.
 //
+// THIS ONE NEEDS A SELECTOR AND A BROWSER. When the question is "what does the source call this
+// colour, anywhere" — no element in hand, nothing served, possibly no repo yet — that is
+// `scripts/webflow-tokens.mjs` in the site tree (`pnpm tokens:resolve <export-dir>`): it reads the
+// stylesheets as FILES and prints every token resolved to its literal, plus the reverse index a
+// port actually reads (`#eaf4e9` → the tokens that mean it). Complements, not alternatives: this
+// one knows which rule wins on a real element, that one can be asked a question a rendered page
+// has no way to answer.
+//
 // Read the output in that order — DOM, then rules, then motion — and write the mapping down ONCE
 // before touching any CSS. The `webflow-parity` skill asks for that for a reason: re-deriving it
 // per rule is what left three dead generations of one section in a client's stylesheet, each
 // overriding the next, so every answer to "still wrong" was "the new rule is right, something I
 // left above it wins".
 import fs from 'node:fs'
-import http from 'node:http'
 import path from 'node:path'
 import { chromium } from '@playwright/test'
+import { resolveReferenceFile, startStaticReference } from '../tests/shared/static-reference.js'
 
 // ── arguments ────────────────────────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2)
@@ -87,7 +95,12 @@ if (!fs.existsSync(exportDir)) {
   process.exit(1)
 }
 
-// `--page /tjenester/` → <source>/tjenester/index.html.
+// `--page /tjenester/` → <source>/tjenester/index.html (a wget mirror) or <source>/tjenester.html
+// (a Webflow export, whose pages are flat files: `code-audit.html`, `de-at/code-audit.html`);
+// `--page /code-audit.html` is taken as-is. `resolveReferenceFile` is the same resolver the static
+// reference server uses for every other harness, so the three spellings of a page mean the same
+// thing on the command line as they do in a URL. Before it was used here, all three silently read
+// index.html on a flat export — with only the "⚠ not in this source" line to say so.
 //
 // Git Bash on Windows rewrites any POSIX-looking argument into a Windows path before the process
 // sees it: `/tjenester/` arrives as `C:/Program Files/Git/tjenester/` and `/` as the install root.
@@ -95,12 +108,12 @@ if (!fs.existsSync(exportDir)) {
 // people transcribing the wrong numbers, handing them the wrong page.
 const requested = pagePath.replace(/^[A-Za-z]:[\\/].*?[\\/]Git[\\/]/i, '').replace(/^\/+/, '')
 const homeFile = path.join(exportDir, 'index.html')
-const pageFile = path.join(exportDir, requested, 'index.html')
-const fellBack = !fs.existsSync(pageFile)
-const indexFile = fellBack ? homeFile : pageFile
+const pageFile = resolveReferenceFile(exportDir, '/' + requested)
+const fellBack = !pageFile
+const indexFile = pageFile ?? homeFile
 
 if (!fs.existsSync(indexFile)) {
-  console.error(`[parity-source] no page at ${pageFile}`)
+  console.error(`[parity-source] no page for "/${requested}" in ${exportDir} (tried it as a file, as .html and as a directory with index.html)`)
   process.exit(1)
 }
 
@@ -320,18 +333,35 @@ function printMotion(ix2, classes, wIds) {
 
 // ── CSS: which rules own each element, and which of them actually apply ──────────────────────
 const READ = `(root, maxDepth) => {
-  // Every custom property declared on :root, resolved through its own indirections — the export
-  // routes most values through two or three of them (--card-primary-border → --border-secondary
-  // → a hex), and a rule that reads "var(--…-card-primary-border)" says nothing on its own.
+  // Every custom property the sheet declares ANYWHERE, resolved through its own indirections — the
+  // export routes most values through two or three of them (--card-primary-border →
+  // --border-secondary → a hex), and a rule that reads "var(--…-card-primary-border)" says nothing
+  // on its own.
+  //
+  // "Anywhere" rather than ":root" because an AI-generated Webflow export declares its tokens on a
+  // GENERATED WRAPPER CLASS, not on the document. Harvesting :root alone found none of them and
+  // printed the var() straight back — which is the dead end dashboard#1942 reports spending hours
+  // in, chasing one --ai-gen-<uuid>---background-color--bg-secondary through minified sheets by
+  // hand. :root/html are still applied LAST so a document-wide token outranks a same-named one on
+  // some inner component; generated names are unique per component, so in the case this is for
+  // there is nothing to collide.
   const tokens = new Map()
+  const documentWide = []
   for (const sheet of document.styleSheets) {
     try {
       for (const rule of sheet.cssRules) {
-        if (rule.selectorText !== ':root' && rule.selectorText !== 'html') continue
-        for (const prop of rule.style) if (prop.startsWith('--')) tokens.set(prop, rule.style.getPropertyValue(prop).trim())
+        if (!rule.style) continue
+        const isGlobal = rule.selectorText === ':root' || rule.selectorText === 'html'
+        for (const prop of rule.style) {
+          if (!prop.startsWith('--')) continue
+          const value = rule.style.getPropertyValue(prop).trim()
+          if (isGlobal) documentWide.push([prop, value])
+          else tokens.set(prop, value)
+        }
       }
     } catch {}
   }
+  for (const [prop, value] of documentWide) tokens.set(prop, value)
   const resolve = (value, seen = 0) => {
     if (seen > 6 || !value.includes('var(')) return value
     return resolve(value.replace(/var\\(\\s*(--[\\w-]+)\\s*(?:,[^()]*)?\\)/g, (m, name) => tokens.get(name) ?? m), seen + 1)
@@ -395,37 +425,16 @@ const READ = `(root, maxDepth) => {
 }`
 
 // ── serving the export ───────────────────────────────────────────────────────────────────────
-// Over `file://` Chromium treats each local stylesheet as its own opaque origin: `sheet.cssRules`
-// throws, and the page renders with no CSS at all. The first run of this tool reported the partner
-// card as 1424x70 with zero rules — which reads exactly like a section that has no styling, rather
-// than like a tool that cannot see any. Serving the directory removes the whole class of problem.
-const MIME = {
-  '.html': 'text/html',
-  '.css': 'text/css',
-  '.js': 'text/javascript',
-  '.json': 'application/json',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-}
-
-const server = http.createServer((req, res) => {
-  const rel = decodeURIComponent(new URL(req.url, 'http://x').pathname)
-  let file = path.join(exportDir, rel)
-  if (!path.resolve(file).startsWith(exportDir)) return res.writeHead(403).end()
-  if (fs.existsSync(file) && fs.statSync(file).isDirectory()) file = path.join(file, 'index.html')
-  if (!fs.existsSync(file)) return res.writeHead(404).end()
-  res.writeHead(200, { 'content-type': MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream' })
-  fs.createReadStream(file).pipe(res)
-})
-await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-const origin = `http://127.0.0.1:${server.address().port}`
+// One server, shared with the two harnesses (`../tests/shared/static-reference.js`). It used to be
+// written out here, which was fine while this was the only tool that served a folder — and stopped
+// being fine the moment `test:vrt` and `test:measure` learned to take a design repo as their
+// reference, because then three copies had to agree on how `/uslugi` finds `uslugi.html`.
+//
+// Why serve at all: over `file://` Chromium treats each local stylesheet as its own opaque origin,
+// `sheet.cssRules` throws, and the page renders with no CSS. The first run of this tool reported
+// the partner card as 1424x70 with zero rules — which reads exactly like a section that has no
+// styling, rather than like a tool that cannot see any.
+const { origin, close: closeServer } = await startStaticReference(exportDir, 'parity:source')
 
 // ── run ──────────────────────────────────────────────────────────────────────────────────────
 const ix2 = readIx2()
@@ -457,7 +466,7 @@ const nodes = await page.evaluate(
   [selector, READ, depth],
 )
 await browser.close()
-server.close()
+await closeServer()
 
 if (!nodes) {
   console.error(`[parity-source] "${selector}" matched nothing in ${indexFile}`)

@@ -772,6 +772,34 @@ export interface ButtonGroupBlock {
   data: { buttons?: Array<{ label?: string; href?: string; style?: 'primary' | 'outline' }> }
 }
 
+export interface SocialLinksBlock {
+  type: 'social_links'
+  data: {
+    links?: Array<{
+      network?:
+        | 'linkedin'
+        | 'x'
+        | 'facebook'
+        | 'instagram'
+        | 'youtube'
+        | 'tiktok'
+        | 'github'
+        | 'behance'
+        | 'dribbble'
+        | 'bluesky'
+        | 'threads'
+        | 'whatsapp'
+        | 'telegram'
+        | 'messenger'
+        | 'email'
+        | 'website'
+      url?: string
+      label?: string
+    }>
+    variant?: 'icons' | 'icons_labels' | 'labels'
+  }
+}
+
 export interface HighlightsBlock {
   type: 'highlights'
   data: {
@@ -900,6 +928,7 @@ export type Block =
   | TeamBlock
   | ImageBlock
   | ButtonGroupBlock
+  | SocialLinksBlock
   | HighlightsBlock
   | QuoteBlock
   | HoursBlock

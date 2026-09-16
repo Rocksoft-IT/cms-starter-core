@@ -23,6 +23,7 @@ import path from 'node:path'
 import { test, expect } from '@playwright/test'
 import { loadTargets, TARGETS_FILE } from './targets.js'
 import { siteRoot } from '../shared/site-root.js'
+import { resolveReferenceOrigin } from '../shared/static-reference.js'
 import {
   scrollThroughPage,
   dismissConsent,
@@ -34,6 +35,10 @@ import {
 // NO DEFAULT, deliberately — the same trap `../vrt` documents: a shared harness carrying one
 // client's hostname is how it starts lying on the other six. Unset is only allowed when reading a
 // saved baseline, which needs no reference at all.
+//
+// It is an ORIGIN (a deployed reference) or a PATH (the static design repo, which this serves for
+// the length of the run — see `../shared/static-reference.js`). The second is what makes the
+// harness usable on day one of a port, when the design is a folder and nothing is deployed yet.
 const OLD_BASE_URL = process.env.OLD_BASE_URL
 const NEW_BASE_URL = process.env.NEW_BASE_URL ?? 'http://localhost:4321'
 
@@ -274,6 +279,30 @@ function renderReport(name, perSelector) {
 mkdirSync(OUT_DIR, { recursive: true })
 if (SAVE_BASELINE) mkdirSync(BASELINE_DIR, { recursive: true })
 
+// Resolved once per worker, not per target: a directory reference means a server, and one per
+// target would be thirty of them. `closeReference` is a no-op for a URL, so the teardown below
+// needs no branch of its own.
+let oldOrigin = null
+let closeReference = async () => {}
+// Whether `oldOrigin` is a server this run started, which decides what a baseline records as its
+// provenance below.
+let REFERENCE_SERVED = false
+
+test.beforeAll(async () => {
+  // A baseline run opens no reference at all — resolving one anyway would start a server nothing
+  // fetches from, and would fail the run on a path that is only wrong because it is unused.
+  if (!OLD_BASE_URL || USE_BASELINE) return
+  const resolved = await resolveReferenceOrigin(OLD_BASE_URL, 'measure')
+  oldOrigin = resolved.origin
+  closeReference = resolved.close
+  REFERENCE_SERVED = resolved.served
+  if (resolved.served) console.log(`[measure] serving reference from ${OLD_BASE_URL} at ${oldOrigin}`)
+})
+
+test.afterAll(async () => {
+  await closeReference()
+})
+
 for (const target of TARGETS) {
   test(`${target.name}: ${SAVE_BASELINE ? 'record reference metrics' : 'metric diff reference vs build'}`, async ({
     browser,
@@ -285,7 +314,14 @@ for (const target of TARGETS) {
 
     try {
       const newTarget = withTrailingSlash(NEW_BASE_URL, target.path)
-      const oldTarget = oldPage ? `${OLD_BASE_URL}${target.oldPath}` : null
+      const oldTarget = oldPage ? `${oldOrigin}${target.oldPath}` : null
+      // What gets RECORDED as the provenance of a baseline. `oldTarget` carries the loopback port
+      // a served design repo happened to get, which is a different number every run and tells a
+      // later reader nothing about which reference the numbers came from — and provenance is the
+      // whole reason the field exists: a baseline recorded from the wrong site is invisible
+      // without it (kwalitet-pl#2, where it had been recorded from the site the redesign
+      // replaces). For a served folder, name the folder.
+      const oldLabel = oldTarget ? (REFERENCE_SERVED ? `${OLD_BASE_URL}${target.oldPath}` : oldTarget) : null
 
       const [newResponse, oldResponse] = await Promise.all([
         // A baseline-only run still loads the build: that is the side being measured.
@@ -342,9 +378,10 @@ for (const target of TARGETS) {
           file,
           `${JSON.stringify(
             {
-              _readme: 'Reference metrics recorded by `pnpm test:measure` with MEASURE_SAVE=1. Re-record after the reference changes; compare against it with MEASURE_BASELINE=1.',
+              _readme:
+                'Reference metrics recorded by `pnpm test:measure` with MEASURE_SAVE=1. Re-record after the reference changes; compare against it with MEASURE_BASELINE=1.',
               recordedAt: new Date().toISOString(),
-              reference: oldTarget,
+              reference: oldLabel,
               viewport: VIEWPORT,
               metrics: oldMetrics,
             },
@@ -373,7 +410,7 @@ for (const target of TARGETS) {
       writeFileSync(path.join(OUT_DIR, `${target.name}-report.txt`), `${report}\n`)
       writeFileSync(
         path.join(OUT_DIR, `${target.name}.json`),
-        `${JSON.stringify({ viewport: VIEWPORT, reference: oldTarget, build: newTarget, old: oldMetrics, new: newMetrics }, null, 2)}\n`,
+        `${JSON.stringify({ viewport: VIEWPORT, reference: oldLabel, build: newTarget, old: oldMetrics, new: newMetrics }, null, 2)}\n`,
       )
       console.log(`\n${report}`)
 
@@ -396,10 +433,7 @@ for (const target of TARGETS) {
         if (newMetrics[label]?.naturalWidth === 0) sides.push(`${label} (${selector}) on the build`)
         return sides
       })
-      expect(
-        brokenImages,
-        `these <img> selectors rendered a box but no image loaded (naturalWidth 0)`,
-      ).toEqual([])
+      expect(brokenImages, `these <img> selectors rendered a box but no image loaded (naturalWidth 0)`).toEqual([])
 
       if (STRICT) {
         const differing = Object.entries(perSelector)

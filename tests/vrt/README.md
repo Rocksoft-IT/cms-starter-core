@@ -37,7 +37,7 @@ Bumping the core pin ships the harness but does not switch it on — same as the
 
 ```sh
 pnpm preview                                   # or pnpm dev, in another terminal
-OLD_BASE_URL=http://localhost:8080 pnpm test:vrt
+OLD_BASE_URL=../design-export pnpm test:vrt   # a path is served for you; a URL is fetched
 ```
 
 `OLD_BASE_URL` has **no default**, deliberately: diligently.pl's copy defaulted to its own
@@ -46,7 +46,7 @@ other six.
 
 | env                        | effect                                                                                                            |
 | -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `OLD_BASE_URL`             | the reference origin — **required**                                                                               |
+| `OLD_BASE_URL`             | the reference: an origin (`https://…`) **or a path to the static design repo**, served for the run — **required** |
 | `NEW_BASE_URL`             | this build (default `http://localhost:4321`)                                                                      |
 | `VRT_WIDTH` / `VRT_HEIGHT` | viewport; anything but 1440 wide gets its own filename suffix, so a mobile pass never overwrites the desktop PNGs |
 | `VRT_ROUTE_NAMES`          | `home,pricing` — narrow a run while iterating on one page                                                         |

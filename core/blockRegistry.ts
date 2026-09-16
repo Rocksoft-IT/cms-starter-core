@@ -20,6 +20,9 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   image_block: () => import('./blocks/ImageBlock.astro'),
   button: () => import('./blocks/Button.astro'),
   button_group: () => import('./blocks/ButtonGroup.astro'),
+  // Social links - a row of profile anchors carrying the network's glyph (lib/social-networks.ts);
+  // a <div> in the flow like button_group (dashboard: social-links-block).
+  social_links: () => import('./blocks/SocialLinks.astro'),
   heading: () => import('./blocks/Heading.astro'),
   separator: () => import('./blocks/Separator.astro'),
   features: () => import('./blocks/Features.astro'),

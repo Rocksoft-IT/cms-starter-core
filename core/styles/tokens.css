@@ -123,6 +123,13 @@
   --band-btn-primary-outline-text-base: var(--color-button-primary-outline-text, #101841);
   --band-btn-secondary-border-base: var(--color-button-secondary-border, #101841);
   --band-btn-secondary-outline-text-base: var(--color-button-secondary-outline-text, #101841);
+  /* `btn-primary`'s own pair, captured for the same reason one slice later (dashboard#2189):
+     the FILLED treatment reads `--color-button-primary` and `--color-button-primary-text`,
+     which the two band rules below now re-map as well, so a light card inside an inverted band
+     needs its light fill and ink back — otherwise a CTA on a white card in a dark band paints
+     the band's own light fill on white. */
+  --band-btn-primary-fill-base: var(--color-button-primary, #3b5aff);
+  --band-btn-primary-text-base: var(--color-button-primary-text, #fff);
 }
 
 /*
@@ -242,6 +249,21 @@
     --color-button-primary-outline-text: var(--band-dark-text, #fff);
     --color-button-secondary-border: var(--band-dark-text, #fff);
     --color-button-secondary-outline-text: var(--band-dark-text, #fff);
+    /* `btn-primary` (dashboard#2189), the other half of the same defect: the FILLED treatment
+       reads a different pair of tokens, and #2164 re-mapped only the outline one. The fill
+       token is the brand BUTTON colour — a value with no contrast contract against this band's
+       fill, since both are client-editable and independent — so the two coinciding is a normal
+       branding outcome (rocksoft: `#131620` for both), and it makes the button shapeless: fill,
+       border and band all one colour, with only the label left floating.
+
+       The pair is the band's OWN two colours, swapped. That is what makes it a guarantee rather
+       than a guess: `--band-dark-text` on `--band-dark-bg` is already the contrast pair every
+       heading on this band uses, so inverting it for the button inherits the same ratio, for a
+       `--band-dark-bg` the site redefines as well as for the default `#000`. Hover follows for
+       free — `hover:bg-transparent hover:text-button-primary` now paints the band's text colour
+       on the band, where it used to paint the dark brand fill. */
+    --color-button-primary: var(--band-dark-text, #fff);
+    --color-button-primary-text: var(--band-dark-bg, #000);
   }
 
   /*
@@ -266,6 +288,14 @@
     --color-button-primary-outline-text: var(--band-brand-text, #fff);
     --color-button-secondary-border: var(--band-brand-text, #fff);
     --color-button-secondary-outline-text: var(--band-brand-text, #fff);
+    /* The same swap as the dark band's (dashboard#2189), in this band's own two colours: the
+       fill it paints is `--color-primary` and the text derived to read on it is
+       `--band-brand-text`, so a button wearing them inverted carries the contrast the band
+       already proved. Re-mapping `--color-button-primary` here is safe where re-mapping
+       `--color-primary` would not be (see the KNOWN LIMIT above): `[&.is-brand]:bg-primary`
+       reads that other property, so the band cannot erase its own fill through this one. */
+    --color-button-primary: var(--band-brand-text, #fff);
+    --color-button-primary-text: var(--color-primary, #3b5aff);
   }
 
   /*
@@ -303,6 +333,8 @@
     --color-button-primary-outline-text: var(--band-btn-primary-outline-text-base);
     --color-button-secondary-border: var(--band-btn-secondary-border-base);
     --color-button-secondary-outline-text: var(--band-btn-secondary-outline-text-base);
+    --color-button-primary: var(--band-btn-primary-fill-base);
+    --color-button-primary-text: var(--band-btn-primary-text-base);
   }
 
   /*

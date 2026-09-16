@@ -157,5 +157,39 @@ describe('light surfaces inside a band restore the light roles', () => {
     expect(dark).toEqual(brand)
     expect(card).toEqual(dark)
     expect(card).toContain('--color-eyebrow')
+    // `btn-primary` is the same story one component further in (dashboard#2189): the FILLED
+    // treatment reads `--color-button-primary`, which the bands re-map to their own light colour,
+    // so a CTA on a white card inside a dark band needs the brand fill back.
+    expect(card).toContain('--color-button-primary')
+  })
+
+  // The set-equality test above is symmetric, so it stays green if all THREE blocks drop a role —
+  // which is exactly the state #2164 left behind and #2189 found: the outline pair re-mapped, the
+  // filled pair not, on every band. This names the filled pair and the values it must take.
+  it('an inverted band re-maps the FILLED button pair to its own two colours', () => {
+    const tokens = readFileSync(
+      fileURLToPath(new URL('../core/styles/tokens.css', import.meta.url)),
+      'utf8',
+    )
+
+    const bodyOf = (selector: string): string => {
+      const block = tokens.slice(tokens.indexOf(selector))
+
+      return block.slice(block.indexOf('{') + 1, block.indexOf('}'))
+    }
+
+    // The band's own text colour as the fill and its own fill as the ink: an exact swap of the
+    // pair the band already proves readable, rather than a fresh guess at a colour that reads on
+    // a `--band-dark-bg` the site is expected to redefine.
+    const dark = bodyOf('.section-band.is-dark {')
+    expect(dark).toContain('--color-button-primary: var(--band-dark-text, #fff);')
+    expect(dark).toContain('--color-button-primary-text: var(--band-dark-bg, #000);')
+
+    // Same swap in the brand band's own two colours. `--color-primary` is safe to READ here — only
+    // re-mapping it would erase the band's own `bg-primary` fill (see the KNOWN LIMIT in tokens.css).
+    const brand = bodyOf('.section-band.is-brand {')
+    expect(brand).toContain('--color-button-primary: var(--band-brand-text, #fff);')
+    expect(brand).toContain('--color-button-primary-text: var(--color-primary, #3b5aff);')
+    expect(brand).not.toMatch(/--color-primary\s*:/)
   })
 })
