@@ -34,6 +34,7 @@ const SOURCES: Array<{ file: string; prefix: string }> = [
   { file: 'core/routing.ts', prefix: '[cms]' },
   { file: 'core/customCode.ts', prefix: '[custom-code]' },
   { file: 'core/analytics.ts', prefix: '[consent]' },
+  { file: 'core/unregisteredBlocks.ts', prefix: '[cms]' },
 ]
 
 const read = (file: string): string => readFileSync(join(root, file), 'utf8')
@@ -71,7 +72,7 @@ describe('build warnings keep the prefixes the dashboard scans for', () => {
     }
   })
 
-  test('the five shipped drop reports are still phrased as drops', () => {
+  test('the six shipped drop reports are still phrased as drops', () => {
     // Not pinning whole sentences — they should be free to improve. Pinning the CLAIM: each of
     // these says something is absent from the built site, which is what makes it worth surfacing
     // rather than a note about something that worked.
@@ -85,5 +86,7 @@ describe('build warnings keep the prefixes the dashboard scans for', () => {
     const analytics = read('core/analytics.ts')
     expect(analytics).toContain('ignored')
     expect(analytics).toContain('ships no analytics and no banner')
+
+    expect(read('core/unregisteredBlocks.ts')).toContain('render as nothing')
   })
 })

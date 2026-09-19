@@ -659,6 +659,16 @@ export interface PricingTeaserBlock {
   }
 }
 
+export interface PageContentBlock {
+  type: 'page_content'
+  data: {}
+}
+
+export interface CollectionItemsBlock {
+  type: 'collection_items'
+  data: {}
+}
+
 export interface DocumentsBlock {
   type: 'documents'
   data: {
@@ -921,6 +931,8 @@ export type Block =
   | CtaBannerBlock
   | PromoSplitBlock
   | PricingTeaserBlock
+  | PageContentBlock
+  | CollectionItemsBlock
   | DocumentsBlock
   | CardsBlock
   | GalleryBlock

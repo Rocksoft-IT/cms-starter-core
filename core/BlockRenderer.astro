@@ -2,6 +2,8 @@
 import type { Block } from '../types/blocks'
 import { cmsConfig } from '~site/cms.config'
 import { defaultLocale } from './i18n'
+import { PLACEHOLDER_BLOCK_TYPES, isPlaceholderType, type PlaceholderBlockType } from './placeholders'
+import { reportUnregisteredBlock } from './unregisteredBlocks'
 
 interface Props {
   blocks: Block[]
@@ -24,19 +26,42 @@ const { blocks, locale } = Astro.props
 const loc = locale ?? defaultLocale
 
 const typesNeeded = new Set<string>(blocks.map((b) => b.type))
-const registry: Record<string, any> = Object.fromEntries(
-  await Promise.all(
+
+// The page's own surfaces, handed in as named slots and emitted where their placeholder block
+// sits (dashboard #2335, core/placeholders.ts): `<Fragment slot="page_content">` for the rich-text
+// body, `<Fragment slot="collection_items">` for a landing's item list. Rendered here in the
+// frontmatter rather than as `<slot name={…}>` in the loop — a slot's HTML is a string the page
+// type already produced, and pre-rendering keeps the loop below one expression per block. Only
+// the slots this page type passed are rendered, for placeholders actually on the page; one with no
+// slot falls through to the registered (no-op) component, so a site that has not adopted the slot
+// renders what it does today. Resolved beside the component imports, not after them: neither
+// waits on the other.
+const [registry, surfaces]: [Record<string, any>, Partial<Record<PlaceholderBlockType, string>>] = await Promise.all([
+  Promise.all(
     Object.entries(cmsConfig.blocks)
       .filter(([type]) => typesNeeded.has(type))
       .map(async ([type, loader]) => [type, (await loader()).default]),
-  ),
-)
+  ).then(Object.fromEntries),
+  Promise.all(
+    PLACEHOLDER_BLOCK_TYPES.filter((type) => typesNeeded.has(type) && Astro.slots.has(type)).map(
+      async (type) => [type, await Astro.slots.render(type)],
+    ),
+  ).then(Object.fromEntries),
+])
 ---
 
 {
   blocks.map((block) => {
+    if (isPlaceholderType(block.type) && surfaces[block.type] !== undefined) {
+      return <Fragment set:html={surfaces[block.type]} />
+    }
     const Component = registry[block.type]
-    if (!Component) return null
+    if (!Component) {
+      // Reported, not thrown: the page ships whole minus this block, and the line reaches the panel
+      // (core/unregisteredBlocks.ts). Failing the build here is what dashboard #2307 was about.
+      reportUnregisteredBlock(block.type, Astro.url.pathname)
+      return null
+    }
     // Handed to EVERY block, not only the ones core knows need it: a site's own block override is
     // registered through the same registry and has exactly the same problem to solve.
     return <Component block={block} locale={loc} />

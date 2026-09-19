@@ -1,0 +1,12 @@
+---
+// Core `page_content` block — a placeholder, not content (dashboard #2335). It marks where the
+// page's `content` rich text renders among the blocks; the TEXT is the page type's to render, via
+// the `page_content` slot it hands `BlockRenderer` (see `core/placeholders.ts`). This component is
+// what a placeholder renders when the page type passed no such slot — nothing — so a site that
+// has not adopted the slot keeps its current layout and still registers the type.
+import type { PageContentBlock } from '../../types/blocks'
+
+interface Props {
+  block: PageContentBlock
+}
+---

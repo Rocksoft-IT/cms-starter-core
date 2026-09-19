@@ -27,6 +27,61 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+## v0.70.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@35979092` on 2026-09-19 — heading written by `publish_core`._
+
+### Placeholder blocks: a page type can let the builder place its body and item list (dashboard#2335)
+
+Two new CMS block types, `page_content` and `collection_items`, carry no data: each marks WHERE
+one of the page's own surfaces renders — the `content` rich text, or a collection landing's item
+list — so an editor can put a block BELOW either, which the fixed order (blocks, then content,
+then items) never allowed. Core registers both in `coreBlocks` with a renderer that emits
+nothing, so a site that bumps the pin builds green and keeps its layout without touching a file.
+
+To honour the placement, a page type passes the surface to `BlockRenderer` as a named slot and
+renders its trailing default only when no placeholder is on the page:
+
+```astro
+import { hasPlaceholder } from '@rocksoft/cms-starter-core/core/placeholders'
+const contentPlaced = hasPlaceholder(blocks, 'page_content')
+
+<BlockRenderer {blocks} {locale}>
+  <Fragment slot="page_content">{content && <RichText class="rich-body" html={content} {locale} />}</Fragment>
+</BlockRenderer>
+{!contentPlaced && content && <RichText class="rich-body" html={content} {locale} />}
+```
+
+`BlockRenderer` renders a slot's HTML where the placeholder sits; a placeholder whose slot the
+page type did not pass falls through to the no-op component. `core/placeholders.ts` exports
+`PLACEHOLDER_BLOCK_TYPES`, `isPlaceholderType()` and `hasPlaceholder()`. The starter's
+`DefaultPage.astro` and `SectionLanding.astro` are the reference (on a landing the demoted intro
+travels with the list). A client repo that split its blocks by hand around a hero to get the same
+effect (rocksoft's `splitAroundBlockType`) replaces that with the placeholder.
+
+### A block nobody renders is now REPORTED, not silently dropped (dashboard#2307)
+
+`BlockRenderer.astro` skipped a block whose type `cms.config.ts` does not register with
+`return null` and no log line — the page shipped with a hole in it that nothing named. It now
+prints one `[cms] Skipped block(s) of unregistered block type "…"` line per type per build
+(`core/unregisteredBlocks.ts`), naming the first page it was seen on. `[cms]` is the prefix the
+dashboard already collects onto the build's `warnings` (`frontend_build_status`, the Frontend
+Deploys page — dashboard#2064), so the drop is visible where a person or an agent looks. A pin
+bump is the whole upgrade.
+
+Why now: the only guard for this case was the type-drift gate in each client repo's
+`scripts/verify-block-coverage.mjs`, which runs first inside `pnpm build` on the deploy host and
+FAILED the deploy on a block the live CMS offered and the pin could not render — so one block PR
+merged in the dashboard refused six clients' next content publish in a day. The template's copy of
+that gate now warns for live-only drift (same `[cms]` line) and fails only on drift against the
+committed `schema/blocks.json`; but that script is a client-owned file frozen at provisioning
+(dashboard#1694), so an older copy still fails until it is ported. THIS warning ships with core and
+reaches every client on the bump regardless.
+
+## v0.69.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@aa0aa085` on 2026-09-16 — heading written by hand after `publish_core` declined to stamp it (v0.68.0 was still unheaded here)._
+
 ### `getCookieConsent()` is memoized per locale — the banner copy no longer costs one request per page
 
 `lib/api.ts`'s `getCookieConsent()` was the one chrome fetcher without a memo: `CookieConsent.astro`
@@ -37,6 +92,10 @@ follows `getFooter()` exactly — one fetch per locale per build; a 404 (copy no
 answer and caches, anything else rejects, evicts, and reaches the renderer's own `.catch(() =>
 null)`, so a transient failure costs one page its authored copy instead of pinning it onto all of
 them. No API or rendering change; a pin bump is the whole upgrade.
+
+## v0.68.0
+
+_Cut from `Rocksoft-IT/diligently-dashboard@89146f8e` on 2026-09-16 — heading written by hand; the pin PR that would have carried it (#2259) was closed unmerged._
 
 ### A `social_links` block, and the first network glyphs in core (dashboard: social-links-block)
 

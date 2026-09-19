@@ -10,6 +10,7 @@
 
 import type { SiteSettingsData } from '../lib/api'
 import { CONSENT_SIGNALS_JS } from './analytics'
+import { onceLatch } from './onceLatch'
 
 /** Where a snippet is injected. Mirrors CustomScripts::PLACEMENTS. */
 export type CustomCodePlacement = 'head' | 'body'
@@ -159,11 +160,10 @@ export function resolveCustomCode(
 
 // One line per build per placement, like warnAboutAnalytics — the two ways this feature fails
 // silently from the outside are a snippet that was dropped and a snippet that ships to everyone.
-const warned = new Set<string>()
+const warned = onceLatch()
 
 export function warnAboutCustomCode(resolved: ResolvedCustomCode, placement: CustomCodePlacement): void {
-  if (warned.has(placement)) return
-  warned.add(placement)
+  if (!warned.first(placement)) return
 
   for (const { reason } of resolved.dropped) {
     console.warn(`[custom-code] a <${placement}> snippet was NOT shipped: ${reason}.`)
@@ -178,7 +178,7 @@ export function warnAboutCustomCode(resolved: ResolvedCustomCode, placement: Cus
 
 /** Test seam: the module-level warn-once latch outlives a vitest file otherwise. */
 export function resetCustomCodeWarnings(): void {
-  warned.clear()
+  warned.reset()
 }
 
 /**

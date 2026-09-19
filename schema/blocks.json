@@ -922,11 +922,31 @@
         "description": "Embeds a reusable global Component (footer, default CTA, services menu) inline by reference.",
         "icon": "heroicon-o-puzzle-piece",
         "ref": "component",
+        "preview": [
+            "component_id"
+        ],
         "fields": {
             "component_id": {
                 "type": "component"
+            },
+            "overrides": {
+                "type": "block_overrides",
+                "label": "Per-page overrides",
+                "help": "Only blocks the component marks “Editable per page” appear here. Leave a field blank to keep the component’s own value."
             }
         }
+    },
+    "page_content": {
+        "label": "Page content",
+        "description": "Where the page's Content text renders: blocks above it come before the text, blocks below it after. Add it once, when a block belongs under the text.",
+        "icon": "heroicon-o-document-text",
+        "fields": {}
+    },
+    "collection_items": {
+        "label": "Section items",
+        "description": "Where a section landing's item list renders: blocks above it come before the list, blocks below it after. Add it once, when a block belongs under the list.",
+        "icon": "heroicon-o-queue-list",
+        "fields": {}
     },
     "section_teaser": {
         "label": "Section teaser",

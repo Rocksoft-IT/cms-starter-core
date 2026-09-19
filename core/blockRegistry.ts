@@ -59,6 +59,11 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   pricing_table: () => import('./blocks/PricingTable.astro'),
   component_ref: () => import('./blocks/ComponentRef.astro'),
   section_teaser: () => import('./blocks/SectionTeaser.astro'),
+  // Placeholders (dashboard #2335) — a position for the page's own content / a landing's item
+  // list, rendered through the named slot a page type hands BlockRenderer (core/placeholders.ts).
+  // These components render nothing; they exist so the type is registered on every site.
+  page_content: () => import('./blocks/PageContent.astro'),
+  collection_items: () => import('./blocks/CollectionItems.astro'),
 }
 
 // Transitional alias, one release only (context/changes/unify-cards-block/). `nav_tiles` is gone
