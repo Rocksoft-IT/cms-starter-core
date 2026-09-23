@@ -131,6 +131,36 @@ if [ -n "$SITE_URL" ]; then
     *)         log "    smoke WARN $SITE_URL — $smoke" ;;
   esac
 fi
+
+# Does the world actually get the robots.txt this release contains, and does the sitemap it
+# advertises answer? The build can publish a perfectly correct file and still not be what a
+# crawler fetches, and nothing until now compared the two. Warn-only, after the flip, never
+# affects go-live; the `[robots]` prefix puts both lines in frontend_build_status.warnings and
+# on the panel's Frontend Deploys page (dashboard #2064).
+#
+# Deliberately NOT cache-busted: the point is to see the copy the public address really serves.
+if [ -n "$SITE_URL" ] && [ -f "$RELEASE_PATH/robots.txt" ]; then
+  published="$(curl -s --max-time 20 "$SITE_URL/robots.txt" || true)"
+
+  if [ -z "$published" ]; then
+    log "    [robots] $SITE_URL/robots.txt answers HTTP nothing — the public address served no robots.txt at all"
+  elif [ "$published" != "$(cat "$RELEASE_PATH/robots.txt")" ]; then
+    log "    [robots] public robots.txt at $SITE_URL differs from this release's — something in front of the origin is serving an older copy, and crawlers see that one; purge /robots.txt there or shorten its TTL (runbook: caches in front of the origin)"
+  else
+    log "    robots OK  $SITE_URL/robots.txt matches this release"
+  fi
+
+  # The line is only worth anything if the address it names answers. Read from the RELEASE, not
+  # from what was served, so a stale cached copy is reported once (above) and not twice.
+  sitemap_url="$(sed -n 's/^[Ss]itemap:[[:space:]]*//p' "$RELEASE_PATH/robots.txt" | head -n 1)"
+  if [ -n "$sitemap_url" ]; then
+    sitemap_code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$sitemap_url" || echo 000)"
+    case "$sitemap_code" in
+      2*) log "    robots OK  sitemap advertised at $sitemap_url answers HTTP $sitemap_code" ;;
+      *)  log "    [robots] sitemap advertised at $sitemap_url answers HTTP $sitemap_code" ;;
+    esac
+  fi
+fi
 finish
 
 # Prune: keep the newest $KEEP_RELEASES, never the currently-live one. `ls -dt`

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { isSearchVisible, isSitemapArtifact, parseSitemapIndex, fileNameFor } from '../scripts/fetch-sitemap.mjs'
+import { isSearchVisible, isSitemapArtifact, parseSitemapIndex, fileNameFor, shadowingFiles } from '../scripts/fetch-sitemap.mjs'
 
 /**
  * The build step that copies the CMS's sitemaps into public/ (dashboard #514), moved into core
@@ -66,5 +66,34 @@ describe('isSitemapArtifact', () => {
     expect(isSitemapArtifact('sitemap-pl.xml.bak')).toBe(false)
     expect(isSitemapArtifact('my-sitemap-pl.xml')).toBe(false)
     expect(isSitemapArtifact('sitemap-')).toBe(false)
+  })
+})
+
+/**
+ * The other half of the same directory's rules, and the opposite verdict: `isSitemapArtifact`
+ * says what this script may DELETE, `shadowingFiles` says what makes it REFUSE to build.
+ *
+ * `public/` is copied over the built output, so a file there wins against the page the app
+ * generates — silently, and only on the live site. Measured on kaffemaskin-til-bedrift, which
+ * carried both from 2026-08-19: its robots.txt advertised a sitemap on a host that does not
+ * resolve, while the CMS's own sitemap-index.xml was served correctly and never mentioned.
+ */
+describe('shadowingFiles', () => {
+  test('claims exactly the two names that shadow a CMS document', () => {
+    expect(shadowingFiles(['robots.txt'])).toEqual(['robots.txt'])
+    expect(shadowingFiles(['sitemap.xml'])).toEqual(['sitemap.xml'])
+    expect(shadowingFiles(['favicon.ico', 'sitemap.xml', 'robots.txt'])).toEqual(['sitemap.xml', 'robots.txt'])
+  })
+
+  /**
+   * The load-bearing negative: this REFUSES A BUILD, so anything it claims by mistake takes a
+   * client offline until someone deletes a file they were entitled to keep. The script's own
+   * outputs are first on that list — they live in the same directory and are written every run.
+   */
+  test('leaves this script\'s own outputs and ordinary assets alone', () => {
+    expect(shadowingFiles(['sitemap-index.xml', 'sitemap-pl.xml', 'sitemap-en-GB.xml'])).toEqual([])
+    expect(shadowingFiles(['favicon.ico', 'og-default.png', 'fonts', 'images'])).toEqual([])
+    expect(shadowingFiles(['robots.txt.bak', 'my-robots.txt', 'sitemap.xml.orig'])).toEqual([])
+    expect(shadowingFiles([])).toEqual([])
   })
 })

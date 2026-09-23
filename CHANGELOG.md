@@ -27,9 +27,64 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
-## v0.70.0
+### The conformance floor checks that every link is crawlable (rocksoft#363)
 
-_Cut from `Rocksoft-IT/diligently-dashboard@35979092` on 2026-09-19 — heading written by `publish_core`._
+A new check in `tests/conformance/quality.spec.js`, over every route: Lighthouse's
+`crawlable-anchors` audit, run against our own build instead of against the live site by whoever
+happens to open PageSpeed Insights on it.
+
+It comes from a defect on **744 of rocksoft's 747 live pages**. The footer's language switcher
+rendered the CURRENT locale as a row that never navigates, so it carried no `href` — but it kept
+its `hreflang`. An `<a>` with no `href` is a _placeholder_ per the HTML spec, and a placeholder
+must omit `target`, `download`, `ping`, `rel`, `hreflang`, `type` and `referrerpolicy`; carrying
+one makes it a link that goes nowhere. Every page with a footer reported "Links are not crawlable",
+and nothing in the fleet would have said so — the client's own spec suite was green throughout.
+
+The rule is **transcribed from the audit's source**, not paraphrased, because the half that matters
+is what it does NOT fail: a bare `<a>text</a>` is a legitimate placeholder, `mailto:` is exempt
+outright, `href="#"` and `href=""` both resolve to valid addresses, and `<a id="…">` is a jump
+target. A looser "every `<a>` needs an href" fails all five — and a check that flags correct markup
+is one the first site to hit it switches off. Keep it in step with the audit rather than tightening
+it locally.
+
+One departure, in the safe direction: Lighthouse asks the debugger for an anchor's event listeners,
+so it fails a placeholder that only works via JavaScript. From inside the page we see only handlers
+written as attributes (`onclick=`), so this arm under-reports where the audit would fail and never
+the reverse. A green run is a floor, not a promise that PageSpeed agrees.
+
+A site excuses an anchor it cannot fix under `"crawlableAnchors"` in
+`tests/conformance.exemptions.json`, by CSS selector (`.embedded-widget a`) or by route.
+
+**No per-client wiring.** Unlike the floor's arrival in v0.43.0, this is a new check inside a suite
+every pinned repo already runs — a pin bump is the whole adoption step.
+
+### robots.txt and the sitemap: the build refuses to be shadowed, and checks what the public address really serves (dashboard#2338)
+
+Two changes, both about the gap between "the build published a correct file" and "a crawler gets
+that file".
+
+**The build refuses a `public/robots.txt` or `public/sitemap.xml`.** `public/` is copied over the
+built output, so a file placed there wins against the route the app generates — silently, and only
+on the live site. `scripts/fetch-sitemap.mjs` now checks that directory before anything else (in
+mock mode too) and throws, naming the file; the previous release stays live, exactly like
+`verify-block-coverage`. The repo owner deletes the file — the build will not, because `public/` is
+also where a site legitimately keeps its own assets.
+
+Measured, not hypothetical: `kaffemaskin-til-bedrift` carried both files from 2026-08-19, so its
+live `robots.txt` advertised a sitemap on a host that does not resolve (`000`), while the CMS's own
+`sitemap-index.xml` was served correctly and never mentioned. Astro prints a `[WARN] … Skipping
+src/pages/robots.txt.ts` for the first file and builds anyway; nothing read that line.
+
+**After go-live, `deploy.sh` compares the public `robots.txt` with the release's** (no cache
+busting — the point is to see the copy the public address really serves) and fetches the `Sitemap:`
+URL the release advertises. A mismatch, or a sitemap answering non-2xx, is logged under the new
+**`[robots]`** prefix, which the dashboard collects into `frontend_build_status.warnings` and the
+Frontend Deploys page (dashboard#2064). Warn-only and after the flip: it never affects go-live. A
+healthy deploy logs `robots OK` without a prefix, so the warnings column stays empty when nothing
+is wrong.
+
+`build:mock` now runs the sitemap script (which exits immediately in mock mode) so the shadowing
+gate covers offline builds and CI.
 
 ### Placeholder blocks: a page type can let the builder place its body and item list (dashboard#2335)
 
@@ -43,8 +98,7 @@ To honour the placement, a page type passes the surface to `BlockRenderer` as a 
 renders its trailing default only when no placeholder is on the page:
 
 ```astro
-import { hasPlaceholder } from '@rocksoft/cms-starter-core/core/placeholders'
-const contentPlaced = hasPlaceholder(blocks, 'page_content')
+import {hasPlaceholder} from '@rocksoft/cms-starter-core/core/placeholders' const contentPlaced = hasPlaceholder(blocks, 'page_content')
 
 <BlockRenderer {blocks} {locale}>
   <Fragment slot="page_content">{content && <RichText class="rich-body" html={content} {locale} />}</Fragment>
@@ -353,7 +407,7 @@ section: its outline entry is now the section's own words rather than the page n
 
 Keyed off the FIELD, not a list of block types, so the next block to declare `heading_level` is
 covered without another release. Found while shipping the entry below — dashboard#2099 made the
-same predicate decide *where* a collection landing's intro sits, where under-reporting would have
+same predicate decide _where_ a collection landing's intro sits, where under-reporting would have
 placed that intro above the real headline.
 
 ### `PageApiItem.items_heading` — a landing's item list has a heading of its own

@@ -25,11 +25,12 @@
 //
 // `match` means a different thing per check, because the checks have different handles:
 //
-//   iframeTitle      a CSS selector, excluded from the query — `.video-section iframe`
-//   border3px        a bare class name — `btn-white`
-//   the other three  a ROUTE — `/privacy-policy/`. Overflow, heading outline and the image
-//                    contract have nothing in the DOM to point at ("this page, deliberately"),
-//                    so the whole route is excused and reported as skipped rather than hidden.
+//   iframeTitle       a CSS selector, excluded from the query — `.video-section iframe`
+//   crawlableAnchors  a CSS selector too — `.embedded-widget a`
+//   border3px         a bare class name — `btn-white`
+//   the other three   a ROUTE — `/privacy-policy/`. Overflow, heading outline and the image
+//                     contract have nothing in the DOM to point at ("this page, deliberately"),
+//                     so the whole route is excused and reported as skipped rather than hidden.
 //
 // No file means no exemptions, which is the state every site should be trying to get back to.
 import { readFileSync, existsSync } from 'node:fs'

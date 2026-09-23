@@ -129,6 +129,101 @@ eachRoute('framed third-party content says what it is', 'iframeTitle', async (pa
   expect(untitled).toEqual([])
 })
 
+/**
+ * The attributes the HTML spec says an `<a>` WITHOUT an href must not carry.
+ *
+ * An href-less `<a>` is a placeholder — "a link might otherwise have been placed here" — and a
+ * placeholder that wears one of these is claiming to be a link that goes nowhere.
+ * html.spec.whatwg.org/multipage/text-level-semantics.html#the-a-element
+ */
+const HREF_ASSOCIATED = ['target', 'download', 'ping', 'rel', 'hreflang', 'type', 'referrerpolicy']
+
+eachRoute('every link is crawlable', 'crawlableAnchors', async (page) => {
+  // Lighthouse's `crawlable-anchors` audit, run against our own build instead of against the live
+  // site by whoever happens to open PageSpeed Insights on it.
+  //
+  // It found a real defect in rocksoft that nothing else in this floor could have: the footer's
+  // language switcher rendered the CURRENT locale as a row that never navigates, so it had no
+  // `href` — but it kept its `hreflang`. 744 of that site's 747 live pages shipped exactly that,
+  // and every one of them reported "Links are not crawlable". The switcher is core's, so every
+  // other site on this engine was one locale away from the same report.
+  //
+  // TRANSCRIBED from the audit's own source, deliberately, rather than paraphrased — because the
+  // interesting half is what it does NOT fail:
+  //
+  //   <a>just text</a>                 a bare placeholder, no href-associated attributes: PASSES
+  //   <a href="mailto:x@y.z">          exempt outright, before the href is even looked at
+  //   <a href="#">                     resolves against the base URL, so it is a valid address
+  //   <a href="">                      `.href` reports the page's own URL, not '': PASSES
+  //   <a id="section-3"></a>           a jump target, not a link
+  //
+  // A looser "every <a> needs an href" would fail all five, and a check that flags correct markup
+  // is a check the first site to hit it switches off. The rule is subtle on purpose; keep it in
+  // step with the audit rather than tightening it locally.
+  //
+  // github.com/GoogleChrome/lighthouse/blob/main/core/audits/seo/crawlable-anchors.js
+  const offenders = await page
+    .locator(selectorExcluding('crawlableAnchors', 'a'))
+    .evaluateAll((anchors, hrefAssociated) => {
+      // The audit reads `href` as the IDL PROPERTY and `rawHref` as the attribute, and the gap
+      // between them is what catches the defect: on an <a> with no href attribute the property is
+      // the empty string, while on `href=""` it is the resolved page URL.
+      const resolveOrEmpty = (url) => {
+        try {
+          return new URL(url, document.baseURI).href
+        } catch {
+          return ''
+        }
+      }
+
+      /** @returns {string | null} why this anchor fails, or null when the audit lets it through. */
+      const verdict = (el) => {
+        const html = el instanceof HTMLAnchorElement
+        const rawHref = (el.getAttribute('href') ?? '').replace(/\s/g, '')
+        // SVG's `href` is an SVGAnimatedString, so it takes the gatherer's own resolution step.
+        const href = html ? el.href : resolveOrEmpty(el.href.baseVal)
+        // `getAttribute`, not the `name` IDL property the gatherer reads: identical value, and
+        // the property is deprecated loudly enough that `astro check` files a hint on it.
+        const name = (html ? (el.getAttribute('name') ?? '') : '').trim()
+        const attributeNames = el.getAttributeNames()
+
+        if ((el.getAttribute('role') ?? '').trim().length > 0) return null
+        // Exempt outright, even when it uses one of the failing patterns below.
+        if (rawHref.startsWith('mailto:')) return null
+        // `<a id="…">` used as a jump target rather than as a link.
+        if (rawHref === '' && (el.getAttribute('id') ?? '')) return null
+        if (rawHref.startsWith('file:')) return 'href points into the filesystem (file:)'
+        if (name.length > 0) return null
+
+        if (!attributeNames.includes('href') && hrefAssociated.every((a) => !attributeNames.includes(a))) {
+          // A genuine placeholder — unless something is wired to it, in which case it is a link
+          // built out of JavaScript and a crawler sees nothing.
+          //
+          // Lighthouse asks the debugger for every listener; from inside the page we can only see
+          // the ones written as attributes. So this arm UNDER-reports where the audit would fail,
+          // and never the other way round — the right direction for a floor, and the reason a
+          // green run here is not a promise that PageSpeed agrees.
+          const wired = attributeNames.filter((a) => a.startsWith('on'))
+          return wired.length ? `placeholder <a> that only works via ${wired.join('/')}` : null
+        }
+
+        if (href === '') {
+          const carried = hrefAssociated.filter((a) => attributeNames.includes(a))
+          return carried.length
+            ? `<a> with no href carrying ${carried.join('/')} — a placeholder must omit these`
+            : '<a> whose href resolves to no address'
+        }
+        if (/javascript:void(\(|)0(\)|)/.test(rawHref)) return 'href is javascript:void(0)'
+        if (resolveOrEmpty(rawHref) === '') return 'href is not a valid URL'
+        return null
+      }
+
+      return anchors.map((el) => ({ why: verdict(el), html: el.outerHTML.slice(0, 200) })).filter((o) => o.why !== null)
+    }, HREF_ASSOCIATED)
+
+  expect(offenders, 'Lighthouse would report "Links are not crawlable" here').toEqual([])
+})
+
 eachRoute('no element draws a border nobody asked for', 'border3px', async (page) => {
   // 3px is CSS's initial `border-width: medium`, so a side measuring exactly that is usually a
   // border that appeared rather than one that was chosen.

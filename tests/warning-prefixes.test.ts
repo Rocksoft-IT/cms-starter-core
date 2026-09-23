@@ -27,7 +27,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = join(here, '..')
 
 /** Kept in sync with App\Services\Deploy\BuildWarnings::PREFIXES (diligently-dashboard). */
-const PREFIXES = ['[cms]', '[custom-code]', '[consent]']
+const PREFIXES = ['[cms]', '[custom-code]', '[consent]', '[robots]']
 
 /** Every module that reports a drop, and the prefix its messages must carry. */
 const SOURCES: Array<{ file: string; prefix: string }> = [
@@ -88,5 +88,32 @@ describe('build warnings keep the prefixes the dashboard scans for', () => {
     expect(analytics).toContain('ships no analytics and no banner')
 
     expect(read('core/unregisteredBlocks.ts')).toContain('render as nothing')
+  })
+
+  // The one warning source that is not TypeScript, so every assertion above walks past it: the
+  // post-go-live robots check lives in deploy.sh and writes its lines through `log`, which the
+  // dashboard scans by the same prefix. Without this, `[robots]` could be reworded to `[seo]`
+  // in the shell and both repos would still be green.
+  describe('the post-go-live robots check in deploy.sh', () => {
+    const deploy = read('deploy.sh')
+
+    // Only what the script PRINTS: `log "…"` statements, not the comments above them that
+    // explain the prefix (a looser match reads those and fails on prose).
+    const robotsLines = [...deploy.matchAll(/log "[^"]*\[robots\][^"]*"/g)].map((match) => match[0])
+
+    test('it reports under a prefix the dashboard scans for', () => {
+      expect(robotsLines.length).toBeGreaterThan(0)
+      expect(PREFIXES).toContain('[robots]')
+    })
+
+    test('every [robots] line states a mismatch, not a success', () => {
+      // `robots OK` lines exist too and are deliberately NOT prefixed: a warning column that
+      // fills up on healthy builds is a column nobody reads.
+      for (const line of robotsLines) {
+        expect(line).toMatch(/differs|answers HTTP/)
+      }
+
+      expect(deploy).toContain('robots OK')
+    })
   })
 })

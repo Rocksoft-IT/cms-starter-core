@@ -96,6 +96,58 @@ export function isSitemapArtifact(name) {
 }
 
 /**
+ * The two names in `public/` that SHADOW a CMS-generated document, given the directory's entries.
+ *
+ * `public/` is copied over the built output, so a file placed there wins against the page the app
+ * generates — silently, and only on the live site. Two names can do that here:
+ *
+ * - `robots.txt` shadows `src/pages/robots.txt.ts` (core/robots.ts), the route that advertises the
+ *   sitemap index;
+ * - `sitemap.xml` shadows nothing this script writes (it writes `sitemap-index.xml` and
+ *   `sitemap-<code>.xml`) but is what a crawler looks for by convention, so a stale hand-written
+ *   copy there outranks the CMS's in practice.
+ *
+ * Measured, not hypothetical: kaffemaskin-til-bedrift carried both from 2026-08-19, so its live
+ * robots.txt advertised `https://www.kaffemaskin-til-bedrift.no/sitemap.xml` — a host that does
+ * not resolve — while the CMS's own `sitemap-index.xml` was served correctly and never mentioned.
+ *
+ * Pure and exported so the rule can be asserted without a filesystem: it takes names, not a path.
+ */
+export function shadowingFiles(names) {
+  const shadows = ['robots.txt', 'sitemap.xml']
+
+  return names.filter((name) => shadows.includes(name))
+}
+
+/**
+ * Refuse the build when `public/` shadows a CMS document.
+ *
+ * A refusal, not a warning, and BEFORE `astro build`: the previous release stays live (same shape
+ * as verify-block-coverage), and the repo owner has to delete the file — the build cannot, because
+ * `public/` is where a site legitimately keeps its own assets and deleting from it would be this
+ * script reaching past its own outputs (see isSitemapArtifact).
+ */
+async function assertNothingShadowsTheCms() {
+  let names
+  try {
+    names = await readdir(OUT_DIR)
+  } catch {
+    return // no public/ at all
+  }
+
+  const shadowing = shadowingFiles(names)
+
+  if (shadowing.length > 0) {
+    throw new Error(
+      `public/${shadowing.join(' and public/')} shadows the CMS-generated one. `
+      + '`public/` is copied over the built output, so this file wins against the route the app '
+      + 'generates and the site serves a hand-written copy instead — robots.txt would advertise '
+      + 'whatever sitemap URL it happens to contain. Delete it from the repo; the CMS builds both.',
+    )
+  }
+}
+
+/**
  * Delete this script's previous outputs from `public/`.
  *
  * `public/` is a build INPUT that survives between deploys, so writing nothing is not the same
@@ -122,6 +174,10 @@ async function removeStaleSitemaps() {
 }
 
 async function main() {
+  // First, and in mock mode too: a shadowing file is a repo defect that has nothing to do with
+  // the backend, and a mock build is exactly where a starter change would introduce one.
+  await assertNothingShadowsTheCms()
+
   // A mock build has no backend by definition; it also publishes nothing, so there is no
   // sitemap to be stale. Every other build must produce real files or fail.
   if (MOCK_MODE) {
