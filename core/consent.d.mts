@@ -6,8 +6,9 @@
 // declarations. core/analytics.ts imports the two constants from here, so unlike redirects this
 // file is also read inside this tree.
 //
-// A `.mjs` pairs with `.d.mts`, not `.d.ts`. Keep the two in sync by hand: nothing checks this
-// file against the source.
+// A `.mjs` pairs with `.d.mts`, not `.d.ts`. Keep the two in sync by hand — a declaration WINS
+// module resolution, so an export missing here does not exist for any consumer (#2346).
+// tests/declarations.test.ts asserts the two lists match.
 
 /** The consent cookie's name — the same string the superseded localStorage key used. */
 export declare const CONSENT_COOKIE_NAME: string

@@ -1,8 +1,18 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
-import { cmsFonts, toFontFamilies, BRAND_FONT_CSS_VARIABLE, BODY_FONT_CSS_VARIABLE } from '../core/fonts.mjs'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import {
+  cmsFonts,
+  toFontFamilies,
+  fallbackFamilyName,
+  fallbackFontFaceCss,
+  BRAND_FONT_CSS_VARIABLE,
+  BODY_FONT_CSS_VARIABLE,
+  BRAND_FONT_FALLBACK_CSS_DEFINE,
+} from '../core/fonts.mjs'
+import { FONT_FALLBACK_METRICS } from '../core/font-fallback-metrics.mjs'
 
 // dashboard #1485 — the client's brand font has to survive the trip from /api/branding into
 // `config.fonts`, and NOTHING about it may take a deploy down. Both halves are covered here
@@ -16,14 +26,24 @@ const PROVIDER = { name: 'google-stub' }
 
 /** What GET /api/branding returns for a client that has picked Courier Prime and no body face. */
 function branding(
-  primary: unknown = { family: 'Courier Prime', weights: [400, 700], fallbacks: ['ui-monospace', 'monospace'], provider: 'google' },
+  primary: unknown = {
+    family: 'Courier Prime',
+    weights: [400, 700],
+    fallbacks: ['ui-monospace', 'monospace'],
+    provider: 'google',
+  },
   body: unknown = null,
 ) {
   return { brand_name: 'Example', fonts: { primary, body } }
 }
 
 /** A body-face payload, the shape BrandFonts::resolve() publishes it in. */
-const INTER_BODY = { family: 'Inter', weights: [400, 600, 700], fallbacks: ['ui-sans-serif', 'system-ui', 'sans-serif'], provider: 'google' }
+const INTER_BODY = {
+  family: 'Inter',
+  weights: [400, 600, 700],
+  fallbacks: ['ui-sans-serif', 'system-ui', 'sans-serif'],
+  provider: 'google',
+}
 
 /** The same role as a VARIABLE family: the whole axis beside the discrete list (#1549). */
 const INTER_VARIABLE = { ...INTER_BODY, weight_range: '100 900' }
@@ -36,11 +56,25 @@ describe('toFontFamilies()', () => {
         name: 'Courier Prime',
         cssVariable: '--font-primary',
         weights: [400, 700],
-        fallbacks: ['ui-monospace', 'monospace'],
+        // A catalog family: core's per-weight fallback first, Astro's generated one off (#2347).
+        fallbacks: ['Courier Prime Core Fallback', 'ui-monospace', 'monospace'],
+        optimizedFallbacks: false,
         subsets: ['latin', 'latin-ext'],
         styles: ['normal'],
       },
     ])
+  })
+
+  it('leaves a family core has no fallback metrics for exactly as before', () => {
+    // Not in the CMS catalog, so not in font-fallback-metrics.mjs: Astro's generated fallback
+    // stays, and the CMS stack is passed through untouched.
+    const [family] = toFontFamilies(
+      branding({ family: 'Comic Neue', weights: [400], fallbacks: ['cursive'], provider: 'google' }),
+      PROVIDER,
+    )
+
+    expect(family.fallbacks).toEqual(['cursive'])
+    expect(family).not.toHaveProperty('optimizedFallbacks')
   })
 
   it('registers the variable core actually reads', () => {
@@ -90,14 +124,18 @@ describe('toFontFamilies()', () => {
     // The 9 static families in the catalog, where a range WOULD expand to every instance in it —
     // and any payload from a backend that predates the field.
     expect(toFontFamilies(branding(INTER_BODY), PROVIDER)[0].weights).toEqual([400, 600, 700])
-    expect(toFontFamilies(branding({ ...INTER_BODY, weight_range: null }), PROVIDER)[0].weights).toEqual([400, 600, 700])
+    expect(toFontFamilies(branding({ ...INTER_BODY, weight_range: null }), PROVIDER)[0].weights).toEqual([
+      400, 600, 700,
+    ])
   })
 
   it('ignores a weight range it cannot read as one', () => {
     // Two numbers and a space is the whole grammar unifont accepts; anything else would reach
     // Google as a family it does not publish and cost the client its font.
     for (const bad of ['100..900', '100', 'thin bold', '', ' ', 100]) {
-      expect(toFontFamilies(branding({ ...INTER_BODY, weight_range: bad }), PROVIDER)[0].weights).toEqual([400, 600, 700])
+      expect(toFontFamilies(branding({ ...INTER_BODY, weight_range: bad }), PROVIDER)[0].weights).toEqual([
+        400, 600, 700,
+      ])
     }
   })
 
@@ -125,10 +163,19 @@ describe('toFontFamilies()', () => {
   it('falls back to Astro-shaped defaults for a payload with no weights or fallbacks', () => {
     // What a panel older than the weight/fallback fields would answer. A plain regular face is a
     // worse font, not a broken site.
-    const [family] = toFontFamilies(branding({ family: 'Inter' }), PROVIDER)
+    // A family outside the catalog, so core's own fallback does not enter into it.
+    const [family] = toFontFamilies(branding({ family: 'Comic Neue' }), PROVIDER)
 
     expect(family.weights).toEqual([400])
     expect(family).not.toHaveProperty('fallbacks')
+  })
+
+  it('puts sans-serif after core fallback when a catalog payload has no stack of its own', () => {
+    // Astro's own default stack is `['sans-serif']`; with core's family prepended it has to be
+    // spelled out, or the stack would end on a family that only exists where Arial does.
+    const [family] = toFontFamilies(branding({ family: 'Inter' }), PROVIDER)
+
+    expect(family.fallbacks).toEqual(['Inter Core Fallback', 'sans-serif'])
   })
 
   it('sorts, de-duplicates and discards nonsense weights', () => {
@@ -211,13 +258,29 @@ describe('cmsFonts()', () => {
             name: 'Courier Prime',
             cssVariable: '--font-primary',
             weights: [400, 700],
-            fallbacks: ['ui-monospace', 'monospace'],
+            fallbacks: ['Courier Prime Core Fallback', 'ui-monospace', 'monospace'],
+            optimizedFallbacks: false,
             subsets: ['latin', 'latin-ext'],
             styles: ['normal'],
           },
         ],
+        // BrandFont.astro's per-weight fallback faces, as a build-time constant (#2347).
+        vite: { define: { [BRAND_FONT_FALLBACK_CSS_DEFINE]: JSON.stringify(fallbackFontFaceCss('Courier Prime')) } },
       },
     ])
+  })
+
+  it("hands BrandFont each registered family's fallback faces once, even when both roles share it", async () => {
+    stubEnv()
+    stubFetch(() => Response.json({ success: true, data: branding(INTER_BODY, INTER_BODY) }), servable, servable)
+
+    const { updates, args } = hookArgs()
+    await setup(args)
+
+    const css = JSON.parse(
+      (updates[0] as { vite: { define: Record<string, string> } }).vite.define[BRAND_FONT_FALLBACK_CSS_DEFINE],
+    )
+    expect(css).toBe(fallbackFontFaceCss('Inter'))
   })
 
   it('preflights the family with the weights it is about to request', async () => {
@@ -271,14 +334,20 @@ describe('cmsFonts()', () => {
     // dashboard #1521. Two families, two preflights, two variables — and the order the roles are
     // declared in, which is what decides nothing here but is asserted so a reshuffle is visible.
     stubEnv()
-    const fetch = stubFetch(() => Response.json({ success: true, data: branding(undefined, INTER_BODY) }), servable, servable)
+    const fetch = stubFetch(
+      () => Response.json({ success: true, data: branding(undefined, INTER_BODY) }),
+      servable,
+      servable,
+    )
 
     const { updates, args } = hookArgs()
     await setup(args)
 
     const registered = updates[0].fonts as Array<Record<string, unknown>>
     expect(registered.map((f) => f.cssVariable)).toEqual(['--font-primary', '--font-body'])
-    expect(fetch.mock.calls[1][0]).toBe('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap')
+    expect(fetch.mock.calls[1][0]).toBe(
+      'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap',
+    )
     expect(fetch.mock.calls[2][0]).toBe('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap')
   })
 
@@ -366,5 +435,57 @@ describe('cmsFonts()', () => {
 
     expect(updates).toEqual([])
     expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('ASTRO_API_URL'))
+  })
+})
+
+// dashboard #2347 — Astro's generated fallback is one size-adjust per family, measured on a
+// variable file's default instance (Thin, for Montserrat), so any other weight painted the wrong
+// width until the brand face arrived and re-wrapped on the swap. Core's own: one face per weight.
+describe('per-weight fallback faces', () => {
+  it('declares one face per weight, regular Arial up to 500 and Arial Bold from 600', () => {
+    const css = fallbackFontFaceCss('Montserrat')
+    const faces = css.match(/@font-face\{[^}]*\}/g) ?? []
+
+    expect(faces).toHaveLength(Object.keys(FONT_FALLBACK_METRICS.Montserrat).length)
+    for (const face of faces) {
+      const weight = Number(/font-weight:(\d+)/.exec(face)![1])
+      expect(face).toContain(`font-family:"${fallbackFamilyName('Montserrat')}"`)
+      expect(face).toContain(weight >= 600 ? 'local("Arial Bold")' : 'local("Arial")')
+      expect(face).not.toContain(weight >= 600 ? 'local("Arial")' : 'local("Arial Bold")')
+    }
+  })
+
+  it("scales each weight on its own, and keeps the brand face's line box", () => {
+    // The measured case: Montserrat 400 needs a larger scale than the Thin instance Astro sized
+    // the whole family from.
+    const m = FONT_FALLBACK_METRICS.Montserrat
+    expect(m[400].sizeAdjust).toBeGreaterThan(m[100].sizeAdjust)
+
+    const face400 = /@font-face\{[^}]*font-weight:400;[^}]*\}/.exec(fallbackFontFaceCss('Montserrat'))![0]
+    const pct = (name: string) => Number(new RegExp(`${name}:([\\d.]+)%`).exec(face400)![1]) / 100
+    expect(pct('size-adjust')).toBeCloseTo(m[400].sizeAdjust, 4)
+    // ascent-override × size-adjust = the brand face's own ascent: same line box either way.
+    expect(pct('ascent-override') * pct('size-adjust')).toBeCloseTo(m[400].ascent, 3)
+    expect(pct('descent-override') * pct('size-adjust')).toBeCloseTo(m[400].descent, 3)
+  })
+
+  it('has nothing for a family outside the table', () => {
+    expect(fallbackFontFaceCss('Comic Neue')).toBe('')
+    expect(fallbackFontFaceCss('constructor')).toBe('')
+  })
+
+  it('covers every family in the CMS catalog, bar the ones it could not measure', () => {
+    // BrandFonts::FAMILIES is the closed list a client can pick from. A family added there and not
+    // to the table silently keeps the old, one-scale fallback — re-run
+    // frontend/scripts/gen-font-fallback-metrics.mjs. Known gaps: files fontkit cannot read.
+    const KNOWN_GAPS = ['IBM Plex Mono']
+    const php = readFileSync(
+      fileURLToPath(new URL('../../../../packages/cms-core/src/Support/BrandFonts.php', import.meta.url)),
+      'utf8',
+    )
+    const catalog = [...php.matchAll(/'name' => '([^']+)', 'category'/g)].map((m) => m[1])
+
+    expect(catalog.length).toBeGreaterThan(0)
+    expect(catalog.filter((name) => !Object.hasOwn(FONT_FALLBACK_METRICS, name))).toEqual(KNOWN_GAPS)
   })
 })

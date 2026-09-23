@@ -27,6 +27,38 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### Brand fonts get a fallback sized per weight — no more re-wrap when the font lands (dashboard#2347)
+
+Until a brand face arrives — on a first visit, ~15–30 ms after the first paint even with the files
+self-hosted and preloaded — text paints in the fallback. Astro's generated fallback
+(`optimizedFallbacks`) is ONE `size-adjust` for the whole family, measured on the file's default
+instance: for a variable Montserrat that is **Thin**. Any other weight painted the wrong width, and
+re-wrapped when the real face swapped in. Measured on rocksoft (Montserrat for both roles): the
+400 hero subheading painted 5.7 % too wide, one line longer, and the page below jumped.
+
+`core/fonts.mjs` now gives every family in the CMS catalog its own fallback: one `@font-face` per
+weight under `"<Family> Core Fallback"`, first in the role's `fallbacks`, drawn in Arial up to 500
+and Arial Bold from 600 (Times New Roman for serif families, Courier New for mono), each scaled so
+the fleet's copy fills the brand face's width at that weight, with the brand face's own ascent and
+descent. `core/BrandFont.astro` inlines the rules in `<head>`; `cmsFonts()` hands them over as a
+Vite `define`. Astro's generated fallback is switched off for those families only.
+
+The metrics are a table, `core/font-fallback-metrics.mjs`, generated offline for all 44 catalog
+families by `frontend/scripts/gen-font-fallback-metrics.mjs` (dev tree only — needs the network,
+the fallback faces' files and `fontkit`, none of which a client installs). No new runtime
+dependency and no network at build time. 43 of 44 are covered; IBM Plex Mono's files cannot be
+read by fontkit and it keeps Astro's fallback, as does any family outside the catalog. A test fails
+when the catalog gains a family the table lacks — re-run the generator.
+
+Measured on rocksoft with this core, cold loads on fast 4G, median of 3 — CLS on the home page:
+**0.105 → 0.011 at 1024 px, 0.126 → 0.001 at 1280, 0.079 → 0.001 at 1440**; summed over eight
+page × width cells 0.341 → 0.036. After the fonts load nothing changes: a computed-style diff of
+seven pages at three widths finds no difference but the font-family string.
+
+**No per-client wiring.** A pin bump is the whole adoption step; a site without a CMS brand font
+renders exactly as before. On a device without Arial (Android) the fallback family is skipped and
+the stack continues as it did.
+
 ### The conformance floor checks that every link is crawlable (rocksoft#363)
 
 A new check in `tests/conformance/quality.spec.js`, over every route: Lighthouse's

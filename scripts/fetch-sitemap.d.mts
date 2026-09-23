@@ -6,8 +6,13 @@
 // import and the client's own check fails, which is exactly how this file came to exist: the
 // starter never hit it, because there the script lives inside the repo where `allowJs` infers it.
 //
-// Hand-written rather than generated: the module is deliberately untyped JavaScript, and four
-// signatures are cheaper to keep honest than a build step that exists solely to emit them.
+// Hand-written rather than generated: the module is deliberately untyped JavaScript, and a handful
+// of signatures are cheaper to keep honest than a build step that exists solely to emit them.
+//
+// It is a DECLARATION, so it WINS against the `.mjs` in module resolution — an export missing
+// here is invisible to every consumer, however plainly the script exports it. `shadowingFiles`
+// arrived in #2339 without a line here, and `astro check` on main went red for every frontend
+// PR until #2346. `tests/declarations.test.ts` now asserts the two lists match.
 
 /** The `<loc>` values of a sitemap index, in document order. */
 export declare function parseSitemapIndex(xml: string): string[]
@@ -23,3 +28,6 @@ export declare function run(): Promise<void>
 
 /** Whether a name in `public/` is one of this script's own outputs (`sitemap-<code>.xml`). */
 export declare function isSitemapArtifact(name: string): boolean
+
+/** The names in `public/` that shadow a CMS-generated document (`robots.txt`, `sitemap.xml`). */
+export declare function shadowingFiles(names: string[]): string[]

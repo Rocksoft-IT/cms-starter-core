@@ -44,11 +44,22 @@ const { preload = false } = Astro.props
 const registered = FONT_ROLES.map(({ cssVariable }) => cssVariable).filter((cssVariable) =>
   Object.hasOwn(fontData, cssVariable),
 )
+
+// The per-weight fallback faces of the registered catalog families (#2347), built by cmsFonts() and
+// handed over as a Vite `define` (BRAND_FONT_FALLBACK_CSS_DEFINE in fonts.mjs). `typeof` because a
+// build that registered no brand font defines nothing, and the bare identifier would then throw.
+// Inline, not a stylesheet: the first paint is what these faces are for.
+declare const __CMS_BRAND_FONT_FALLBACK_CSS__: string | undefined
+const fallbackCss = typeof __CMS_BRAND_FONT_FALLBACK_CSS__ === 'string' ? __CMS_BRAND_FONT_FALLBACK_CSS__ : ''
 ---
 
-{/*
+{fallbackCss && <style is:inline set:html={fallbackCss} />}
+
+{
+  /*
   Preload is opt-in rather than on: the brand faces style headings and body copy, so preloading
   them competes with the LCP image on most of these pages. A site whose hero is typographic passes
   `preload`.
-*/}
+*/
+}
 {registered.map((cssVariable) => <Font cssVariable={cssVariable} preload={preload} />)}

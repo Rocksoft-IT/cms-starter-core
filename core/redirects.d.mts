@@ -7,7 +7,9 @@
 // gate down. So the file that needs this is the one place it could not be tested from.
 //
 // A `.mjs` pairs with `.d.mts`, not `.d.ts` — TypeScript matches the declaration extension to the
-// implementation's. Keep the two in sync by hand: nothing checks this file against the source.
+// implementation's. Keep the two in sync by hand — a declaration WINS module resolution, so an
+// export missing here does not exist for any consumer (#2346). tests/declarations.test.ts asserts
+// the two lists match.
 
 import type { AstroIntegration } from 'astro'
 

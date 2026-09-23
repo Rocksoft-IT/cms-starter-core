@@ -47,6 +47,59 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { FONT_FALLBACK_METRICS } from './font-fallback-metrics.mjs'
+
+// PER-WEIGHT FALLBACKS (dashboard #2347). Until the brand face arrives — on a first visit, ~15-30 ms
+// after the first paint even preloaded — text paints in the fallback, and when the two are not the
+// same width it re-wraps on the swap: layout shift on every first view. Astro's generated fallback
+// (`optimizedFallbacks`) is ONE `size-adjust` for the whole family, measured on the file's default
+// instance — Thin, for a variable Montserrat — so a 400 subheading painted 5.7 % too wide on
+// rocksoft and dropped a line when Montserrat landed. For a family in the CMS catalog, core swaps
+// that for its own: one face per weight, sized from font-fallback-metrics.mjs (generated offline by
+// frontend/scripts/gen-font-fallback-metrics.mjs). A family missing from the table keeps Astro's.
+
+/**
+ * The family core's per-weight fallback faces are declared under: first in the role's `fallbacks`,
+ * defined by the @font-face rules `fallbackFontFaceCss` returns.
+ *
+ * @param {string} name the brand family, as the CMS names it
+ */
+export function fallbackFamilyName(name) {
+  return `${name} Core Fallback`
+}
+
+/**
+ * The @font-face rules for a catalog family's per-weight fallback, or `''` for a family the table
+ * does not know. core/BrandFont.astro inlines them in <head> — the first paint is the one they are
+ * for, so a stylesheet that arrives later would be too late.
+ *
+ * `ascent`/`descent`/`line-gap` are the brand face's own metrics divided by the scale, so the
+ * line box is the brand face's too.
+ *
+ * @param {string} name
+ */
+export function fallbackFontFaceCss(name) {
+  const faces = Object.hasOwn(FONT_FALLBACK_METRICS, name) ? FONT_FALLBACK_METRICS[name] : null
+  if (!faces) return ''
+
+  const pct = (n) => `${(n * 100).toFixed(2)}%`
+  return Object.entries(faces)
+    .map(
+      ([weight, f]) =>
+        `@font-face{font-family:"${fallbackFamilyName(name)}";src:${f.local.map((l) => `local("${l}")`).join(',')};` +
+        `font-weight:${weight};font-style:normal;size-adjust:${pct(f.sizeAdjust)};` +
+        `ascent-override:${pct(f.ascent / f.sizeAdjust)};descent-override:${pct(f.descent / f.sizeAdjust)};` +
+        `line-gap-override:${pct(f.lineGap / f.sizeAdjust)}}`,
+    )
+    .join('')
+}
+
+/**
+ * The Vite `define` BrandFont.astro reads the fallback CSS from. The integration knows which
+ * families the build registered; the component only knows the CSS variables — this carries the one
+ * to the other without a second branding fetch.
+ */
+export const BRAND_FONT_FALLBACK_CSS_DEFINE = '__CMS_BRAND_FONT_FALLBACK_CSS__'
 
 /** Where a mock build reads branding from, relative to the Astro project root. */
 const MOCK_FIXTURE = 'src/fixtures/data/branding.json'
@@ -122,9 +175,10 @@ function toFontFamily(entry, cssVariable, provider) {
   // merely declares them three times, which fences the browser off from weights the file already
   // carries. `weight_range` is read in preference to `weights` for exactly that reason; a backend
   // older than #1549 sends no such key and the discrete list below is what a family registers.
-  const range = typeof role.weight_range === 'string' && /^\d+ \d+$/.test(role.weight_range.trim())
-    ? role.weight_range.trim()
-    : null
+  const range =
+    typeof role.weight_range === 'string' && /^\d+ \d+$/.test(role.weight_range.trim())
+      ? role.weight_range.trim()
+      : null
 
   const weights = Array.isArray(role.weights)
     ? [...new Set(role.weights.map(Number).filter((w) => Number.isInteger(w) && w >= 1 && w <= 1000))].sort(
@@ -145,7 +199,17 @@ function toFontFamily(entry, cssVariable, provider) {
     // building — with a plain regular face and a generic stack, which is a worse font, not a
     // broken site.
     weights: range !== null ? [range] : weights.length > 0 ? weights : [400],
-    ...(fallbacks.length > 0 ? { fallbacks } : {}),
+    // A catalog family gets core's per-weight fallback first and Astro's generated one switched off
+    // (see PER-WEIGHT FALLBACKS above); `sans-serif` stands in for an empty CMS stack, as Astro's
+    // own default does.
+    ...(Object.hasOwn(FONT_FALLBACK_METRICS, name)
+      ? {
+          fallbacks: [fallbackFamilyName(name), ...(fallbacks.length > 0 ? fallbacks : ['sans-serif'])],
+          optimizedFallbacks: false,
+        }
+      : fallbacks.length > 0
+        ? { fallbacks }
+        : {}),
     subsets: SUBSETS,
     // Astro's default is `['normal', 'italic']`, which DOUBLES the download — two subsets times
     // two styles times every weight, so a plain 400/700 family ships eight files instead of
@@ -387,7 +451,10 @@ export function cmsFonts({ baseUrl, token, provider } = {}) {
         // of this: Astro keys a family by cssVariable + name + provider, so the accent script a
         // site self-hosts itself coexists with both CMS roles — and picking one family for both
         // roles is likewise fine, two variables over one cached download.
-        updateConfig({ fonts })
+        // The per-weight fallback faces of every registered catalog family, once per family (both
+        // roles may name the same one), handed to BrandFont.astro as a build-time constant.
+        const fallbackCss = [...new Set(fonts.map((family) => family.name))].map(fallbackFontFaceCss).join('')
+        updateConfig({ fonts, vite: { define: { [BRAND_FONT_FALLBACK_CSS_DEFINE]: JSON.stringify(fallbackCss) } } })
         logger.info(
           `Brand fonts from the CMS: ${fonts.map((f) => `${f.cssVariable} → ${f.name} (${f.weights.join(', ')})`).join(', ')}.`,
         )
