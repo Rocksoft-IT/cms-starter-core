@@ -331,7 +331,7 @@
     },
     "video_section": {
         "label": "Video section",
-        "description": "Embed a video by URL with an optional heading and body copy.",
+        "description": "A video with an optional heading and body copy: embedded inline by URL, or as a poster banner that opens a video lightbox.",
         "icon": "heroicon-o-play-circle",
         "preview": [
             "heading",
@@ -342,8 +342,17 @@
                 "type": "textarea",
                 "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
             },
+            "layout": {
+                "type": "select",
+                "default": "inline",
+                "options": {
+                    "inline": "Inline embed (video player in the page)",
+                    "banner": "Banner (poster that opens a video lightbox)"
+                }
+            },
             "video_url": {
-                "type": "asset_url"
+                "type": "asset_url",
+                "help": "Inline layout: the embed address (for example a Vimeo or YouTube embed link). Banner layout: the video file itself, an H.264 MP4 hosted on this site."
             },
             "eyebrow": {
                 "type": "text"
@@ -356,6 +365,45 @@
             },
             "body": {
                 "type": "textarea"
+            },
+            "video_webm_url": {
+                "type": "asset_url",
+                "label": "WebM video file",
+                "help": "Banner layout only. Optional second source (a WebM file) for browsers that prefer it. The MP4 above is always tried first."
+            },
+            "poster": {
+                "type": "image",
+                "label": "Poster image",
+                "help": "Banner layout only. The picture shown before the video plays, ideally 16:9 (for example 1280 × 720). Without one the banner shows a plain dark panel."
+            },
+            "poster_alt": {
+                "type": "text",
+                "label": "Poster description",
+                "help": "Banner layout only. What the poster shows, for screen readers. Left empty, the heading is used."
+            },
+            "duration": {
+                "type": "text",
+                "help": "Banner layout only. The running time shown on the poster, for example 0:40."
+            },
+            "play_label": {
+                "type": "text",
+                "label": "Play button label",
+                "help": "Banner layout only. The words announced for the play button, for example “Play video”. Left empty, a built-in one is used."
+            },
+            "close_label": {
+                "type": "text",
+                "label": "Close button label",
+                "help": "Banner layout only. The words announced for the lightbox’s close button, for example “Close video”. Left empty, a built-in one is used."
+            },
+            "video_id": {
+                "type": "text",
+                "label": "Video ID",
+                "help": "Banner layout only. A stable name for this video in analytics events, for example koda-showcase-40s. Use the same value in every language."
+            },
+            "event_prefix": {
+                "type": "text",
+                "label": "Analytics event prefix",
+                "help": "Banner layout only. The start of the analytics event names: “koda_video” sends koda_video_open, koda_video_play and koda_video_complete. Left empty, “video” is used."
             },
             "background": {
                 "type": "select",

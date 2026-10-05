@@ -46,6 +46,14 @@ export interface CoreStrings {
    * duplicate announcement.
    */
   videoCard: string
+  /**
+   * The `video_section` banner's play button, close button and no-JavaScript link, when the block's
+   * own `play_label` / `close_label` fields are empty. Announced rather than displayed (the play
+   * label is the button's accessible name; the editor's own words always win).
+   */
+  videoPlay: string
+  videoClose: string
+  videoWatch: string
   /** The carousel's arrows, and the dot that jumps to one slide. */
   previousSlide: string
   nextSlide: string
@@ -84,6 +92,9 @@ const BUILT_IN: Record<string, CoreStrings> = {
     nextTestimonial: 'Next testimonial',
     videoFrame: 'Embedded video',
     videoCard: 'Watch video',
+    videoPlay: 'Play video',
+    videoClose: 'Close video',
+    videoWatch: 'Watch the video',
     previousSlide: 'Previous slide',
     nextSlide: 'Next slide',
     goToSlide: 'Go to slide {n}',
@@ -104,6 +115,9 @@ const BUILT_IN: Record<string, CoreStrings> = {
     nextTestimonial: 'Następna opinia',
     videoFrame: 'Osadzone wideo',
     videoCard: 'Obejrzyj wideo',
+    videoPlay: 'Odtwórz wideo',
+    videoClose: 'Zamknij wideo',
+    videoWatch: 'Obejrzyj wideo',
     previousSlide: 'Poprzedni slajd',
     nextSlide: 'Następny slajd',
     goToSlide: 'Przejdź do slajdu {n}',

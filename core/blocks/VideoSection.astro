@@ -4,6 +4,7 @@ import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 interface Props {
   block: VideoSectionBlock
   /** The locale this page is being built for, from core/BlockRenderer.astro. */
@@ -30,13 +31,166 @@ const sectionId = sectionAnchorId(block.data.anchor_id)
 // client uses this block yet, so there is nothing to repaint and nothing to weigh against
 // removing the duplication.
 const { heading_icon, eyebrow, heading, intro } = block.data
+
+// ── The second presentation: `layout: banner` ─────────────────────────────────────────────────────
+// A poster that opens a native <dialog> lightbox playing a SELF-HOSTED file. It is a value on this
+// block rather than a block of its own because the difference is a look and a behaviour over the
+// same content (frontend/CLAUDE.md: "if the difference you need is only a look, add a value to an
+// existing block's layout/variant enum"). Anything but the literal `banner` — including an absent
+// value, which is every block stored before the field existed — is the inline embed below, whose
+// markup is untouched.
+//
+// WHY A DIALOG AND NOT A PLAYER OF OUR OWN: showModal() gives the focus trap, Escape, the inert
+// background and the focus return for free (the reasoning Gallery.astro spells out). What this adds
+// is only what the platform does not: pausing on close, opening from a link elsewhere on the page,
+// and three analytics events.
+//
+// NOTHING LOADS BEFORE THE CLICK. The <video> carries no <source> and no poster in the HTML — the
+// URLs travel as data-* and are attached on the first open. `preload="none"` alone is not enough:
+// a `poster` attribute is fetched eagerly even inside a closed dialog, and a <source> child invites
+// a metadata request on some engines. Verified by tests/e2e/video-banner.spec.ts, which fails on
+// any video request before the click.
+const isBanner = block.data.layout === 'banner'
+const t = (key: Parameters<typeof coreString>[1]) => coreString(locale, key)
+
+const trim = (v?: string | null) => v?.trim() || undefined
+const videoSrc = trim(block.data.video_url)
+const webmSrc = trim(block.data.video_webm_url)
+const poster = trim(block.data.poster ?? undefined)
+const posterAlt = trim(block.data.poster_alt) ?? trim(heading) ?? ''
+const duration = trim(block.data.duration)
+const headingText = trim(heading)
+const playLabel = trim(block.data.play_label) ?? t('videoPlay')
+const closeLabel = trim(block.data.close_label) ?? t('videoClose')
+// "Play video: Heading, 0:40" - the colon and comma join only what is there, so a block with no
+// heading or no duration never announces a dangling separator.
+const buttonLabel = `${playLabel}${headingText ? `: ${headingText}` : ''}${duration ? `, ${duration}` : ''}`
+const eventPrefix = trim(block.data.event_prefix) ?? 'video'
+const videoId = trim(block.data.video_id) ?? ''
+// A file named .webm as the primary source must not be announced as MP4 - the browser would skip it.
+const primaryType = /\.webm(?:[?#]|$)/i.test(videoSrc ?? '') ? 'video/webm' : 'video/mp4'
+const posterAttrs = responsiveImageAttrs(block.data.poster_meta, IMAGE_SIZES.videoBanner)
+// Reserved either way: the box is `aspect-video`, and width/height let the browser do the same
+// maths before the file arrives. 1280x720 when the API sent no measurements (an SVG, a remote file).
+const posterWidth = posterAttrs.width ?? 1280
+const posterHeight = posterAttrs.height ?? 720
+
+// An id the dialog's accessible name can point at, stable across builds and per block. The anchor
+// is the natural one; without it a short hash of what makes the block this block. Two banners with
+// the same file, heading and no anchor would share it - and a shared aria-labelledby target still
+// names both correctly, it just names them identically, which they already are.
+const hash = (value: string) => {
+  let h = 5381
+  for (let i = 0; i < value.length; i++) h = ((h << 5) + h + value.charCodeAt(i)) | 0
+  return Math.abs(h).toString(36)
+}
+const titleId = `video-dialog-${sectionId ?? hash(`${videoSrc ?? ''}|${headingText ?? ''}`)}`
 ---
 
-<section id={sectionId} class:list={['video-section section-band py-16 px-6', backgroundClass(block.data.background)]}>
-  <div class="max-w-4xl mx-auto">
-    <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
-    <div class="aspect-video">
-      <!--
+{
+  isBanner ? (
+    <section
+      id={sectionId}
+      class:list={[
+        'video-section video-banner section-video-banner section-band',
+        backgroundClass(block.data.background),
+      ]}
+      data-video-banner
+      data-video-anchor={sectionId}
+      data-video-id={videoId}
+      data-video-prefix={eventPrefix}
+      data-video-src={videoSrc}
+      data-video-type={primaryType}
+      data-video-webm={webmSrc}
+      data-video-poster={poster}
+    >
+      <div class="video-banner-inner">
+        {videoSrc && (
+          <div class="video-banner-media">
+            <button
+              type="button"
+              class="video-banner-poster group"
+              data-video-poster
+              aria-label={buttonLabel}
+              aria-haspopup="dialog"
+            >
+              {poster ? (
+                <img
+                  src={poster}
+                  alt={posterAlt}
+                  loading="lazy"
+                  decoding="async"
+                  width={posterWidth}
+                  height={posterHeight}
+                  srcset={posterAttrs.srcset}
+                  sizes={posterAttrs.sizes}
+                />
+              ) : (
+                <span class="video-banner-placeholder" aria-hidden="true" />
+              )}
+              <span class="video-banner-play" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              </span>
+              {duration && (
+                <span class="video-banner-duration" aria-hidden="true">
+                  {duration}
+                </span>
+              )}
+            </button>
+            {/* Without JavaScript the poster is a dead button, so the file itself is offered. Inside
+                <noscript> it costs a script-enabled visitor nothing and needs no hiding trick. */}
+            <noscript>
+              <a class="video-banner-fallback" href={videoSrc}>
+                {t('videoWatch')}
+              </a>
+            </noscript>
+          </div>
+        )}
+        <div class="video-banner-text">
+          <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} align="left" />
+          {block.data.body && <p class="video-banner-body">{block.data.body}</p>}
+        </div>
+      </div>
+      {videoSrc && (
+        <dialog
+          class="video-dialog"
+          data-video-dialog
+          aria-labelledby={headingText ? titleId : undefined}
+          aria-label={headingText ? undefined : posterAlt || playLabel}
+        >
+          {headingText && (
+            <span id={titleId} class="sr-only">
+              {headingText}
+            </span>
+          )}
+          <button type="button" class="video-dialog-close" data-video-close aria-label={closeLabel}>
+            <svg
+              viewBox="0 0 24 24"
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+            </svg>
+          </button>
+          <video class="video-dialog-player" controls muted playsinline preload="none" />
+        </dialog>
+      )}
+    </section>
+  ) : (
+    <section
+      id={sectionId}
+      class:list={['video-section section-band py-16 px-6', backgroundClass(block.data.background)]}
+    >
+      <div class="max-w-4xl mx-auto">
+        <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
+        <div class="aspect-video">
+          {/*
         `title` is what a screen reader announces this frame AS. Without it the listener is told
         that something is embedded and nothing about what (WCAG 2.1 4.1.2) — the state this block
         shipped in until diligently-dashboard#1791, on every site that renders it.
@@ -47,13 +201,292 @@ const { heading_icon, eyebrow, heading, intro } = block.data
         The fallback comes from core's own string seam, not a literal: it is ANNOUNCED rather than
         displayed, so an English word here reaches exactly the users who cannot see that it is the
         wrong language — which is the failure ui-strings.ts was built to close.
-      -->
-      <iframe
-        src={block.data.video_url}
-        title={heading?.trim() || coreString(locale, 'videoFrame')}
-        class="w-full h-full rounded-lg"
-        allowfullscreen></iframe>
-    </div>
-    {block.data.body && <p class="mt-6 text-lg">{block.data.body}</p>}
-  </div>
-</section>
+      */}
+          <iframe
+            src={block.data.video_url}
+            title={heading?.trim() || coreString(locale, 'videoFrame')}
+            class="w-full h-full rounded-lg"
+            allowfullscreen
+          />
+        </div>
+        {block.data.body && <p class="mt-6 text-lg">{block.data.body}</p>}
+      </div>
+    </section>
+  )
+}
+
+<style is:global>
+  /* GLOBAL, not scoped, on purpose: Astro's scoping stamps a `data-astro-cid-*` attribute on every
+     element in this file's template, which would change the INLINE layout's markup - and that
+     layout is promised to stay exactly as it was. The class names below are all `video-dialog*`,
+     so nothing outside this block can match. Wrapped in `@layer core` so a site's plain rule beats
+     it (styling contract, seam 3). Only what a shortcut cannot say lives here: the dialog's size, which is a clamp of three
+     viewport terms, and the open/close motion, which is a keyframe. */
+  @layer core {
+    /* 16:9, never wider than the viewport minus a 16px gutter each side, and never TALLER than 90%
+       of the viewport - so the height limit is applied through the width (`90dvh * 16/9`). A
+       `max-height` on a 16:9 box would instead crop the video or letterbox it; this keeps the
+       frame whole on a landscape phone. `--video-lightbox-width` is the site's seam for the cap. */
+    .video-dialog {
+      width: min(calc(100vw - 32px), var(--video-lightbox-width, 1100px), calc(90dvh * 16 / 9));
+      aspect-ratio: 16 / 9;
+    }
+    /* Motion only for people who have not asked for less. Closing is driven by a data attribute the
+       script sets and a timer it owns - never `transitionend`, which does not fire when the
+       animation is skipped (a hidden tab, a reduced-motion toggle mid-flight). */
+    @media (prefers-reduced-motion: no-preference) {
+      .video-dialog[open] {
+        animation: video-dialog-in 150ms ease-out both;
+      }
+      .video-dialog[open]::backdrop {
+        animation: video-backdrop-in 150ms ease-out both;
+      }
+      .video-dialog[open][data-closing] {
+        animation: video-dialog-out 150ms ease-in both;
+      }
+      .video-dialog[open][data-closing]::backdrop {
+        animation: video-backdrop-out 150ms ease-in both;
+      }
+    }
+    @keyframes video-dialog-in {
+      from {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+    @keyframes video-dialog-out {
+      from {
+        opacity: 1;
+        transform: none;
+      }
+      to {
+        opacity: 0;
+        transform: scale(0.96);
+      }
+    }
+    @keyframes video-backdrop-in {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+    @keyframes video-backdrop-out {
+      from {
+        opacity: 1;
+      }
+      to {
+        opacity: 0;
+      }
+    }
+  }
+</style>
+
+<script>
+  // ONE small module for every banner on the page. It is bundled and deferred by Astro, so a page
+  // with no banner ships none of it, and a page with three ships it once.
+  //
+  // Everything is scoped by the banner's own root element - there is no global state besides the
+  // anchor -> controller map that the delegated listener needs, and that lives in this module's
+  // closure, not on `window`.
+  type Placement = 'banner' | 'link'
+  interface Controller {
+    open: (placement: Placement, opener: HTMLElement | null) => void
+  }
+
+  const controllers = new Map<string, Controller>()
+  const CLOSE_MS = 150
+
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  function bind(root: HTMLElement) {
+    // Idempotent: a re-run (a hot reload, a script evaluated twice) must not stack a second set of
+    // listeners on the same dialog, or one click would open it - and count it - twice.
+    if (root.dataset.videoBound) return
+    root.dataset.videoBound = ''
+
+    const dialog = root.querySelector<HTMLDialogElement>('[data-video-dialog]')
+    const video = dialog?.querySelector<HTMLVideoElement>('video')
+    const posterButton = root.querySelector<HTMLButtonElement>('[data-video-poster]')
+    if (!dialog || !video || !posterButton) return
+
+    const data = root.dataset
+    const videoSrc = data.videoSrc
+    const videoType = data.videoType
+    const videoWebm = data.videoWebm
+    const videoPoster = data.videoPoster
+    const videoId = data.videoId ?? ''
+    const videoPrefix = data.videoPrefix || 'video'
+    const videoAnchor = data.videoAnchor
+
+    // A browser that cannot open a modal <dialog> would trap nothing and swallow Escape. The poster
+    // then simply goes to the file, which is what the no-JS link does too.
+    if (typeof dialog.showModal !== 'function') {
+      posterButton.addEventListener('click', () => {
+        if (videoSrc) window.location.assign(videoSrc)
+      })
+      return
+    }
+
+    let placement: Placement = 'banner'
+    let opener: HTMLElement | null = null
+    let played = false
+    let closing: number | undefined
+    let pressedOnBackdrop = false
+
+    const track = (name: 'open' | 'play' | 'complete') => {
+      // Tracking must never be able to break the player: a blocked or replaced dataLayer, a
+      // frozen array, a throwing listener on push - none of it may surface.
+      try {
+        const w = window as unknown as { dataLayer?: unknown[] }
+        const layer = (w.dataLayer ??= [])
+        const payload: Record<string, unknown> = {
+          event: `${videoPrefix}_${name}`,
+          video_id: videoId,
+          placement,
+          locale: document.documentElement.lang || '',
+        }
+        if (Number.isFinite(video.duration) && video.duration > 0) payload.duration_seconds = Math.round(video.duration)
+        layer.push(payload)
+      } catch {
+        /* intentionally silent */
+      }
+    }
+
+    // The files are attached on the FIRST open, not rendered: a <source> or a `poster` in the HTML
+    // is a request the visitor never asked for.
+    const attachSources = () => {
+      if (video.querySelector('source') || !videoSrc) return
+      const add = (src: string, type: string) => {
+        const source = document.createElement('source')
+        source.src = src
+        source.type = type
+        video.append(source)
+      }
+      // MP4 first, then WebM: Safari on iOS stops at the first source it recognises and is happy
+      // with H.264, while a browser that prefers WebM simply skips an MP4 it likes less.
+      add(videoSrc, videoType || 'video/mp4')
+      if (videoWebm) add(videoWebm, 'video/webm')
+      if (videoPoster) video.poster = videoPoster
+      video.load()
+    }
+
+    const open = (via: Placement, from: HTMLElement | null) => {
+      if (dialog.open) return
+      placement = via
+      opener = from
+      played = false
+      attachSources()
+      dialog.showModal()
+      track('open')
+      // Inside the click's user gesture, which is what allows playback. It is `muted`, so the
+      // autoplay policy would let it start anyway; a rejection (data saver, no codec) is not an
+      // error worth surfacing - the controls are right there.
+      video.play()?.catch(() => {})
+    }
+
+    const requestClose = () => {
+      if (!dialog.open || closing !== undefined) return
+      if (reducedMotion()) {
+        dialog.close()
+        return
+      }
+      dialog.setAttribute('data-closing', '')
+      closing = window.setTimeout(() => dialog.close(), CLOSE_MS)
+    }
+
+    // Every route out ends here - the X, Escape, the backdrop, a direct dialog.close().
+    dialog.addEventListener('close', () => {
+      window.clearTimeout(closing)
+      closing = undefined
+      dialog.removeAttribute('data-closing')
+      video.pause()
+      try {
+        video.currentTime = 0
+      } catch {
+        /* no metadata yet: nothing to rewind */
+      }
+      // The platform returns focus to the element focused at open, but Safari does not focus a
+      // link or button on click, so the opener is restored explicitly.
+      if (opener?.isConnected) opener.focus()
+      opener = null
+    })
+
+    // Escape is intercepted only to give the close its exit animation; the outcome is the same.
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault()
+      requestClose()
+    })
+
+    dialog.querySelector('[data-video-close]')?.addEventListener('click', requestClose)
+
+    // The dialog IS the backdrop as far as events go. A drag that starts on the video (scrubbing)
+    // and ends outside it fires a click on the dialog too, so the press must have started there.
+    dialog.addEventListener('pointerdown', (event) => {
+      pressedOnBackdrop = event.target === dialog
+    })
+    dialog.addEventListener('click', (event) => {
+      if (event.target !== dialog || !pressedOnBackdrop) return
+      const box = dialog.getBoundingClientRect()
+      const inside =
+        event.clientX >= box.left &&
+        event.clientX <= box.right &&
+        event.clientY >= box.top &&
+        event.clientY <= box.bottom
+      if (!inside) requestClose()
+    })
+
+    // Native media events, no player library: the first `play` after each open, and `ended`.
+    video.addEventListener('play', () => {
+      if (played) return
+      played = true
+      track('play')
+    })
+    video.addEventListener('ended', () => track('complete'))
+
+    posterButton.addEventListener('click', () => open('banner', posterButton))
+
+    if (videoAnchor) controllers.set(videoAnchor, { open })
+  }
+
+  // Any <a href="#anchor"> on this page or element with data-video-open="anchor" opens the banner
+  // whose anchor_id matches. One delegated listener, so links added later work and nothing is bound
+  // per link. Loading the page WITH the hash opens nothing - no autoplay on arrival; the browser
+  // just scrolls to the banner.
+  function anchorOf(target: Element): { id: string; el: HTMLElement } | undefined {
+    const explicit = target.closest<HTMLElement>('[data-video-open]')
+    if (explicit?.dataset.videoOpen) return { id: explicit.dataset.videoOpen, el: explicit }
+
+    const link = target.closest<HTMLAnchorElement>('a[href*="#"]')
+    if (!link) return undefined
+    const url = new URL(link.href, window.location.href)
+    if (url.origin !== window.location.origin || url.pathname !== window.location.pathname) return undefined
+    if (url.search !== window.location.search || url.hash.length < 2) return undefined
+    return { id: decodeURIComponent(url.hash.slice(1)), el: link }
+  }
+
+  let delegated = false
+  function delegate() {
+    if (delegated) return
+    delegated = true
+    document.addEventListener('click', (event) => {
+      if (event.defaultPrevented || event.button !== 0) return
+      // A modified click means "open this link somewhere else"; leave the browser to it.
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+      if (!(event.target instanceof Element)) return
+      const hit = anchorOf(event.target)
+      const controller = hit && controllers.get(hit.id)
+      if (!hit || !controller) return
+      event.preventDefault()
+      controller.open('link', hit.el)
+    })
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-video-banner]').forEach(bind)
+  delegate()
+</script>

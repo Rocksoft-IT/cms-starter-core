@@ -557,11 +557,21 @@ export interface VideoSectionBlock {
   type: 'video_section'
   data: {
     heading_icon?: string
+    layout?: 'inline' | 'banner'
     video_url?: string
     eyebrow?: string
     heading?: string
     intro?: string
     body?: string
+    video_webm_url?: string
+    poster?: string | null
+    poster_meta?: ResponsiveImageMeta
+    poster_alt?: string
+    duration?: string
+    play_label?: string
+    close_label?: string
+    video_id?: string
+    event_prefix?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
     anchor_id?: string
   }

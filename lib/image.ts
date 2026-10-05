@@ -53,6 +53,8 @@ export const IMAGE_SIZES = {
    * approximate where a 240px floor yields two columns and then four.
    */
   gridTile: '(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw',
+  /** The `video_section` banner's poster: ~60% of the container from `lg` up, full width below. */
+  videoBanner: '(min-width: 1024px) 60vw, 100vw',
   /**
    * A card thumbnail on the teaser grid, which is `grid-cols-1 md:grid-cols-3` — ONE jump, at
    * 768px, with no two-column state ever. An intermediate 50vw step would under-declare the tile

@@ -909,6 +909,54 @@ export const coreShortcuts: Record<string, string> = {
     '[&>svg]:w-7 [&>svg]:h-7 [&>svg]:ml-[2px]',
   'video-card-label': 'font-semibold text-text-primary',
 
+  // ── Video section, banner layout (VideoSection.astro, `layout: banner`) ─────
+  // A poster on one side and the header cluster on the other: ~60/40 from `lg` up, stacked below it
+  // with the poster FIRST (source order is the visual order, so the focus order matches).
+  'section-video-banner': 'section-y',
+  'video-banner-inner':
+    'container-global grid grid-cols-1 gap-8 items-center ' + 'lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)] lg:gap-12',
+  'video-banner-media': 'flex flex-col gap-3 min-w-0',
+  // A <button>, so it is reachable and operable from the keyboard and announced as something you
+  // activate. `aspect-video` reserves the box before the image arrives (no layout shift); `group`
+  // lets the play circle react to the BUTTON's hover, press and focus. 44px+ target by construction.
+  'video-banner-poster':
+    'relative block w-full p-0 m-0 border-0 rounded-[14px] overflow-hidden aspect-video ' +
+    'bg-secondary cursor-pointer select-none ' +
+    '[&>img]:absolute [&>img]:inset-0 [&>img]:w-full [&>img]:h-full [&>img]:object-cover ' +
+    'focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-4 focus-visible:outline-primary',
+  // No poster: a plain panel in the brand's dark colour, so the play circle still has a stage.
+  'video-banner-placeholder': 'absolute inset-0 bg-secondary',
+  // 72px circle in the brand colour with a DARK glyph. White on a light brand blue fails the 3:1
+  // non-text contrast (white on #51B6E0 is 2.3:1; black on it is 9.1:1) and black still passes on
+  // the neutral palette's #3b5aff (4.1:1). `text-black` rather than a text-role token because the
+  // band modifiers re-map those roles to LIGHT on dark and brand bands, and the circle sits on the
+  // poster, not on the band. A site with a dark brand colour redefines this key.
+  'video-banner-play':
+    'absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center justify-center ' +
+    'w-[72px] h-[72px] rounded-full bg-primary text-black shadow-[0_4px_16px_rgba(0,0,0,0.35)] ' +
+    'transition-transform duration-200 motion-reduce:transition-none ' +
+    'group-hover:scale-110 group-active:scale-95 [&>svg]:w-8 [&>svg]:h-8 [&>svg]:ml-[3px]',
+  'video-banner-duration':
+    'absolute right-3 bottom-3 px-2.5 py-1 rounded-full bg-black/70 text-white ' +
+    'text-[14px] font-semibold leading-none tabular-nums',
+  'video-banner-fallback': 'text-primary underline',
+  // The header is the shared SectionHeader, left-aligned; its bottom margin (it expects content
+  // below) would just push the body away from the heading here.
+  'video-banner-text': 'flex flex-col gap-4 items-start text-left min-w-0 [&_.section-header]:mb-0',
+  'video-banner-body': 'm-0 text-lg',
+  // The lightbox. Size and motion are in VideoSection.astro's scoped CSS (a viewport clamp is not a
+  // utility). `max-w-none max-h-none` retire the UA's own dialog clamp, which would otherwise
+  // fight the 16:9 maths; `m-auto` + the UA's fixed `inset: 0` keep it centred.
+  'video-dialog':
+    'p-0 m-auto border-0 rounded-[14px] overflow-hidden bg-black text-white max-w-none max-h-none ' +
+    '[&::backdrop]:bg-black/80',
+  'video-dialog-player': 'block w-full h-full bg-black object-contain',
+  // 44px, top right, over the frame. Native controls live at the bottom, so it never covers them.
+  'video-dialog-close':
+    'absolute top-3 right-3 z-10 flex items-center justify-center w-11 h-11 border-0 rounded-full ' +
+    'bg-black/60 text-white cursor-pointer hover:bg-black/80 active:bg-black ' +
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white',
+
   // ── CTA banner block ──────────────────────────────────────────────────────
   // The fill is the shared band's now, not this block's (#1933). `section-band` + the `is-dark`
   // the renderer defaults to resolve to `background-color: #000; color: #fff` — the two

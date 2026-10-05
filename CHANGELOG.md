@@ -27,6 +27,50 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### `video_section` gets a second presentation: a poster banner with a video lightbox (`layout: banner`)
+
+`video_section` now takes a `layout` select — `inline` (the default, and what every block stored
+before the field existed renders as) or `banner`. `inline` is unchanged: the same `<iframe>` under
+the header, the same markup. `banner` is a 16:9 poster beside the header cluster (stacked, poster
+first, on a phone) that opens a native `<dialog>` playing a SELF-HOSTED video. It is a `layout`
+value rather than a new block type because the difference is a look and a behaviour of the same
+content (the `layout`/`variant` rule in CLAUDE.md, #1692).
+
+New fields, all optional and read by the banner only (the schema has no conditional visibility, so
+each help text says so): `video_webm_url`, `poster` (an `image`, so
+`set_block_image { field: "poster" }` writes it; resolved to `poster` + `poster_meta`),
+`poster_alt` (falls back to the heading), `duration` (the pill on the poster), `play_label` and
+`close_label` (accessible names, falling back to core's `videoPlay` / `videoClose` strings),
+`video_id` and `event_prefix` (default `video`). `video_url` is now the MP4 in the banner layout.
+
+Behaviour worth knowing before a client relies on it:
+
+- **Nothing is fetched before the click.** The `<video>` ships with no `<source>` and no `poster`;
+  the files are attached on the first open. `preload="none"` alone is not enough, because a
+  `poster` attribute is requested eagerly even inside a closed dialog.
+- **Autoplay only after the click**, muted, inside the gesture. Every way out (X, Escape, backdrop,
+  a direct `dialog.close()`) pauses and rewinds, and returns focus to the opener.
+- **Open it from elsewhere:** any `<a href="#<anchor_id>">` on the same page, or any element with
+  `data-video-open="<anchor_id>"`, opens the lightbox without scrolling. Loading the page WITH the
+  hash opens nothing - no autoplay on arrival.
+- **Analytics, no extra script:** `<prefix>_open` on every open, `<prefix>_play` on the first
+  `play` after each open, `<prefix>_complete` on `ended`, pushed to `window.dataLayer` as
+  `{ event, video_id, placement: 'banner' | 'link', locale, duration_seconds? }`.
+- **Motion** (a 150ms fade and scale) only under `prefers-reduced-motion: no-preference`; closing
+  is driven by a timer, never `transitionend`.
+- **No JavaScript:** a `<noscript>` link to the file.
+
+Styling: new shortcuts `section-video-banner`, `video-banner-*` and `video-dialog*`; the dialog's
+size is `min(100vw - 32px, var(--video-lightbox-width, 1100px), 90dvh * 16/9)`. The play glyph is
+`text-black` on `bg-primary` on purpose: white on a light brand blue fails 3:1 (2.3:1 on #51B6E0)
+and the band modifiers re-map the text roles to light on dark bands. A site with a dark brand
+colour redefines `video-banner-play` in `src/uno.ts`.
+
+Also: three core strings (`videoPlay`, `videoClose`, `videoWatch`) in `ui-strings.ts`, an
+`IMAGE_SIZES.videoBanner` entry, and the block's `description` changed (the Polish picker text in
+`lang/pl.json` changed with it). The one visible difference on a page using the inline layout is
+that a developer comment which used to be emitted as an HTML comment in the output is no longer.
+
 ### Brand fonts get a fallback sized per weight — no more re-wrap when the font lands (dashboard#2347)
 
 Until a brand face arrives — on a first visit, ~15–30 ms after the first paint even with the files
