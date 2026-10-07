@@ -121,7 +121,7 @@ const tracks = [
               </div>
             ) : (
               <div class="hero-2col-track" style={`flex-grow:${track.grow}`}>
-                <BlockRenderer blocks={track.column.blocks} {locale} />
+                <BlockRenderer blocks={track.column.blocks} {locale} heroColumn />
               </div>
             ),
           )}

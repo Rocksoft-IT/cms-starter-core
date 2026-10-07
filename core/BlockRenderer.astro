@@ -3,6 +3,7 @@ import type { Block } from '../types/blocks'
 import { cmsConfig } from '~site/cms.config'
 import { defaultLocale } from './i18n'
 import { PLACEHOLDER_BLOCK_TYPES, isPlaceholderType, type PlaceholderBlockType } from './placeholders'
+import { IMAGE_SIZES } from '../lib/image'
 import { reportUnregisteredBlock } from './unregisteredBlocks'
 
 interface Props {
@@ -21,8 +22,16 @@ interface Props {
    * locale simply do not declare the prop.
    */
   locale?: string
+  /**
+   * Set by a hero for the tracks it lays out beside its own text: the first `image_block` among
+   * `blocks` is above the fold by construction, so it is the page's LCP candidate. It gets
+   * `fetchpriority="high"` and the half-width `sizes` a hero column actually occupies, instead of
+   * the full content-width default (PageSpeed: "LCP request discovery", "Improve image delivery").
+   */
+  heroColumn?: boolean
 }
-const { blocks, locale } = Astro.props
+const { blocks, locale, heroColumn = false } = Astro.props
+const firstImage = heroColumn ? blocks.find((b) => b.type === 'image_block') : undefined
 const loc = locale ?? defaultLocale
 
 const typesNeeded = new Set<string>(blocks.map((b) => b.type))
@@ -64,6 +73,9 @@ const [registry, surfaces]: [Record<string, any>, Partial<Record<PlaceholderBloc
     }
     // Handed to EVERY block, not only the ones core knows need it: a site's own block override is
     // registered through the same registry and has exactly the same problem to solve.
+    if (block === firstImage) {
+      return <Component block={block} locale={loc} priority sizes={IMAGE_SIZES.heroColumn} />
+    }
     return <Component block={block} locale={loc} />
   })
 }

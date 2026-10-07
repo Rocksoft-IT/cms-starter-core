@@ -64,6 +64,8 @@ export const IMAGE_SIZES = {
   teaserCard: '(min-width: 768px) 33vw, 100vw',
   /** One side of a two-column panel: promo_split's photo, quote's portrait. */
   halfPanel: '(min-width: 768px) 50vw, 100vw',
+  /** An image in a multi-column hero's track: at most ~60% of the viewport from `md` up. */
+  heroColumn: '(min-width: 768px) 60vw, 100vw',
   /** An image spanning the content measure, which is most of a wide viewport but not all of it. */
   contentWidth: '(min-width: 1024px) 75vw, 100vw',
   /**

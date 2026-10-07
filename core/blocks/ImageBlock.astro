@@ -17,12 +17,20 @@ import { sanitizeCssValue } from '../../lib/sanitize'
 
 interface Props {
   block: ImageBlock
+  /**
+   * This image is the page's likely LCP element (BlockRenderer sets it for the first image in a
+   * hero column). Adds `fetchpriority="high"` — it is already eager, but without the hint the
+   * browser queues it behind CSS and fonts, which PageSpeed reports as "LCP request discovery".
+   */
+  priority?: boolean
+  /** Overrides the default content-width `sizes` for a slot the caller knows is narrower. */
+  sizes?: string
 }
 
 const MOBILE_BREAKPOINT = 767
 const DESKTOP_BREAKPOINT = 768
 
-const { block } = Astro.props
+const { block, priority = false, sizes = IMAGE_SIZES.contentWidth } = Astro.props
 const {
   src,
   src_meta,
@@ -115,7 +123,8 @@ if (desktopStyles.length > 0) {
         alt={alt}
         class="w-full h-auto block mx-auto"
         style={baseStyle || undefined}
-        {...responsiveImageAttrs(src_meta, IMAGE_SIZES.contentWidth)}
+        fetchpriority={priority ? 'high' : undefined}
+        {...responsiveImageAttrs(src_meta, sizes)}
       />
       {caption && <figcaption class="text-[14px] text-muted text-center mt-3">{caption}</figcaption>}
     </figure>
