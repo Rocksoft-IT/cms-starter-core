@@ -32,6 +32,66 @@ SITE_URL="${SITE_URL:-}"
 commit_sha="${WRAPPER_COMMIT_SHA:-unknown}"
 wrapper_elapsed="${WRAPPER_ELAPSED:-0}"
 
+# $DEPLOY_ROOT/.preview-ref (dashboard client code acceptance): one line `<40-hex sha> <branch>`
+# the panel writes right before it triggers a CODE preview build, asking for that commit to be
+# built instead of the checkout. Consumed (deleted) by EVERY run, before anything else can refuse
+# it: a file left behind must never steer a later, unrelated deploy. It only means something in
+# preview mode (resolved below); a live deploy deletes and ignores it.
+preview_ref_line=""
+preview_ref_found=0
+if [ -f "$DEPLOY_ROOT/.preview-ref" ]; then
+  preview_ref_found=1
+  IFS= read -r preview_ref_line < "$DEPLOY_ROOT/.preview-ref" 2>/dev/null || true
+  rm -f "$DEPLOY_ROOT/.preview-ref"
+fi
+
+# PREVIEW=1 (dashboard preview sessions): the same build, package and verify, but the release is
+# parked behind preview_html and public_html is never touched.
+#
+# The panel opens a SESSION, not a per-build request: while $DEPLOY_ROOT/.preview-mode exists and its
+# epoch has not passed, every deploy that reaches this file — the panel's own build or a GitHub
+# webhook push — is parked. A per-build switch raced with the webhook (which could consume it and flip
+# live mid-session), and the RunCloud deployment script is a frozen contract that cannot carry one
+# anyway. The file belongs to the panel (it removes it when the session ends); the epoch is the
+# safety net, so a panel that died mid-session cannot freeze live forever. An explicit PREVIEW=0/1
+# in the environment wins over the file (manual runs).
+if [ -z "${PREVIEW:-}" ] && [ -f "$DEPLOY_ROOT/.preview-mode" ]; then
+  # First line only, and exactly ten digits (an epoch in SECONDS until 2286): a millisecond value or
+  # an absurdly long number would park every deploy for millennia (or overflow the comparison below
+  # and silently deploy LIVE), so anything else is refused, never guessed at. The read tolerates the
+  # panel removing the file between the test above and here.
+  mode_expiry=""
+  IFS= read -r mode_expiry < "$DEPLOY_ROOT/.preview-mode" 2>/dev/null || true
+  mode_expiry="$(printf '%s' "$mode_expiry" | tr -d '[:space:]')"
+  case "$mode_expiry" in
+    [0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;;
+    *)
+      echo "deploy.sh (core): $DEPLOY_ROOT/.preview-mode must hold one epoch in seconds (10 digits), got '$mode_expiry' — refusing to guess between a preview and a live deploy" >&2
+      exit 1
+      ;;
+  esac
+  if [ "$mode_expiry" -gt "$(date +%s)" ]; then PREVIEW=1; fi
+fi
+# Anything but 0/1 is refused rather than guessed at: a typo like PREVIEW=true must not quietly
+# become a LIVE deploy.
+case "${PREVIEW:-0}" in
+  0 | '') PREVIEW=0 ;;
+  1) ;;
+  *)
+    echo "deploy.sh (core): PREVIEW must be 0 or 1, got '$PREVIEW' — refusing to guess between a preview and a live deploy" >&2
+    exit 1
+    ;;
+esac
+PREVIEW_HTML="$DEPLOY_ROOT/preview_html"
+PREVIEW_MARKER="$DEPLOY_ROOT/.preview-release"
+# Every release parked during the current session, newest last. The preview host can serve any of
+# them (`?build=<release>`), so prune keeps them for as long as the session file exists; once the
+# session ends they age out like any other release.
+PREVIEW_LIST="$DEPLOY_ROOT/.preview-releases"
+PREVIEW_LIST_MAX=10
+# SITE_URL names the LIVE site. A preview has no flip to smoke-test, so it must never probe it.
+if [ "$PREVIEW" = "1" ]; then SITE_URL=""; fi
+
 log() { echo "[$(date +%H:%M:%S)] $*"; }
 
 # Own copy of the wrapper's step tracking: SECONDS restarts at 0 in this
@@ -74,8 +134,105 @@ RELEASE_PATH="$RELEASES_DIR/$RELEASE_NAME"
 # race — so this stays as a cheap, unconditional belt-and-suspenders.
 rm -rf node_modules/.vite
 
+# Code previews (.preview-ref, consumed at the top). The ref is built in a throwaway detached
+# worktree under .preview-src/<release>; the checkout itself, its node_modules and public_html are
+# never touched. Whatever an earlier run left there (killed mid-build, so its trap never ran) is
+# debris: this run holds the wrapper's deploy lock, so no other build can be using it.
+PREVIEW_SRC_ROOT="$DEPLOY_ROOT/.preview-src"
+if [ -d "$PREVIEW_SRC_ROOT" ]; then
+  rm -rf "$PREVIEW_SRC_ROOT"
+  git -C "$DEPLOY_ROOT" worktree prune 2>/dev/null || true
+fi
+preview_ref_sha=""
+if [ "$preview_ref_found" = "1" ] && [ "$PREVIEW" != "1" ]; then
+  # Live is never built from a ref, whatever the file says.
+  log "    .preview-ref ignored (not a preview deploy) and removed"
+elif [ "$preview_ref_found" = "1" ]; then
+  begin "preview ref"
+  # An unusable line fails the preview: falling back to the checkout would show the client a
+  # preview of something other than the change they are about to accept.
+  ref_sha="" ref_branch="" ref_extra=""
+  read -r ref_sha ref_branch ref_extra <<< "$preview_ref_line" || true
+  if ! [[ "$ref_sha" =~ ^[0-9a-f]{40}$ ]] || [ -z "$ref_branch" ] || [ -n "$ref_extra" ] \
+    || [[ "$ref_branch" == -* ]] || [[ "$ref_branch" =~ [^A-Za-z0-9._/-] ]] \
+    || ! git check-ref-format "refs/heads/$ref_branch"; then
+    log "    .preview-ref must be one line '<40-hex sha> <branch>', got '$preview_ref_line' — refusing to build a preview of anything else"
+    exit 1
+  fi
+  # The branch is only how to reach the commit; the sha is what was asked for. A branch that has
+  # moved on since the panel read it would build a commit nobody looked at, so it is refused.
+  git -C "$DEPLOY_ROOT" fetch --quiet --no-tags origin "refs/heads/$ref_branch"
+  fetched="$(git -C "$DEPLOY_ROOT" rev-parse FETCH_HEAD)"
+  if [ "$fetched" != "$ref_sha" ]; then
+    log "    origin/$ref_branch is at $fetched, not the requested $ref_sha — refusing (the branch moved; preview again)"
+    exit 1
+  fi
+  # Dependencies must be exactly the checkout's (defence in depth: the panel already refuses a code
+  # preview whose PR touches them). The ref is then installed OFFLINE from the pnpm store the checkout's
+  # own install filled: nothing new is downloaded, and no package (or install script) runs that the
+  # live site's install has not already run. A change to any manifest, lockfile or package-manager
+  # config needs a developer's review, not a client preview.
+  if ! git -C "$DEPLOY_ROOT" diff --quiet HEAD "$ref_sha" -- \
+    ':(glob)**/package.json' ':(glob)**/pnpm-lock.yaml' ':(glob)**/package-lock.json' ':(glob)**/yarn.lock' \
+    ':(glob)**/.npmrc' ':(glob)**/pnpm-workspace.yaml' ':(glob)**/.pnpmfile.cjs'; then
+    log "    $ref_sha changes dependency files (package.json, a lockfile or package-manager config) against the checkout — refusing: a developer must review that change"
+    exit 1
+  fi
+  preview_src="$PREVIEW_SRC_ROOT/$RELEASE_NAME"
+  # Always removed, whether the build succeeds or not (the ERR trap's exit runs this too).
+  cleanup_preview_src() {
+    cd "$DEPLOY_ROOT" 2>/dev/null || true
+    git -C "$DEPLOY_ROOT" worktree remove --force "$preview_src" >/dev/null 2>&1 || true
+    rm -rf "$preview_src"
+    git -C "$DEPLOY_ROOT" worktree prune 2>/dev/null || true
+  }
+  trap cleanup_preview_src EXIT
+  mkdir -p "$PREVIEW_SRC_ROOT"
+  git -C "$DEPLOY_ROOT" worktree add --quiet --detach "$preview_src" "$ref_sha"
+  # The same frontend dir inside the worktree as in the checkout (frontend/ in the monorepo).
+  preview_frontend="$preview_src${FRONTEND_DIR#"$DEPLOY_ROOT"}"
+  if [ -f "$FRONTEND_DIR/.env" ]; then
+    cp "$FRONTEND_DIR/.env" "$preview_frontend/.env"
+  else
+    log "    WARN     no .env at $FRONTEND_DIR — any build step needing API credentials will fail"
+  fi
+  log "    building $ref_sha ($ref_branch) in .preview-src/$RELEASE_NAME"
+  finish
+  cd "$preview_frontend"
+  # The wrapper's install rule (frozen when a lockfile exists, --no-lockfile otherwise or when it is
+  # stale), but --offline: the dependencies are the checkout's (checked above), so the store already
+  # holds every package and nothing is fetched. Not --ignore-scripts: those are the same install
+  # scripts the live install ran, and packages such as esbuild and sharp need theirs to work.
+  if [ -f pnpm-lock.yaml ]; then
+    begin "pnpm install --frozen-lockfile --offline (preview ref)"
+    if pnpm install --frozen-lockfile --offline; then
+      finish
+    else
+      log "    lockfile does not match package.json — falling back"
+      begin "pnpm install --no-lockfile --offline (preview ref, stale lockfile)"
+      pnpm install --no-lockfile --offline
+      finish
+    fi
+  else
+    begin "pnpm install --no-lockfile --offline (preview ref, no committed lockfile)"
+    pnpm install --no-lockfile --offline
+    finish
+  fi
+  preview_ref_sha="$ref_sha"
+fi
+
+# ASTRO_PREVIEW=1 marks a preview build for a future reader; nothing in core reads it today. A
+# preview release is published as-is, so it must not differ from a live build (no noindex: the
+# preview host withholds itself from search engines instead). A value leaked from the caller's
+# shell is cleared, so only a real preview build ever carries it.
+unset ASTRO_PREVIEW
 begin "pnpm build"
-pnpm build
+if [ "$PREVIEW" = "1" ]; then
+  log "    PREVIEW=1 — preview build, public_html stays where it is"
+  ASTRO_PREVIEW=1 pnpm build
+else
+  pnpm build
+fi
 finish
 
 # Isolate this build into its own release dir. `set -e` means a failed build never
@@ -108,9 +265,23 @@ finish
 
 # Flip atomically. `ln -sfn` replaces the symlink in a single syscall — there is no
 # window where public_html is missing.
-begin "go live"
-ln -sfn "$RELEASE_PATH" "$PUBLIC_HTML"
-log "    public_html -> releases/$RELEASE_NAME"
+if [ "$PREVIEW" = "1" ]; then
+  # Parked, not live. The marker is what the panel reads to learn which release the preview is;
+  # written via a temp file so a reader never sees a half-written name.
+  begin "park preview"
+  ln -sfn "$RELEASE_PATH" "$PREVIEW_HTML"
+  printf '%s\n' "$RELEASE_NAME" > "$PREVIEW_MARKER.tmp"
+  mv "$PREVIEW_MARKER.tmp" "$PREVIEW_MARKER"
+  # The panel empties the list when a session starts. Capped, so a session that builds all
+  # afternoon cannot keep the disk from ever being pruned.
+  { cat "$PREVIEW_LIST" 2>/dev/null || true; printf '%s\n' "$RELEASE_NAME"; } | tail -n "$PREVIEW_LIST_MAX" > "$PREVIEW_LIST.tmp"
+  mv "$PREVIEW_LIST.tmp" "$PREVIEW_LIST"
+  log "    preview_html -> releases/$RELEASE_NAME (public_html untouched: $(readlink "$PUBLIC_HTML" 2>/dev/null || echo 'unset'))"
+else
+  begin "go live"
+  ln -sfn "$RELEASE_PATH" "$PUBLIC_HTML"
+  log "    public_html -> releases/$RELEASE_NAME"
+fi
 
 # Attribute this release to the panel build that triggered it (#701). The panel writes
 # .build-id before Force Deploy; move it to .build-ids/<release> (kept OUTSIDE public_html,
@@ -163,18 +334,42 @@ if [ -n "$SITE_URL" ] && [ -f "$RELEASE_PATH/robots.txt" ]; then
 fi
 finish
 
-# Prune: keep the newest $KEEP_RELEASES, never the currently-live one. `ls -dt`
-# orders newest-first; everything past the keep count is removed. The live release
-# is the one we just flipped to, so guard on $RELEASE_NAME directly.
-live="$RELEASE_NAME"
-# shellcheck disable=SC2012
-ls -1dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n "+$((KEEP_RELEASES + 1))" | while read -r old; do
-  name="$(basename "$old")"
-  [ "$name" = "$live" ] && continue
-  log "    prune releases/$name"
-  rm -rf "$old"
-  rm -f "$DEPLOY_ROOT/.build-ids/$name" # drop the pruned release's build-id tag (#701)
-done
+# Prune: keep the newest $KEEP_RELEASES, never one something still points at. `ls -dt` orders
+# newest-first; everything past the keep count is removed. Protected: this release (live after a
+# live deploy, parked after a preview); whatever public_html serves (a preview deploy has NOT
+# flipped it, so it is no longer this release); and whatever preview_html points at (a live deploy
+# during a preview session must not delete the build the client is looking at); and, while a session
+# file exists, every release parked during that session ($PREVIEW_LIST — the host can serve any).
+protected_live="$RELEASE_NAME"
+prune=1
+if [ "$PREVIEW" = "1" ]; then
+  protected_live="$(basename "$(readlink "$PUBLIC_HTML" 2>/dev/null || true)")"
+  # Nothing to compare against (first deploy, or a platform where ln -s copies): pruning blind
+  # could delete the live release, while keeping one extra costs a few MB.
+  if [ -z "$protected_live" ]; then
+    prune=0
+    log "    prune skipped: cannot tell which release is live"
+  fi
+fi
+protected_preview=""
+if [ -L "$PREVIEW_HTML" ]; then
+  protected_preview="$(basename "$(readlink "$PREVIEW_HTML")")"
+elif [ -f "$PREVIEW_MARKER" ]; then
+  protected_preview="$(cat "$PREVIEW_MARKER")"
+fi
+if [ "$prune" = "1" ]; then
+  # shellcheck disable=SC2012
+  ls -1dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n "+$((KEEP_RELEASES + 1))" | while read -r old; do
+    name="$(basename "$old")"
+    [ "$name" = "$RELEASE_NAME" ] && continue
+    [ "$name" = "$protected_live" ] && continue
+    [ -n "$protected_preview" ] && [ "$name" = "$protected_preview" ] && continue
+    [ -f "$DEPLOY_ROOT/.preview-mode" ] && [ -f "$PREVIEW_LIST" ] && grep -qxF "$name" "$PREVIEW_LIST" && continue
+    log "    prune releases/$name"
+    rm -rf "$old"
+    rm -f "$DEPLOY_ROOT/.build-ids/$name" # drop the pruned release's build-id tag (#701)
+  done
+fi
 
 # One line per deploy, kept OUTSIDE public_html so it is never served. RunCloud's
 # UI keeps only the most recent deploy log, so this is the only thing that can
@@ -183,8 +378,23 @@ done
 # is the TRUE total (wrapper_elapsed + this process's own SECONDS), not just the
 # portion since the handoff.
 total_elapsed=$((wrapper_elapsed + SECONDS))
-printf '%s\trelease=%s\tcommit=%s\tpages=%s\tduration=%ss\n' \
-  "$(date -Iseconds)" "$RELEASE_NAME" "$commit_sha" "$pages" "$total_elapsed" \
+# A preview line carries a trailing mode=preview field; live lines keep their exact old shape so
+# nothing that parses them has to change.
+history_mode=""
+final_tag=""
+if [ "$PREVIEW" = "1" ]; then
+  history_mode=$'\tmode=preview'
+  final_tag=" [preview]"
+fi
+# A code preview (.preview-ref) built another commit than the checkout: commit= names what was
+# really built, and ref= carries the full sha the panel asked for (it matches the build on it).
+if [ -n "$preview_ref_sha" ]; then
+  commit_sha="$(git -C "$DEPLOY_ROOT" rev-parse --short "$preview_ref_sha")"
+  history_mode="$history_mode"$'\tref='"$preview_ref_sha"
+  final_tag="$final_tag ref=$preview_ref_sha"
+fi
+printf '%s\trelease=%s\tcommit=%s\tpages=%s\tduration=%ss%s\n' \
+  "$(date -Iseconds)" "$RELEASE_NAME" "$commit_sha" "$pages" "$total_elapsed" "$history_mode" \
   >> "$DEPLOY_ROOT/.deploy-history"
 
-log "Deployed: $RELEASE_NAME ($commit_sha), $pages page(s), ${total_elapsed}s total"
+log "Deployed: $RELEASE_NAME ($commit_sha), $pages page(s), ${total_elapsed}s total$final_tag"

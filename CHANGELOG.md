@@ -27,6 +27,74 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### `deploy.sh` can build a preview of another commit: `.preview-ref` (code previews)
+
+For the panel's client code acceptance (KODA for Websites v1.1): a client looks at a Cezar PR's exact
+commit on the preview host before accepting it. The panel writes `$DEPLOY_ROOT/.preview-ref` (one line,
+`<40-hex sha> <branch>`) right before it triggers a preview build.
+
+- **Every run consumes the file** (deletes it) first thing, so it can never steer a later deploy.
+- **Preview mode with a valid line:** `git fetch origin refs/heads/<branch>`, refused unless `FETCH_HEAD`
+  is exactly the sha (the branch moved: preview again); a detached `git worktree` at
+  `$DEPLOY_ROOT/.preview-src/<release>`; the checkout's `.env` copied in; `pnpm install --frozen-lockfile --offline`
+  with the wrapper's `--no-lockfile` fallback (also `--offline`); `ASTRO_PREVIEW=1 pnpm build`; the release is verified and
+  parked in `preview_html` exactly like any preview. The worktree is always removed (EXIT trap), and any
+  `.preview-src/*` a killed run left behind is removed by the next deploy (it holds the deploy lock).
+  The checkout, its `node_modules` and `public_html` are never touched.
+- **Not in preview mode:** the file is deleted and ignored (`.preview-ref ignored` in the log). Live is
+  never built from a ref.
+- **An invalid line fails the preview build** (exit 1, nothing parked). It never falls back to the checkout.
+- **Dependencies must equal the checkout's.** A ref whose diff against the checkout's `HEAD` touches any
+  `package.json`, `pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`, `.npmrc`, `pnpm-workspace.yaml` or
+  `.pnpmfile.cjs` (any depth) fails the preview before a worktree exists: such a change needs a developer's
+  review. So the install is `--offline` from the store the live install filled: nothing is downloaded and no
+  package or install script runs that the live site's install has not run. Install scripts are NOT disabled
+  (`--ignore-scripts` would break esbuild and sharp, and they are the same scripts the live install ran).
+  The PR's own source (Astro config, components) still runs at build time, as the site's system user.
+- `.deploy-history`: a ref build's line has `commit=` the short sha of the built commit and a trailing
+  `ref=<full sha>` after `mode=preview`; the last log line ends `[preview] ref=<sha>`. Other lines are unchanged.
+
+The panel detects support from the installed core's `deploy.sh` containing `"$DEPLOY_ROOT/.preview-ref"`
+(as it does for `.preview-mode`) and refuses a code preview (`code_core_too_old`) on an older core. A
+client repo whose `.gitignore` predates this needs `.preview-ref`, `.preview-ref.tmp` and `.preview-src/`
+added (generated repos get them from the template), or a file the wrapper sees before core removes it
+makes the deploy warn that the checkout is not clean. A client picks this up with the next core pin bump.
+
+### `deploy.sh` can build a preview: `PREVIEW=1` parks the release behind `preview_html` instead of going live
+
+For the panel's preview sessions (KODA for Websites). In preview mode (a panel session file, or `PREVIEW=1` for manual runs) the
+build, packaging and verification are unchanged, but the release is linked from
+`$DEPLOY_ROOT/preview_html` and its name written to `$DEPLOY_ROOT/.preview-release`; `public_html` is
+never touched and the live smoke tests are skipped. The build gets `ASTRO_PREVIEW=1` as a hook only: nothing reads it, because a preview release is published as-is
+and must not carry `noindex`; the preview host withholds itself from search engines instead.
+
+Behaviour worth knowing:
+
+- **Only `0` and `1` are accepted.** Any other value refuses to run, so `PREVIEW=true` can never turn
+  into a live deploy.
+- **Prune protects what is pointed at.** A preview deploy keeps whatever `public_html` serves and,
+  when it cannot tell which release that is (first deploy), prunes nothing. A live deploy keeps the
+  release `preview_html` points at.
+- **Every build of a session is kept.** Each parked release is appended to
+  `$DEPLOY_ROOT/.preview-releases` (newest last, at most 10). While `.preview-mode` exists, prune
+  keeps every release listed there, so the preview host can serve any of them
+  (`?build=<release>`). The panel empties the list when a session starts; after the session the
+  releases age out as usual.
+- `deploy.sh` clears a leaked `ASTRO_PREVIEW` before every build.
+- `.deploy-history` lines of a preview end in `mode=preview`; live lines are unchanged. The last log
+  line reads `Deployed: … total [preview]`.
+
+The panel requests a preview for a whole session with `$DEPLOY_ROOT/.preview-mode` (one line: the
+expiry as epoch seconds). While it exists and has not expired, every deploy — the panel's own build or
+a webhook push — is parked as a preview; an expired file is ignored, an unreadable one refuses the
+run. The panel owns the file; core never deletes it. `PREVIEW=0`/`1` in the environment wins over the
+file (manual runs). The file must be one line of exactly 10 digits; anything else refuses the run.
+A client repo whose `.gitignore` predates this needs `preview_html`, `.preview-release`,
+`.preview-release.tmp`, `.preview-mode`, `.preview-mode.tmp`, `.preview-releases` and
+`.preview-releases.tmp` added (generated repos get them from
+the template), or every deploy warns that the checkout is not clean. A client picks this up with the
+next core pin bump.
+
 ### `video_section` gets a second presentation: a poster banner with a video lightbox (`layout: banner`)
 
 `video_section` now takes a `layout` select — `inline` (the default, and what every block stored
