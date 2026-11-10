@@ -2,6 +2,7 @@
 import type { HeadingBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import HeadingIcon from '../HeadingIcon.astro'
 
 interface Props {
@@ -20,7 +21,14 @@ const eyebrow = block.data.eyebrow
 const heading_icon = block.data.heading_icon
 ---
 
-<section id={sectionId} class:list={['section-content section-band', backgroundClass(block.data.background)]}>
+<section
+  id={sectionId}
+  class:list={[
+    'section-content section-band',
+    backgroundClass(block.data.background),
+    textSizeClass(block.data.text_size),
+  ]}
+>
   {/* The band carries rhythm, the child carries the measure — see uno.core.ts (dashboard#1852). */}
   <div class="content-inner">
     <HeadingIcon svg={heading_icon} />

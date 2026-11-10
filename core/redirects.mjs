@@ -24,6 +24,8 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { writeSeoAliases } from './seoAliases.mjs'
+
 /** Where a mock build reads the map from, relative to the Astro project root. */
 const MOCK_FIXTURE = 'src/fixtures/data/redirects.json'
 
@@ -226,6 +228,12 @@ export function cmsRedirects({ baseUrl, token } = {}) {
         // Merged, not assigned: a site may declare redirects of its own in astro.config.mjs.
         updateConfig({ redirects })
         logger.info(`${count} redirect(s) from the CMS.`)
+      },
+      // The one redirect a static build can only express as host config: the legacy
+      // /robots.xml and /sitemap.xml addresses (seoAliases.mjs). Lives on this integration
+      // because every site already registers it, so a pin bump is the whole rollout.
+      'astro:build:done': async ({ dir, logger }) => {
+        await writeSeoAliases(fileURLToPath(dir), logger)
       },
     },
   }

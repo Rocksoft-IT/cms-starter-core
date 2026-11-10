@@ -34,6 +34,7 @@ export interface ColumnsBlock {
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     layout: string
     columns: ResolvedColumn[]
     /**
@@ -74,6 +75,7 @@ export interface HeroBlock {
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     /** The client's own glyph above the eyebrow (dashboard#1968) — raw SVG, forced to
      *  `currentColor` and stripped of its own sizing by `sanitizeIcon()` at render.
      *  Hand-added because codegen skips this interface — see the note above it. */
@@ -163,6 +165,7 @@ export interface TabsBlock {
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     tabs: TabPanel[]
   }
 }
@@ -208,6 +211,7 @@ export interface CarouselBlock {
      *  where panning would read as the text glitching sideways. See config/cms.php on the block. */
     transition?: 'scroll' | 'crossfade'
     background?: string
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
   }
 }
@@ -253,6 +257,7 @@ export interface TestimonialsBlock {
     // config/cms.php). Copied by hand because `pnpm cms:types` skips ref blocks — keep them in
     // step with the config.
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     /** The config has carried this on this block since the part existed; the type was left
      *  behind, so the field the renderer now reads (#1985) was unauthorable in a fixture. */
@@ -330,6 +335,7 @@ export interface PricingTableBlock {
     // $sectionBackground set, which the config has carried since #1152 — the type was left
     // behind there, so `muted`/`brand` failed to type-check while the API accepted them.
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     /** $sectionReveal, hand-copied for the same reason as the pair above (#1985). */
     reveal?: 'default' | 'on' | 'off'
@@ -430,6 +436,7 @@ export interface SectionTeaserBlock {
      *  root <section> in dashboard#1939. Hand-added because codegen skips this interface — see the
      *  note above it. */
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     /** The client's own glyph above the eyebrow (dashboard#1968) — raw SVG, forced to
      *  `currentColor` and stripped of its own sizing by `sanitizeIcon()` at render.
      *  Hand-added because codegen skips this interface — see the note above it. */
@@ -520,6 +527,7 @@ export interface RichContentBlock {
     body?: string
     animation_url?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -544,6 +552,7 @@ export interface HeadingBlock {
     text?: string
     level?: 'h1' | 'h2' | 'h3' | 'h4'
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -573,6 +582,7 @@ export interface VideoSectionBlock {
     video_id?: string
     event_prefix?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -586,6 +596,7 @@ export interface VideosBlock {
     intro?: string
     items?: Array<{ url?: string; label?: string; image?: string | null; image_meta?: ResponsiveImageMeta }>
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -601,6 +612,7 @@ export interface FeaturesBlock {
     intro?: string
     steps?: Array<{ number?: string; title?: string; description?: string }>
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -622,6 +634,7 @@ export interface CtaBannerBlock {
     cta_card_subtitle?: string
     cta_card_href?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
   }
@@ -641,6 +654,7 @@ export interface PromoSplitBlock {
     alt?: string
     reverse?: boolean
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -663,6 +677,7 @@ export interface PricingTeaserBlock {
     footer_label?: string
     footer_href?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     anchor_id?: string
@@ -688,6 +703,7 @@ export interface DocumentsBlock {
     icon?: 'document' | 'folder' | 'download' | 'info' | 'book'
     files?: DocumentEntry[]
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -701,6 +717,7 @@ export interface CardsBlock {
     intro?: string
     layout?: 'tiles' | 'cards' | 'steps' | 'stats' | 'bento'
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     align?: 'default' | 'left' | 'center'
     reveal?: 'default' | 'on' | 'off'
     items?: Array<{
@@ -730,6 +747,7 @@ export interface GalleryBlock {
     note?: string
     images?: Array<{ image?: string | null; image_meta?: ResponsiveImageMeta; alt?: string }>
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -746,6 +764,7 @@ export interface FaqBlock {
     ctas?: Array<{ label?: string; href?: string }>
     items?: Array<{ question?: string; answer?: string }>
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -759,6 +778,7 @@ export interface TeamBlock {
     intro?: string
     members?: Array<{ name?: string; role?: string; photo?: string | null; photo_meta?: ResponsiveImageMeta }>
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -835,6 +855,7 @@ export interface HighlightsBlock {
     links?: Array<{ label?: string; href?: string }>
     footnote?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -853,6 +874,7 @@ export interface QuoteBlock {
     image_meta?: ResponsiveImageMeta
     alt?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -867,6 +889,7 @@ export interface HoursBlock {
     hours?: Array<{ day_label?: string; hours_label?: string }>
     footnote?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -886,6 +909,7 @@ export interface ComparisonTableBlock {
     }>
     ctas?: Array<{ label?: string; href?: string }>
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -899,6 +923,7 @@ export interface MapBlock {
     intro?: string
     map_embed_src?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -915,6 +940,7 @@ export interface ContactBlock {
     phone_display?: string
     phone_e164?: string
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }
@@ -925,6 +951,7 @@ export interface CustomHtmlBlock {
     html?: string
     full_width?: boolean
     background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
     anchor_id?: string
   }
 }

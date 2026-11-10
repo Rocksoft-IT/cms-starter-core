@@ -8,6 +8,7 @@
 import type { TeamBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
 
@@ -28,7 +29,10 @@ function initial(name?: string) {
 }
 ---
 
-<section class:list={['section-team section-band', backgroundClass(background)]} id={sectionId}>
+<section
+  class:list={['section-team section-band', backgroundClass(background), textSizeClass(block.data.text_size)]}
+  id={sectionId}
+>
   <div class="team-inner">
     <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 

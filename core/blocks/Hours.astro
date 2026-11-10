@@ -9,6 +9,7 @@ import type { HoursBlock } from '../../types/blocks'
 import SectionHeader from '../SectionHeader.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 
 interface Props {
   block: HoursBlock
@@ -22,7 +23,10 @@ const sectionId = sectionAnchorId(anchor_id)
 const rows = hours.filter((row) => row.day_label || row.hours_label)
 ---
 
-<section id={sectionId} class:list={['section-hours section-band', backgroundClass(background)]}>
+<section
+  id={sectionId}
+  class:list={['section-hours section-band', backgroundClass(background), textSizeClass(block.data.text_size)]}
+>
   <div class="container-global py-16">
     <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
@@ -39,6 +43,6 @@ const rows = hours.filter((row) => row.day_label || row.hours_label)
       )
     }
 
-    {footnote && <p class="mt-4 text-[0.9rem] text-muted">{footnote}</p>}
+    {footnote && <p class="mt-4 [font-size:calc(0.9rem*var(--type-scale,1))] text-muted">{footnote}</p>}
   </div>
 </section>

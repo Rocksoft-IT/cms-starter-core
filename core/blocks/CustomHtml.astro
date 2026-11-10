@@ -2,6 +2,7 @@
 import type { CustomHtmlBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { hrefContextFor } from '../pathIndex'
 import { localizeHtmlHrefs } from '../../lib/html-hrefs'
 
@@ -23,7 +24,14 @@ const localized = localizeHtmlHrefs(html, await hrefContextFor(locale))
 const sectionId = sectionAnchorId(anchor_id)
 ---
 
-<section id={sectionId} class:list={['section-custom-html section-band py-8', backgroundClass(background)]}>
+<section
+  id={sectionId}
+  class:list={[
+    'section-custom-html section-band py-8',
+    backgroundClass(background),
+    textSizeClass(block.data.text_size),
+  ]}
+>
   {
     /* set:html is intentionally unsanitized — admin is trusted and scripts must be preserved.
       Projects with untrusted editors can opt into sanitization using the sanitize-html dependency. */

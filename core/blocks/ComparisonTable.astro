@@ -18,6 +18,7 @@ import { hrefContextFor } from '../pathIndex'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { usableCtas } from '../../lib/ctas'
 import { coreString, type CoreStrings } from '../ui-strings'
 
@@ -54,7 +55,14 @@ const CELL: Record<NonNullable<CellState>, { mark: string; name: keyof CoreStrin
 const cta = usableCtas(ctas)[0]
 ---
 
-<section id={sectionId} class:list={['section-comparison-table section-band', backgroundClass(background)]}>
+<section
+  id={sectionId}
+  class:list={[
+    'section-comparison-table section-band',
+    backgroundClass(background),
+    textSizeClass(block.data.text_size),
+  ]}
+>
   <div class="container-global py-16">
     <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
 
@@ -67,7 +75,10 @@ const cta = usableCtas(ctas)[0]
                 {heading && <span class="sr-only">{heading}</span>}
               </th>
               {offerings.map((offering) => (
-                <th scope="col" class="border-b-2 border-b-solid border-border px-3 pb-4 text-center align-bottom text-[16px] font-bold text-heading">
+                <th
+                  scope="col"
+                  class="border-b-2 border-b-solid border-border px-3 pb-4 text-center align-bottom [font-size:calc(16px*var(--type-scale,1))] font-bold text-heading"
+                >
                   {offering.logo ? (
                     <img
                       src={offering.logo}
@@ -90,18 +101,31 @@ const cta = usableCtas(ctas)[0]
               return (
                 <tr class="block border-b border-b-solid border-border py-4 md:table-row md:py-0">
                   <th scope="row" class="block pb-3 pr-4 align-top font-normal md:table-cell md:py-5 md:pb-5">
-                    {row.title && <p class="m-0 text-[17px] font-semibold text-heading">{row.title}</p>}
-                    {row.description && <p class="m-0 mt-1 text-[15px] leading-[1.5] text-text-secondary">{row.description}</p>}
+                    {row.title && (
+                      <p class="m-0 [font-size:calc(17px*var(--type-scale,1))] font-semibold text-heading">
+                        {row.title}
+                      </p>
+                    )}
+                    {row.description && (
+                      <p class="m-0 mt-1 [font-size:calc(15px*var(--type-scale,1))] leading-[1.5] text-text-secondary">
+                        {row.description}
+                      </p>
+                    )}
                   </th>
                   {offerings.map((offering, index) => {
                     const cell = cells[index]
                     const state = cell?.state ? CELL[cell.state] : undefined
                     return (
                       <td class="inline-flex min-w-[30%] flex-col items-center gap-1.5 px-2 py-1 text-center align-top md:table-cell md:px-3 md:py-5">
-                        <span class="text-[12px] uppercase tracking-[0.06em] text-muted md:hidden">{offering.label}</span>
+                        <span class="[font-size:calc(12px*var(--type-scale,1))] uppercase tracking-[0.06em] text-muted md:hidden">
+                          {offering.label}
+                        </span>
                         {state && (
                           <span
-                            class:list={['inline-flex h-8 w-8 items-center justify-center rounded-full text-[15px] font-bold', state.className]}
+                            class:list={[
+                              'inline-flex h-8 w-8 items-center justify-center rounded-full [font-size:calc(15px*var(--type-scale,1))] font-bold',
+                              state.className,
+                            ]}
                             role="img"
                             aria-label={coreString(locale, state.name)}
                             data-state={cell?.state}
@@ -109,7 +133,11 @@ const cta = usableCtas(ctas)[0]
                             {state.mark}
                           </span>
                         )}
-                        {cell?.note && <p class="m-0 mt-1 text-[14px] leading-[1.45] text-text-secondary md:mt-2">{cell.note}</p>}
+                        {cell?.note && (
+                          <p class="m-0 mt-1 [font-size:calc(14px*var(--type-scale,1))] leading-[1.45] text-text-secondary md:mt-2">
+                            {cell.note}
+                          </p>
+                        )}
                       </td>
                     )
                   })}
@@ -124,7 +152,11 @@ const cta = usableCtas(ctas)[0]
     {
       cta && (
         <p class="mt-8 text-center">
-          <a href={hrefOf(cta.href, hrefCtx)} class="link-inline text-[16px] font-semibold" {...externalLinkAttrs(cta.href)}>
+          <a
+            href={hrefOf(cta.href, hrefCtx)}
+            class="link-inline [font-size:calc(16px*var(--type-scale,1))] font-semibold"
+            {...externalLinkAttrs(cta.href)}
+          >
             {cta.label}
           </a>
         </p>

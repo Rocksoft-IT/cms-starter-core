@@ -16,6 +16,7 @@ import { defaultLocale } from '../i18n'
 import { formatDate } from '../format'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 
 interface Props {
   block: DocumentsBlock
@@ -60,7 +61,10 @@ const EXTERNAL_ICON = ICON_PATHS.external
 
 {
   rows.length > 0 && (
-    <section id={sectionId} class:list={['documents section-band py-16', backgroundClass(background)]}>
+    <section
+      id={sectionId}
+      class:list={['documents section-band py-16', backgroundClass(background), textSizeClass(block.data.text_size)]}
+    >
       <div class="container-global">
         {/* The section header (dashboard#1958). This block declared `heading` alone, with the
             written reason "a titled list, not a section header over content" — the shape of the
@@ -94,7 +98,8 @@ const EXTERNAL_ICON = ICON_PATHS.external
         <ul class="m-0 flex list-none flex-col gap-3 p-0">
           {rows.map((row) => {
             const label = typeof row.name === 'string' && row.name.trim() !== '' ? row.name : 'Document'
-            const description = typeof row.description === 'string' && row.description.trim() !== '' ? row.description : null
+            const description =
+              typeof row.description === 'string' && row.description.trim() !== '' ? row.description : null
             const date = formatDate(row.published_at, locale)
             const isFile = row.source !== 'link'
             const actionIcon = isFile ? DOWNLOAD_ICON : EXTERNAL_ICON
@@ -124,9 +129,16 @@ const EXTERNAL_ICON = ICON_PATHS.external
 
                   <span class="min-w-0 flex-1">
                     <span class="block truncate font-semibold text-text-primary">{label}</span>
-                    {description && <span class="mt-0.5 block text-[14px] text-text-secondary leading-[1.5]">{description}</span>}
+                    {description && (
+                      <span class="mt-0.5 block [font-size:calc(14px*var(--type-scale,1))] text-text-secondary leading-[1.5]">
+                        {description}
+                      </span>
+                    )}
                     {date && (
-                      <time datetime={row.published_at ?? undefined} class="mt-1 block text-[13px] text-text-secondary">
+                      <time
+                        datetime={row.published_at ?? undefined}
+                        class="mt-1 block [font-size:calc(13px*var(--type-scale,1))] text-text-secondary"
+                      >
                         {date}
                       </time>
                     )}

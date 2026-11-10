@@ -133,7 +133,7 @@ export const coreShortcuts: Record<string, string> = {
   // 14px/semibold (`cta-eyebrow`), a 12px chip (`promo-split-eyebrow`) and a hardcoded copy in
   // CtaBanner's markup. Blocks now compose this and add only their own spacing or panel color, so
   // a site retunes every eyebrow on the page by redefining this one key.
-  eyebrow: 'text-[13px] font-bold uppercase tracking-[0.08em] text-eyebrow',
+  eyebrow: '[font-size:calc(13px*var(--type-scale,1))] font-bold uppercase tracking-[0.08em] text-eyebrow',
   // Resetting a <ul>/<ol> that is only there for semantics, and a centred row of buttons — both
   // appeared verbatim in three blocks each before being named here.
   'list-reset': 'list-none p-0 m-0',
@@ -174,7 +174,17 @@ export const coreShortcuts: Record<string, string> = {
     '[&.is-muted]:[background-color:var(--band-muted-bg,#f2f2f2)] ' +
     '[&.is-tint]:[background-color:var(--band-tint-bg,#f5f6f8)] ' +
     '[&.is-brand]:bg-primary [&.is-brand]:[color:var(--band-brand-text,#fff)] ' +
-    '[&.is-dark]:[background-color:var(--band-dark-bg,#000)] [&.is-dark]:[color:var(--band-dark-text,#fff)]',
+    '[&.is-dark]:[background-color:var(--band-dark-bg,#000)] [&.is-dark]:[color:var(--band-dark-text,#fff)] ' +
+    // The shared `text_size` select rides on this shortcut for the same reason it rides on the
+    // `background` one: the same blocks carry both, `section-band` is already written out in every
+    // one of their templates, and a second shortcut would be one more literal each of them could
+    // forget (see lib/textSize.ts). Each step sets `--type-scale`, which every core font size
+    // multiplies by (`calc(14px*var(--type-scale,1))`, enforced by verify:core-styles check 8), and
+    // scales the section's own inherited size too, so text that sets no size of its own follows.
+    // Nothing is emitted for `default`, so an unsized block is untouched.
+    '[&.is-size-sm]:[--type-scale:0.9] [&.is-size-sm]:[font-size:calc(1em*0.9)] ' +
+    '[&.is-size-lg]:[--type-scale:1.15] [&.is-size-lg]:[font-size:calc(1em*1.15)] ' +
+    '[&.is-size-xl]:[--type-scale:1.3] [&.is-size-xl]:[font-size:calc(1em*1.3)]',
 
   // ── Section header alignment (the shared `align` select) ────────────────────
   // The `is-align-left` / `is-align-center` modifiers from lib/align.ts (`default` emits
@@ -292,11 +302,11 @@ export const coreShortcuts: Record<string, string> = {
     'flex items-center justify-center shrink-0 w-10 h-10 rounded-full overflow-hidden bg-section-bg ' +
     '[&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover',
   'hero-cta-card-text': 'flex flex-col text-left leading-[1.25]',
-  'hero-cta-card-title': 'font-bold text-[14px] text-text-primary',
-  'hero-cta-card-subtitle': 'text-[12px] text-text-secondary',
+  'hero-cta-card-title': 'font-bold [font-size:calc(14px*var(--type-scale,1))] text-text-primary',
+  'hero-cta-card-subtitle': '[font-size:calc(12px*var(--type-scale,1))] text-text-secondary',
   // The reassurance line under the buttons ("100% free, no credit card required") — its own field
   // precisely so it sits BELOW the CTA rather than in the subheading above it (dashboard#1354).
-  'hero-cta-note': 'text-[14px] text-muted m-0',
+  'hero-cta-note': '[font-size:calc(14px*var(--type-scale,1))] text-muted m-0',
   // Retained for CLIENT OVERRIDES only: core's own hero stopped emitting these when the
   // reference site's hardcoded animations came out of it. diligently.pl's Hero override still
   // uses both, so deleting them here would silently restyle that site on its next core bump.
@@ -332,7 +342,7 @@ export const coreShortcuts: Record<string, string> = {
   'btn-primary':
     'inline-flex items-center justify-center gap-2 ' +
     'bg-button-primary text-button-primary-text border-[3px] border-solid border-button-primary rounded-[8px] ' +
-    'px-7 py-4 font-bold text-[20px] leading-6 tracking-[0.01em] ' +
+    'px-7 py-4 font-bold [font-size:calc(20px*var(--type-scale,1))] leading-6 tracking-[0.01em] ' +
     'no-underline cursor-pointer select-none ' +
     'transition-colors duration-300 ' +
     'hover:bg-transparent hover:text-button-primary',
@@ -340,7 +350,7 @@ export const coreShortcuts: Record<string, string> = {
   'btn-outline':
     'inline-flex items-center justify-center gap-2 ' +
     'bg-transparent text-button-primary border-[3px] border-solid border-button-primary rounded-[8px] ' +
-    'px-7 py-4 font-bold text-[20px] leading-6 tracking-[0.01em] ' +
+    'px-7 py-4 font-bold [font-size:calc(20px*var(--type-scale,1))] leading-6 tracking-[0.01em] ' +
     'no-underline cursor-pointer select-none ' +
     'transition-colors duration-500 ' +
     'hover:bg-button-primary hover:text-button-primary-text',
@@ -348,7 +358,7 @@ export const coreShortcuts: Record<string, string> = {
   'btn-secondary':
     'inline-flex items-center justify-center gap-2 ' +
     'bg-button-secondary text-button-secondary-text border-[3px] border-solid border-button-secondary rounded-[8px] ' +
-    'px-7 py-4 font-bold text-[20px] leading-6 tracking-[0.01em] ' +
+    'px-7 py-4 font-bold [font-size:calc(20px*var(--type-scale,1))] leading-6 tracking-[0.01em] ' +
     'no-underline cursor-pointer select-none ' +
     'transition-colors duration-300 ' +
     'hover:bg-transparent hover:text-button-secondary',
@@ -356,7 +366,7 @@ export const coreShortcuts: Record<string, string> = {
   'btn-white':
     'inline-flex items-center justify-center ' +
     'bg-white text-black border-[3px] border-solid border-white rounded-[8px] ' +
-    'px-7 py-4 font-bold text-[16px] leading-6 tracking-[0.01em] ' +
+    'px-7 py-4 font-bold [font-size:calc(16px*var(--type-scale,1))] leading-6 tracking-[0.01em] ' +
     'no-underline cursor-pointer select-none ' +
     'transition-colors duration-500 ' +
     'hover:bg-transparent hover:text-white',
@@ -392,7 +402,7 @@ export const coreShortcuts: Record<string, string> = {
     'hover:text-primary focus-visible:text-primary focus-visible:outline focus-visible:outline-2 ' +
     'focus-visible:outline-offset-2 focus-visible:outline-primary',
   'social-link-icon': 'w-6 h-6 shrink-0',
-  'social-link-label': 'text-[15px] leading-[1.4]',
+  'social-link-label': '[font-size:calc(15px*var(--type-scale,1))] leading-[1.4]',
 
   // ── Rich content block ───────────────────────────────────────────────────────
   // THE PAIR IS THE RULE, and every caller has to honour both halves: `section-content` is a
@@ -416,7 +426,7 @@ export const coreShortcuts: Record<string, string> = {
   // RichContent's `.content-inner` is plain block flow, where `rich-heading` has a bottom margin
   // and no top one — so without this the label would sit flush against the heading.
   'rich-eyebrow': 'section-eyebrow mb-2',
-  'rich-heading': 'text-[40px] font-bold leading-[1.2] mb-6',
+  'rich-heading': '[font-size:calc(40px*var(--type-scale,1))] font-bold leading-[1.2] mb-6',
   // `[&_a]:underline` (dashboard#1952): global.css's `a { color: inherit }` (dashboard#1847) left a
   // link the client authors in here — the one anchor core does not already style — indistinguishable
   // from the running text around it, failing WCAG 1.4.1 (colour is not even in play; there was none
@@ -424,7 +434,7 @@ export const coreShortcuts: Record<string, string> = {
   // `link-inline`/`quote-source-link`/the footer already spell out a brand colour where one is
   // wanted, and picking one here is a design call this shortcut has no basis to make on its own.
   'rich-body':
-    'text-[18px] font-normal leading-[1.7] text-text-secondary [&_p]:mb-4 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_a]:underline',
+    '[font-size:calc(18px*var(--type-scale,1))] font-normal leading-[1.7] text-text-secondary [&_p]:mb-4 [&_p:last-child]:mb-0 [&_img]:max-w-full [&_img]:h-auto [&_a]:underline',
 
   // ── Paragraph block: the `variant` select ───────────────────────────────────
   // The `is-note` modifier from lib/variant.ts (`default` emits nothing). `paragraph` declared the
@@ -486,11 +496,12 @@ export const coreShortcuts: Record<string, string> = {
   'faq-action':
     'inline-flex items-center gap-2 shrink-0 whitespace-nowrap no-underline cursor-pointer ' +
     'rounded-full border border-solid border-border px-[18px] py-[10px] ' +
-    'bg-surface text-heading font-semibold text-[14px] ' +
+    'bg-surface text-heading font-semibold [font-size:calc(14px*var(--type-scale,1))] ' +
     'transition-colors hover:border-primary hover:text-primary',
   'faq-eyebrow': 'eyebrow m-0 mb-[0.6rem]',
-  'faq-heading': 'm-0 font-brand font-bold text-[32px] leading-[1.15] tracking-[-0.02em] text-heading',
-  'faq-intro': 'mt-2 mb-0 max-w-[60ch] text-[16px] leading-[1.5] text-muted',
+  'faq-heading':
+    'm-0 font-brand font-bold [font-size:calc(32px*var(--type-scale,1))] leading-[1.15] tracking-[-0.02em] text-heading',
+  'faq-intro': 'mt-2 mb-0 max-w-[60ch] [font-size:calc(16px*var(--type-scale,1))] leading-[1.5] text-muted',
   'faq-list': 'flex flex-col gap-3 list-reset',
   'faq-item':
     'bg-surface border border-solid border-border rounded-[16px] overflow-hidden ' +
@@ -498,7 +509,8 @@ export const coreShortcuts: Record<string, string> = {
   'faq-summary':
     'flex items-center gap-[1.1rem] px-6 py-5 cursor-pointer list-none ' +
     'transition-colors duration-150 hover:bg-surface-alt',
-  'faq-question': 'flex-1 min-w-0 font-brand font-semibold text-[17px] leading-[1.35] text-heading',
+  'faq-question':
+    'flex-1 min-w-0 font-brand font-semibold [font-size:calc(17px*var(--type-scale,1))] leading-[1.35] text-heading',
   'faq-chevron':
     'flex items-center justify-center shrink-0 w-[34px] h-[34px] rounded-full ' +
     'bg-surface-tint text-primary transition-transform duration-200 motion-reduce:transition-none',
@@ -509,7 +521,8 @@ export const coreShortcuts: Record<string, string> = {
     'motion-reduce:animate-none',
   // `[&_a]:underline` (dashboard#1952 follow-up): `item.answer` is CMS rich text — the same
   // `RichText`/`set:html` path as `rich-body` above, and the same WCAG 1.4.1 gap without it.
-  'faq-answer': 'text-[15.5px] leading-[1.7] max-w-[74ch] text-text-secondary [&_a]:underline',
+  'faq-answer':
+    '[font-size:calc(15.5px*var(--type-scale,1))] leading-[1.7] max-w-[74ch] text-text-secondary [&_a]:underline',
   // The `list` layout adds ONE key, worn alongside `faq-item` — it is the same card, minus the
   // disclosure. Deliberately not a second card definition: a site that remaps `faq-item`,
   // `faq-question` or `faq-answer` (most do) must not have to discover a parallel set of keys to
@@ -640,8 +653,8 @@ export const coreShortcuts: Record<string, string> = {
   'quote-figure': 'm-0',
   'quote-image': 'block w-full h-auto rounded-[12px]',
   'quote-source-tag': 'eyebrow m-0 mb-3',
-  'quote-headline': 'm-0 mb-4 text-[clamp(1.75rem,3vw,2.5rem)] font-bold leading-[1.2]',
-  'quote-lede': 'm-0 mb-6 text-[1.125rem] leading-[1.7] text-text-secondary',
+  'quote-headline': 'm-0 mb-4 [font-size:calc(clamp(1.75rem,3vw,2.5rem)*var(--type-scale,1))] font-bold leading-[1.2]',
+  'quote-lede': 'm-0 mb-6 [font-size:calc(1.125rem*var(--type-scale,1))] leading-[1.7] text-text-secondary',
   // A leading rule plus oversized type sets the pull-quote apart from prose.
   //
   // `border-0` FIRST, exactly as the separators below do it, and it is load-bearing: `border-l-4`
@@ -654,8 +667,8 @@ export const coreShortcuts: Record<string, string> = {
   // `[&_a]:underline` (dashboard#1952 follow-up): the quote itself is CMS rich text, same gap as
   // `rich-body` — `quote-source-link` below already carries its own underline, this is the body.
   'quote-text':
-    'text-[clamp(1.35rem,2.5vw,1.75rem)] font-medium leading-[1.4] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:underline',
-  'quote-cite': 'flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-6 text-[1rem]',
+    '[font-size:calc(clamp(1.35rem,2.5vw,1.75rem)*var(--type-scale,1))] font-medium leading-[1.4] [&_p]:mb-3 [&_p:last-child]:mb-0 [&_a]:underline',
+  'quote-cite': 'flex flex-wrap items-baseline gap-x-3 gap-y-1 mt-6 [font-size:calc(1rem*var(--type-scale,1))]',
   'quote-attribution': 'font-bold',
   'quote-source-link': 'text-primary underline underline-offset-2',
 
@@ -668,17 +681,24 @@ export const coreShortcuts: Record<string, string> = {
   'separator-wide': 'w-full border-0 border-t border-solid border-t-muted',
   'separator-dots':
     'w-full h-6 border-0 flex items-center justify-center gap-3 text-muted ' +
-    "before:content-['•••'] before:tracking-[0.5rem] before:text-[1.25rem] before:leading-[1]",
+    "before:content-['•••'] before:tracking-[0.5rem] before:[font-size:calc(1.25rem*var(--type-scale,1))] before:leading-[1]",
 
   // ── Shared section header (used across several blocks) ─────────────────────
   // Kept as its own key because ten blocks and any site override already reference it; it is now
   // an alias so the treatment has a single definition.
   'section-eyebrow': 'eyebrow',
-  'section-heading': 'font-brand font-bold text-[40px] leading-[1.2]',
+  // The larger text sizes let a long word break instead of widening the page: at 1.3x a 40px
+  // heading is 52px and one word of it ("alternatives?") is wider than a 375px phone's column.
+  // `[.is-size-lg_&]` only matches INSIDE a block set to that size, so a block left on Default is
+  // untouched, and it is scoped to the heading because `anywhere` also shrinks min-content, which
+  // would let columns collapse if it sat on the whole section.
+  'section-heading':
+    'font-brand font-bold [font-size:calc(40px*var(--type-scale,1))] leading-[1.2] ' +
+    '[.is-size-lg_&]:[overflow-wrap:anywhere] [.is-size-xl_&]:[overflow-wrap:anywhere]',
   // `[&_a]:underline` (dashboard#1952 follow-up): shared key, but Testimonials feeds it CMS rich
   // text (`item.quote` via RichText) — same gap as `rich-body`. A no-op everywhere else, since a
   // plain `<p>{intro}</p>` never contains an `<a>`.
-  'section-intro': 'text-[18px] text-text-secondary leading-[1.7] [&_a]:underline',
+  'section-intro': '[font-size:calc(18px*var(--type-scale,1))] text-text-secondary leading-[1.7] [&_a]:underline',
   // The box for the optional illustration under a section heading (core/SectionHeader.astro). Core
   // sizes it and stops: what goes inside is whichever player the SITE mounts on
   // `[data-animation-src]`, so the box has to reserve its space before anything is in it.
@@ -720,7 +740,7 @@ export const coreShortcuts: Record<string, string> = {
   // Tab button carries its own active styling via `.is-active` variants, so the
   // client script only toggles that one class (single source of truth).
   'pricing-tab':
-    'font-bold text-[14px] px-6 py-2 rounded-full border-2 border-current bg-transparent ' +
+    'font-bold [font-size:calc(14px*var(--type-scale,1))] px-6 py-2 rounded-full border-2 border-current bg-transparent ' +
     'transition-colors duration-200 cursor-pointer flex items-center gap-2 ' +
     '[&.is-active]:bg-button-primary [&.is-active]:text-button-primary-text [&.is-active]:border-button-primary',
   // Tier illustration. Full card width, its own aspect kept — these are drawings sized by the
@@ -728,16 +748,23 @@ export const coreShortcuts: Record<string, string> = {
   'pricing-plan-image': 'block w-full h-auto mb-2',
   'pricing-card': 'bg-white text-text-primary rounded-[16px] p-7 flex flex-col gap-4 border border-border',
   'pricing-chip':
-    'self-start text-[11px] font-bold tracking-[0.12em] uppercase text-text-secondary border border-border rounded-full px-3 py-1',
-  'pricing-badge': 'self-start text-[12px] font-semibold bg-primary text-button-primary-text rounded-full px-3 py-1',
-  'pricing-price': 'text-[36px] font-bold leading-[1.1]',
+    'self-start [font-size:calc(11px*var(--type-scale,1))] font-bold tracking-[0.12em] uppercase text-text-secondary border border-border rounded-full px-3 py-1',
+  'pricing-badge':
+    'self-start [font-size:calc(12px*var(--type-scale,1))] font-semibold bg-primary text-button-primary-text rounded-full px-3 py-1',
+  'pricing-price': '[font-size:calc(36px*var(--type-scale,1))] font-bold leading-[1.1]',
   // `price_size: small` — a step down from the price's own size, and never wrapping. Which
   // sections take it is an editorial choice with no rule behind it (#1416), so it is a modifier
   // on top of `pricing-price` rather than a second price style.
-  'pricing-price-sm': 'text-[32px] whitespace-nowrap',
+  //
+  // NOTE: this key sets NO font size, on purpose. Before `--type-scale` it declared `text-[32px]`,
+  // and `pricing-price`'s `text-[36px]` always won the tie, so a `small` price has rendered at
+  // 36px with `whitespace-nowrap` only. Giving it a size that wins would resize every `small`
+  // price on every client at its next core update, so the rendering is kept exactly as it was.
+  // `price_size: small` shrinking the price is a separate, visible change: its own issue.
+  'pricing-price-sm': 'whitespace-nowrap',
   // The plan's `fine_print`, in whichever of its three slots the plan names. One shortcut so the
   // note reads the same wherever it lands — the slot decides position, not typography.
-  'pricing-fine-print': 'text-[12px] text-text-secondary leading-[1.5]',
+  'pricing-fine-print': '[font-size:calc(12px*var(--type-scale,1))] text-text-secondary leading-[1.5]',
   // `description_height: fixed` — every card's blurb the same height, so the prices below them
   // line up across the row. A floor and not a cap: clipping a longer blurb an editor writes later
   // is worse than a card being a line taller. Released below `md`, where one card per row means
@@ -755,11 +782,12 @@ export const coreShortcuts: Record<string, string> = {
   // Name and price on one line — the price is the reason a sub-plan is listed separately at all,
   // so it sits beside the name rather than under it.
   'pricing-sub-plan-head': 'flex items-baseline justify-between gap-3',
-  'pricing-sub-plan-name': 'text-[14px] font-semibold text-text-primary',
-  'pricing-sub-plan-price': 'text-[14px] font-bold whitespace-nowrap',
+  'pricing-sub-plan-name': '[font-size:calc(14px*var(--type-scale,1))] font-semibold text-text-primary',
+  'pricing-sub-plan-price': '[font-size:calc(14px*var(--type-scale,1))] font-bold whitespace-nowrap',
   // A nested offer's own CTA. Deliberately a text link, not `btn-primary`: the parent card's
   // button stays the card's main action, the same reasoning the section's closing CTAs use.
-  'pricing-sub-plan-cta': 'self-start text-[13px] font-semibold underline underline-offset-2',
+  'pricing-sub-plan-cta':
+    'self-start [font-size:calc(13px*var(--type-scale,1))] font-semibold underline underline-offset-2',
   // `example_logos` — the client-mark row under a card. `items-center` because these are logos of
   // differing aspect, and a fixed height with `w-auto` is what keeps a wide wordmark and a square
   // badge reading as one row; the top rule separates them from the feature list above.
@@ -788,16 +816,18 @@ export const coreShortcuts: Record<string, string> = {
   // The shared eyebrow, worn as a chip: rgba(255,255,255,.12) pill, 7px 14px, tinted for the dark
   // panel. Size and color come after `eyebrow` so they win.
   'promo-split-eyebrow':
-    'eyebrow inline-flex items-center gap-2 bg-white/12 rounded-full px-3.5 py-[7px] ' + 'text-[12px] text-white/85',
+    'eyebrow inline-flex items-center gap-2 bg-white/12 rounded-full px-3.5 py-[7px] ' +
+    '[font-size:calc(12px*var(--type-scale,1))] text-white/85',
   // Heading: clamp(30px,3.4vw,40px)/1.08, -0.02em, white, 20px above.
-  'promo-split-heading': 'text-[clamp(30px,3.4vw,40px)] font-bold leading-[1.08] tracking-[-0.02em] text-white mt-5',
+  'promo-split-heading':
+    '[font-size:calc(clamp(30px,3.4vw,40px)*var(--type-scale,1))] font-bold leading-[1.08] tracking-[-0.02em] text-white mt-5',
   // Body: 16.5px/1.6, tinted white (#c4d6c6 in the handoff → white/75 on the token panel),
   // measure capped at 46ch.
-  'promo-split-body': 'text-[16.5px] leading-[1.6] text-white/75 max-w-[46ch] mt-4',
+  'promo-split-body': '[font-size:calc(16.5px*var(--type-scale,1))] leading-[1.6] text-white/75 max-w-[46ch] mt-4',
   // CTA: white pill 13px 22px, bold 15px, panel-colored text, arrow icon; lifts on hover.
   'promo-split-cta':
     'inline-flex items-center gap-[9px] bg-white text-secondary rounded-full px-[22px] py-[13px] ' +
-    'font-bold text-[15px] no-underline cursor-pointer mt-7 ' +
+    'font-bold [font-size:calc(15px*var(--type-scale,1))] no-underline cursor-pointer mt-7 ' +
     'transition duration-200 hover:bg-white/90 hover:-translate-y-px',
   // Photo column: bleeds to the panel edge; min-height 360px (280px stacked on mobile).
   'promo-split-media': 'relative min-h-[280px] md:min-h-[360px]',
@@ -811,9 +841,9 @@ export const coreShortcuts: Record<string, string> = {
   'team-photo':
     'flex items-center justify-center w-40 h-40 rounded-full overflow-hidden bg-section-bg ' +
     '[&_img]:block [&_img]:w-full [&_img]:h-full [&_img]:object-cover',
-  'team-photo-placeholder': 'font-brand font-bold text-[48px] leading-[1] text-muted',
-  'team-name': 'mt-5 font-bold text-[20px] leading-[1.3] text-text-primary',
-  'team-role': 'mt-1 text-[16px] leading-[1.5] text-text-secondary',
+  'team-photo-placeholder': 'font-brand font-bold [font-size:calc(48px*var(--type-scale,1))] leading-[1] text-muted',
+  'team-name': 'mt-5 font-bold [font-size:calc(20px*var(--type-scale,1))] leading-[1.3] text-text-primary',
+  'team-role': 'mt-1 [font-size:calc(16px*var(--type-scale,1))] leading-[1.5] text-text-secondary',
 
   // ── Cards block ──────────────────────────────────────────────────────────
   // One block, five layouts (context/changes/unify-cards-block/, then #1692). Core carries what
@@ -841,20 +871,20 @@ export const coreShortcuts: Record<string, string> = {
     'shrink-0 flex items-center justify-center w-10 h-10 rounded-[11px] bg-section-bg text-primary ' +
     '[&>svg]:w-5 [&>svg]:h-5 [&>img]:w-full [&>img]:h-full [&>img]:object-contain',
   'card-marker':
-    'shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold text-[15px]',
+    'shrink-0 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white font-bold [font-size:calc(15px*var(--type-scale,1))]',
   'card-label': 'font-semibold text-text-primary',
   'card-value': 'mt-1 leading-[1.5] text-text-secondary whitespace-pre-line',
   // Names the person in `card-media` when the picture is a portrait. Quieter than `card-label`
   // on purpose — the two sit in the same column, and a name typeset like the heading reads as a
   // second heading. Smaller and secondary is the same treatment Testimonials gives a role line.
-  'card-caption': 'text-[14px] text-text-secondary',
+  'card-caption': '[font-size:calc(14px*var(--type-scale,1))] text-text-secondary',
 
   // ── Gallery block ────────────────────────────────────────────────────────
   // Square-ish tiles on an auto-fill grid, so the column count follows the measure instead of
   // being pinned to a number a narrower page cannot honour. A site retunes any of these.
   'section-gallery': 'section-y',
   'gallery-inner': 'container-global',
-  'gallery-note': 'text-[14px] text-muted m-0',
+  'gallery-note': '[font-size:calc(14px*var(--type-scale,1))] text-muted m-0',
   'gallery-grid': 'grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-4 list-reset mt-5',
   // Enlarge-on-click (Gallery.astro). Shortcuts, not scoped CSS, for the same reason every other
   // class in this block is one — and because a viewport clamp written in a component's <style>
@@ -938,12 +968,12 @@ export const coreShortcuts: Record<string, string> = {
     'group-hover:scale-110 group-active:scale-95 [&>svg]:w-8 [&>svg]:h-8 [&>svg]:ml-[3px]',
   'video-banner-duration':
     'absolute right-3 bottom-3 px-2.5 py-1 rounded-full bg-black/70 text-white ' +
-    'text-[14px] font-semibold leading-none tabular-nums',
+    '[font-size:calc(14px*var(--type-scale,1))] font-semibold leading-none tabular-nums',
   'video-banner-fallback': 'text-primary underline',
   // The header is the shared SectionHeader, left-aligned; its bottom margin (it expects content
   // below) would just push the body away from the heading here.
   'video-banner-text': 'flex flex-col gap-4 items-start text-left min-w-0 [&_.section-header]:mb-0',
-  'video-banner-body': 'm-0 text-lg',
+  'video-banner-body': 'm-0 [font-size:calc(1.125rem*var(--type-scale,1))] [line-height:1.75rem]',
   // The lightbox. Size and motion are in VideoSection.astro's scoped CSS (a viewport clamp is not a
   // utility). `max-w-none max-h-none` retire the UA's own dialog clamp, which would otherwise
   // fight the 16:9 maths; `m-auto` + the UA's fixed `inset: 0` keep it centred.
@@ -975,18 +1005,18 @@ export const coreShortcuts: Record<string, string> = {
     'inline-block px-3 py-1 rounded-full border border-solid ' +
     '[border-color:color-mix(in_srgb,currentColor_40%,transparent)] ' +
     '[background-color:color-mix(in_srgb,currentColor_12%,transparent)] ' +
-    'text-xs font-bold uppercase tracking-[0.03em]',
+    '[font-size:calc(0.75rem*var(--type-scale,1))] [line-height:1rem] font-bold uppercase tracking-[0.03em]',
   'cta-inner': 'container-prose text-center',
   // `text-white` and `text-gray-300` were the dark band's values written as literals. The role
   // tokens carry the same two colours there (`--band-dark-eyebrow` falls back to #fff,
   // `--band-dark-text-secondary` IS #b3b3b3 = gray-300) and follow the band everywhere else.
   'cta-eyebrow': 'eyebrow mb-4',
-  'cta-heading': 'font-brand font-bold text-[36px] leading-[1.2] mb-4',
-  'cta-body': 'text-[18px] text-text-secondary mb-8',
+  'cta-heading': 'font-brand font-bold [font-size:calc(36px*var(--type-scale,1))] leading-[1.2] mb-4',
+  'cta-body': '[font-size:calc(18px*var(--type-scale,1))] text-text-secondary mb-8',
   'btn-primary-white':
     'inline-flex items-center justify-center ' +
     'bg-primary text-black border-[3px] border-primary rounded-[8px] ' +
-    'px-7 py-4 font-bold text-[20px] leading-6 ' +
+    'px-7 py-4 font-bold [font-size:calc(20px*var(--type-scale,1))] leading-6 ' +
     'no-underline cursor-pointer ' +
     'transition-colors duration-300 ' +
     'hover:bg-transparent hover:text-primary',
@@ -1025,7 +1055,8 @@ export const coreShortcuts: Record<string, string> = {
 
   'cookie-consent__top': 'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
 
-  'cookie-consent__message': 'm-0 text-[14px] leading-relaxed text-text-primary sm:flex-1',
+  'cookie-consent__message':
+    'm-0 [font-size:calc(14px*var(--type-scale,1))] leading-relaxed text-text-primary sm:flex-1',
 
   'cookie-consent__link': 'text-primary underline underline-offset-2 hover:text-primary-soft',
 
@@ -1035,13 +1066,13 @@ export const coreShortcuts: Record<string, string> = {
   // the three: a bare text link, not a bordered button, so Reject/Accept stay the visually
   // dominant choice and Customize reads as the slower, secondary path.
   'cookie-consent__customize':
-    'cursor-pointer border-0 bg-transparent p-0 text-[14px] font-semibold text-text-secondary underline ' +
+    'cursor-pointer border-0 bg-transparent p-0 [font-size:calc(14px*var(--type-scale,1))] font-semibold text-text-secondary underline ' +
     'underline-offset-2 hover:text-text-primary',
 
   'cookie-consent__button':
     'inline-flex items-center justify-center gap-2 ' +
     'rounded-[8px] border-[2px] border-solid px-4 py-2 ' +
-    'text-[14px] font-semibold leading-5 no-underline cursor-pointer select-none ' +
+    '[font-size:calc(14px*var(--type-scale,1))] font-semibold leading-5 no-underline cursor-pointer select-none ' +
     'transition-colors duration-200',
 
   // Same footprint as --reject below (equal size and weight) — the "not a dark pattern" the
@@ -1078,14 +1109,15 @@ export const coreShortcuts: Record<string, string> = {
   'cookie-consent__category-header':
     'flex flex-row items-center justify-between gap-3 min-h-[24px] [&:has(input)]:cursor-pointer',
 
-  'cookie-consent__category-label': 'text-[14px] font-semibold text-text-primary',
+  'cookie-consent__category-label': '[font-size:calc(14px*var(--type-scale,1))] font-semibold text-text-primary',
 
   // Necessary has no toggle — this badge is what a visitor sees in its place, so the row still
   // reads as "on" rather than looking broken or unfinished next to two real checkboxes.
   'cookie-consent__category-badge':
-    'rounded-full bg-surface-alt px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.04em] text-muted',
+    'rounded-full bg-surface-alt px-2 py-1 [font-size:calc(11px*var(--type-scale,1))] font-semibold uppercase tracking-[0.04em] text-muted',
 
-  'cookie-consent__category-description': 'm-0 text-[13px] leading-relaxed text-text-secondary',
+  'cookie-consent__category-description':
+    'm-0 [font-size:calc(13px*var(--type-scale,1))] leading-relaxed text-text-secondary',
 
   // A real, accessible native checkbox — not a hand-rolled switch graphic. `accent-primary` is
   // the one-line way to put the client's own brand color on it without owning ::before/::after
@@ -1117,7 +1149,7 @@ export const coreShortcuts: Record<string, string> = {
   // and inverts correctly on a dark-themed one, which a literal could not.
   'site-footer':
     'section-y bg-surface-alt border-0 border-t border-solid border-border ' +
-    'text-text-secondary text-[0.95rem] leading-relaxed footer-anchors',
+    'text-text-secondary [font-size:calc(0.95rem*var(--type-scale,1))] leading-relaxed footer-anchors',
   // Its own key rather than more classes on `site-footer`, so a site that wants a different band
   // redefines one and keeps the other — the split `cookie-consent__link` already has. Descendant
   // selectors because the anchors come from CMS data, not from a class core can put on them.

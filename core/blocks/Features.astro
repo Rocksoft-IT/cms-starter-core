@@ -3,6 +3,7 @@ import type { FeaturesBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { revealClass, revealsOnScroll } from '../../lib/reveal'
 import SectionReveal from '../SectionReveal.astro'
 import RichText from '../RichText.astro'
@@ -21,7 +22,7 @@ const sectionId = sectionAnchorId(anchor_id)
 
 // The shared `background` select — a band modifier the styling layer paints (#1498).
 // See lib/background.ts.
-const bandClass = backgroundClass(background)
+const bandClass = [backgroundClass(background), textSizeClass(block.data.text_size)]
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 // See lib/align.ts.
 const alignModifier = alignClass(align)
@@ -44,12 +45,16 @@ const revealModifier = revealClass(reveal)
             return (
               <div class={`features-card surface-light ${isEven ? 'features-card-bottom' : 'features-card-top'}`}>
                 <div class="features-number-badge">
-                  <span class="font-brand font-bold text-black text-[18px]">{step.number}</span>
+                  <span class="font-brand font-bold text-black [font-size:calc(18px*var(--type-scale,1))]">
+                    {step.number}
+                  </span>
                 </div>
                 <div class="features-card-content">
-                  <h3 class="font-brand font-bold text-[24px] leading-[1]">{step.title}</h3>
+                  <h3 class="font-brand font-bold [font-size:calc(24px*var(--type-scale,1))] leading-[1]">
+                    {step.title}
+                  </h3>
                   <RichText
-                    class="text-[16px] text-text-secondary leading-[1.7] mt-2"
+                    class="[font-size:calc(16px*var(--type-scale,1))] text-text-secondary leading-[1.7] mt-2"
                     html={step.description}
                     {locale}
                   />

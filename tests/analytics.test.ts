@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import { CONSENT_SIGNALS_JS, classifyAnalyticsId, resolveAnalytics, warnAboutAnalytics } from '../core/analytics'
+import {
+  CONSENT_SIGNALS_JS,
+  DEFAULT_TAG_FALLBACK_MS,
+  classifyAnalyticsId,
+  resolveAnalytics,
+  tagLoaderScript,
+  warnAboutAnalytics,
+} from '../core/analytics'
 import {
   CONSENT_COOKIE_NAME,
   CONSENT_ENDPOINT_PATH,
@@ -36,12 +43,9 @@ describe('classifyAnalyticsId', () => {
     expect(classifyAnalyticsId('  gtm-abc1234 ')).toEqual({ kind: 'gtm', id: 'GTM-ABC1234' })
   })
 
-  test.each(['UA-12345-1', 'GTM_ABC1234', 'ABC1234', '', '   ', null, undefined, 42])(
-    'refuses %s',
-    (raw) => {
-      expect(classifyAnalyticsId(raw)).toBeNull()
-    },
-  )
+  test.each(['UA-12345-1', 'GTM_ABC1234', 'ABC1234', '', '   ', null, undefined, 42])('refuses %s', (raw) => {
+    expect(classifyAnalyticsId(raw)).toBeNull()
+  })
 })
 
 describe('resolveAnalytics', () => {
@@ -213,9 +217,7 @@ describe('CONSENT_SIGNALS_JS', () => {
       await Promise.resolve()
 
       expect(store.size).toBe(0)
-      expect(calls).toEqual([
-        { url: CONSENT_ENDPOINT_PATH, body: '{"statistics":true,"marketing":false}' },
-      ])
+      expect(calls).toEqual([{ url: CONSENT_ENDPOINT_PATH, body: '{"statistics":true,"marketing":false}' }])
     })
 
     test('never assigns document.cookie — a script write would re-arm the very 7-day cap this escapes', () => {
@@ -223,7 +225,9 @@ describe('CONSENT_SIGNALS_JS', () => {
     })
 
     test('the cookie is read back, in both stored shapes', () => {
-      const json = load({ cookie: `a=1; ${CONSENT_COOKIE_NAME}=%7B%22statistics%22%3Atrue%2C%22marketing%22%3Afalse%7D; b=2` })
+      const json = load({
+        cookie: `a=1; ${CONSENT_COOKIE_NAME}=%7B%22statistics%22%3Atrue%2C%22marketing%22%3Afalse%7D; b=2`,
+      })
       expect(json.api.readCookieConsent()).toEqual({ statistics: true, marketing: false })
 
       // Pre-#1226 bare strings still resolve, now over the new transport as well.
@@ -375,7 +379,9 @@ describe('resolveAnalytics with Cookiebot', () => {
   // A client can hand consent to Cookiebot and never touch our own toggle; requiring it would mean
   // their tag silently never loads because of a banner they do not render.
   test('a tag still loads with our own consent toggle off', () => {
-    const resolved = resolveAnalytics(settings({ cookiebot: { cbid: CBID }, ga4: { measurement_id: 'G-XYZ1234567' } }, false))
+    const resolved = resolveAnalytics(
+      settings({ cookiebot: { cbid: CBID }, ga4: { measurement_id: 'G-XYZ1234567' } }, false),
+    )
 
     expect(resolved).toMatchObject({ active: true, showBanner: false, gtagId: 'G-XYZ1234567' })
   })
@@ -395,5 +401,53 @@ describe('resolveAnalytics with Cookiebot', () => {
     expect(resolved.cookiebotId).toBeNull()
     expect(resolved.showBanner).toBe(true)
     expect(resolved.ignored).toContainEqual({ source: 'cookiebot.cbid', reason: 'malformed' })
+  })
+})
+
+// el-service PageSpeed (mobile 54): gtm.js + the gtag bundle were most of the page's TBT and,
+// through Lighthouse's simulated LCP, much of its LCP. `analytics.load: 'interaction'` defers the
+// tag; these pin that the default stays Google's reference install byte for byte.
+describe('tagLoaderScript', () => {
+  const loader = "console.log('tag')"
+
+  test('eager (and absent, and unknown) returns the loader unchanged', () => {
+    expect(tagLoaderScript(loader)).toBe(loader)
+    expect(tagLoaderScript(loader, 'eager')).toBe(loader)
+    expect(tagLoaderScript(loader, 'bogus' as never)).toBe(loader)
+  })
+
+  test('interaction wraps it behind the first interaction and a fallback timer', () => {
+    const out = tagLoaderScript(loader, 'interaction', 3000)
+    expect(out).toContain(loader)
+    expect(out).toContain("'pointerdown','keydown','touchstart','scroll'")
+    expect(out).toContain('setTimeout(run,3000)')
+    expect(() => new Function(out)).not.toThrow()
+  })
+
+  test('a bad fallback falls back to the default', () => {
+    expect(tagLoaderScript(loader, 'interaction', Number.NaN)).toContain(`setTimeout(run,${DEFAULT_TAG_FALLBACK_MS})`)
+    expect(tagLoaderScript(loader, 'interaction', -1)).toContain(`setTimeout(run,${DEFAULT_TAG_FALLBACK_MS})`)
+  })
+
+  test('runs the loader exactly once, on the first interaction', () => {
+    const listeners: Record<string, Array<() => void>> = {}
+    const win = {
+      addEventListener: (e: string, fn: () => void) => (listeners[e] ??= []).push(fn),
+      removeEventListener: () => {},
+    }
+    const timers: Array<() => void> = []
+    let runs = 0
+    const script = tagLoaderScript('ran()', 'interaction')
+    new Function('window', 'document', 'setTimeout', 'ran', script)(
+      win,
+      { readyState: 'complete' },
+      (fn: () => void) => timers.push(fn),
+      () => runs++,
+    )
+    expect(runs).toBe(0)
+    listeners.scroll[0]()
+    listeners.pointerdown[0]()
+    timers.forEach((fn) => fn())
+    expect(runs).toBe(1)
   })
 })

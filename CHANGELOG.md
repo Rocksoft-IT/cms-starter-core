@@ -27,6 +27,50 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### The Google tag can load on first interaction instead of in `<head>` (opt-in)
+
+el-service scored 54 on mobile PageSpeed with nothing but GA4 in its GTM container: gtm.js plus the gtag bundle it pulls in (~300 KB) were most of the Total Blocking Time and, through Lighthouse's simulated LCP, a large part of the LCP.
+`cmsConfig.analytics = { load: 'interaction', fallbackMs?: 5000 }` now makes `<ConsentMode />` inject the tag on the visitor's first scroll, press, touch or key, or `fallbackMs` after `load`.
+The consent bootstrap (default-deny, replay of a stored choice) still runs immediately, and a banner decision made before the tag arrives is queued on `dataLayer` and applied when it does.
+The cost: a visitor who leaves inside the fallback window without touching the page is not counted.
+**Absent config = the eager reference install, byte for byte.** Ignored on a Cookiebot site, whose auto-blocking expects the tag at parse time.
+Rollout: pin bump plus the one config key in the client's `src/cms.config.ts`. Helper: `tagLoaderScript()` in `core/analytics.ts`.
+
+### Hidden crossfade slides no longer download with the page; `image_block` is lazy
+
+Both changes come from the same el-service report and arrive with the pin bump alone.
+
+- **`carousel` with `transition: 'crossfade'`:** a slide past the first now renders its picture with `data-carousel-src`/`-srcset`/`-sizes`. The carousel script swaps those in after `load`, or just before that slide is shown.
+  The slides share one grid cell, so all of them counted as in the viewport, and `loading="lazy"` fetched every one at high priority next to slide 1, the LCP image. On el-service that was 235 KB beside a 20 KB hero.
+  Without JavaScript nothing changes, because those slides were never visible.
+- **`image_block`:** now `loading="lazy"` plus `decoding="async"`, except the hero-column image BlockRenderer marks `priority` (that one keeps `fetchpriority="high"` and stays eager). It used to be eager everywhere, so two below-the-fold photos loaded with the hero.
+
+### `/robots.xml` and `/sitemap.xml` answer a real 301 on every site
+
+dashboard #13 (x-mej): both addresses were a 404 on the live site, and a static Astro build cannot emit an HTTP redirect.
+`cmsRedirects()` now also writes the two rules into the build's `.htaccess` (`core/seoAliases.mjs`): `/robots.xml` goes to `/robots.txt` and `/sitemap.xml` to `/sitemap-index.xml`.
+The rules keep https in one step when nginx forwards `X-Forwarded-Proto`, and are merged after any `public/.htaccess` the site has.
+A site that already redirects either address itself (x-mej copied the rules into `public/` first) is left alone.
+**A pin bump is the whole rollout**: every site already registers `cmsRedirects()`, so no wiring is needed.
+It depends on the host handing unknown paths to Apache; where it does not, the rules are inert and `pnpm seo:verify <origin>` shows it.
+
+### Code previews install the live site's exact versions when the repo commits no lockfile
+
+A code preview installs `--offline` from the store the live install filled. With no committed (or a stale)
+`pnpm-lock.yaml` it used to fall back to `pnpm install --no-lockfile --offline`, which re-resolves the whole
+tree and can pick a version newer than the store holds: the preview then fails with
+`ERR_PNPM_NO_OFFLINE_TARBALL` (seen on a freshly generated client, `@astrojs/language-server` 2.17.3 via
+`@astrojs/check`). The live install's own resolution is on disk, because pnpm writes it to
+`node_modules/.pnpm/lock.yaml` even under `--no-lockfile`.
+
+- No committed lockfile, or a committed one that does not match `package.json`: the preview worktree gets
+  that file as its `pnpm-lock.yaml` and installs `--frozen-lockfile --offline`. Log line:
+  `pnpm install --frozen-lockfile --offline (preview ref, <why>: the live install's resolution)`.
+- Only when it is missing or does not fit does the preview re-resolve `--no-lockfile --offline` as before.
+- The checkout and its `node_modules` are untouched; the copy lives in the throwaway worktree.
+
+Live deploys are unchanged. Takes effect on a site once its core pin is bumped.
+
 ### `deploy.sh` can build a preview of another commit: `.preview-ref` (code previews)
 
 For the panel's client code acceptance (KODA for Websites v1.1): a client looks at a Cezar PR's exact

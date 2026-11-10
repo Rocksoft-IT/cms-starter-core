@@ -11,6 +11,7 @@ import type { TabsBlock } from '../../types/blocks'
 import BlockRenderer from '../BlockRenderer.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 
 interface Props {
   block: TabsBlock
@@ -41,7 +42,11 @@ const gid =
   tabs.length > 0 && (
     <section
       id={sectionId}
-      class:list={['section-tabs section-band', backgroundClass(block.data.background)]}
+      class:list={[
+        'section-tabs section-band',
+        backgroundClass(block.data.background),
+        textSizeClass(block.data.text_size),
+      ]}
       data-tabs
     >
       <div class="tabs-inner">

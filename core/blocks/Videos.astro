@@ -23,6 +23,7 @@ import type { VideosBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { revealClass, revealsOnScroll } from '../../lib/reveal'
 import SectionReveal from '../SectionReveal.astro'
 import { href as hrefOf } from '../../lib/href'
@@ -48,7 +49,7 @@ const { anchor_id, heading_icon, eyebrow, heading, intro, align, background, rev
 // Deep-link target — a video band is a typical TOC entry. See lib/anchor.ts.
 const sectionId = sectionAnchorId(anchor_id)
 // The shared `background` select — a band modifier the styling layer paints (#1498).
-const bandClass = backgroundClass(background)
+const bandClass = [backgroundClass(background), textSizeClass(block.data.text_size)]
 // The shared `align` select (#1643) — the header does the aligning, this is the site hook.
 const alignModifier = alignClass(align)
 // The shared `reveal` select (#1985) — `on` marks the section for the observer in

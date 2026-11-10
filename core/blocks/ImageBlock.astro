@@ -124,9 +124,15 @@ if (desktopStyles.length > 0) {
         class="w-full h-auto block mx-auto"
         style={baseStyle || undefined}
         fetchpriority={priority ? 'high' : undefined}
+        loading={priority ? undefined : 'lazy'}
+        decoding={priority ? undefined : 'async'}
         {...responsiveImageAttrs(src_meta, sizes)}
       />
-      {caption && <figcaption class="text-[14px] text-muted text-center mt-3">{caption}</figcaption>}
+      {caption && (
+        <figcaption class="[font-size:calc(14px*var(--type-scale,1))] text-muted text-center mt-3">
+          {caption}
+        </figcaption>
+      )}
     </figure>
   )
 }

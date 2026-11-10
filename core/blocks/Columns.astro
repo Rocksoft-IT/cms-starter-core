@@ -12,6 +12,7 @@ import { parseLayoutShares, shareAt } from '../../lib/layout-shares'
 import BlockRenderer from '../BlockRenderer.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 
 interface Props {
   block: ColumnsBlock
@@ -53,7 +54,14 @@ const measure = block.data.width === 'prose' ? 'var(--layout-container-prose)' :
 const reverse = block.data.mobile_reverse === true
 ---
 
-<section id={sectionId} class:list={['section-columns section-band', backgroundClass(block.data.background)]}>
+<section
+  id={sectionId}
+  class:list={[
+    'section-columns section-band',
+    backgroundClass(block.data.background),
+    textSizeClass(block.data.text_size),
+  ]}
+>
   <div
     class:list={['columns-grid', reverse && 'columns-reverse-mobile']}
     style={[`--cols: ${template};`, measure && `--columns-measure: ${measure};`].filter(Boolean).join(' ')}

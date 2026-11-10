@@ -3,6 +3,7 @@ import type { RichContentBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass, alignClasses } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { revealClass, revealsOnScroll } from '../../lib/reveal'
 import SectionReveal from '../SectionReveal.astro'
 import { headingTag } from '../../lib/headingLevel'
@@ -22,7 +23,7 @@ const sectionId = sectionAnchorId(anchor_id)
 
 // The shared `background` select — a band modifier the styling layer paints (#1498).
 // See lib/background.ts.
-const bandClass = backgroundClass(background)
+const bandClass = [backgroundClass(background), textSizeClass(block.data.text_size)]
 // The shared `align` select (#1643). This block draws no SectionHeader, so the modifier goes on
 // the heading itself — deliberately NOT on `.rich-body`: the field is section-HEADER alignment,
 // and the source it reproduces centres a heading over prose that stays left. On the <section> it

@@ -15,6 +15,7 @@ import { href as hrefOf } from '../../lib/href'
 import { hrefContextFor } from '../pathIndex'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 
 interface Props {
   block: SectionTeaserBlock
@@ -115,7 +116,12 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
   (hasHeader || items.length > 0) && (
     <section
       id={sectionId}
-      class:list={['section-teaser section-band py-16', backgroundClass(background), isList && 'is-list']}
+      class:list={[
+        'section-teaser section-band py-16',
+        backgroundClass(background),
+        textSizeClass(block.data.text_size),
+        isList && 'is-list',
+      ]}
     >
       <div class="container-global">
         <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
@@ -144,20 +150,27 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
                   )}
                   <div class="flex flex-1 flex-col gap-2 p-6">
                     {date && (
-                      <time class="text-[13px] text-text-secondary" datetime={item.date ?? undefined}>
+                      <time
+                        class="[font-size:calc(13px*var(--type-scale,1))] text-text-secondary"
+                        datetime={item.date ?? undefined}
+                      >
                         {date}
                       </time>
                     )}
-                    <h3 class="text-[20px] font-bold leading-tight text-text-primary">
+                    <h3 class="[font-size:calc(20px*var(--type-scale,1))] font-bold leading-tight text-text-primary">
                       <a href={href} class="hover:text-primary">
                         {item.name}
                       </a>
                     </h3>
-                    {lead && <p class="text-[14px] leading-[1.55] text-text-secondary">{lead}</p>}
+                    {lead && (
+                      <p class="[font-size:calc(14px*var(--type-scale,1))] leading-[1.55] text-text-secondary">
+                        {lead}
+                      </p>
+                    )}
                     {itemCta && href && (
                       <a
                         href={href}
-                        class="mt-auto inline-flex items-center gap-[6px] pt-1 text-[14px] font-bold text-primary hover:underline"
+                        class="mt-auto inline-flex items-center gap-[6px] pt-1 [font-size:calc(14px*var(--type-scale,1))] font-bold text-primary hover:underline"
                       >
                         {itemCta}
                         <span aria-hidden="true">&rarr;</span>
@@ -188,14 +201,14 @@ function imageMeta(t: unknown): ResponsiveImageMeta | null {
                   >
                     {badge && (
                       <span class="flex h-14 w-14 shrink-0 flex-col items-center justify-center rounded-[10px] bg-text-primary leading-none text-white">
-                        <span class="text-[20px] font-bold">{badge.day}</span>
-                        <span class="text-[11px] uppercase">{badge.month}</span>
+                        <span class="[font-size:calc(20px*var(--type-scale,1))] font-bold">{badge.day}</span>
+                        <span class="[font-size:calc(11px*var(--type-scale,1))] uppercase">{badge.month}</span>
                       </span>
                     )}
                     <span class="min-w-0 flex-1">
                       <span class="block truncate font-semibold text-text-primary">{item.name}</span>
                       {(status || attachments > 0) && (
-                        <span class="mt-1 flex items-center gap-3 text-[12px] text-text-secondary">
+                        <span class="mt-1 flex items-center gap-3 [font-size:calc(12px*var(--type-scale,1))] text-text-secondary">
                           {status && (
                             <span
                               class="section-teaser-status inline-flex items-center rounded-full bg-primary/10 px-2 py-[2px] font-semibold uppercase text-primary"

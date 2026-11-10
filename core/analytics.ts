@@ -311,3 +311,50 @@ function applyCookieConsent(v){
   });
 }
 `.trim()
+
+/**
+ * When the Google tag itself loads, relative to the page (`cmsConfig.analytics.load`).
+ *
+ * - `eager` (the default, and the behaviour before this existed): the tag is injected from <head>
+ *   as soon as the bootstrap has run — Google's reference install.
+ * - `interaction`: the tag is injected on the visitor's first scroll, pointer press, touch or key
+ *   press, or `fallbackMs` after the window `load` event, whichever comes first.
+ *
+ * Why the second exists: gtm.js plus the gtag bundle a container pulls in is ~300 KB of script that
+ * parses and runs while the page is still painting. On throttled mobile PageSpeed books that as
+ * most of the page's Total Blocking Time, and — because its simulated LCP counts every request in
+ * flight before the paint — a large part of its LCP too (el-service: 54 on mobile with only GA4 in
+ * the container). Deferring it takes the tag off the critical path entirely.
+ *
+ * What it costs, so a site opts in knowingly: a visitor who leaves within the fallback window
+ * without touching the page is never counted, and `gtm.start` is the moment the tag loaded, not
+ * navigation start. Consent is unaffected either way: the default-deny bootstrap and the replay of
+ * a stored choice still run immediately, and anything pushed to `dataLayer` before the tag arrives
+ * (a `consent update` from the banner) is processed when it does.
+ */
+export type TagLoadStrategy = 'eager' | 'interaction'
+
+/** How long after `load` an `interaction` tag loads anyway when the visitor has not interacted. */
+export const DEFAULT_TAG_FALLBACK_MS = 5000
+
+/**
+ * Wraps a tag-injecting snippet in the chosen load strategy. `eager` returns it unchanged; an
+ * unknown strategy is treated as `eager`, so a typo in a site config can only ever mean the
+ * behaviour every site already had. A non-finite or negative `fallbackMs` falls back to the default.
+ */
+export function tagLoaderScript(
+  loader: string,
+  strategy: TagLoadStrategy | undefined = 'eager',
+  fallbackMs: number = DEFAULT_TAG_FALLBACK_MS,
+): string {
+  if (strategy !== 'interaction') return loader
+  const ms = Number.isFinite(fallbackMs) && fallbackMs >= 0 ? Math.round(fallbackMs) : DEFAULT_TAG_FALLBACK_MS
+  return (
+    `(function(){var done=false,ev=['pointerdown','keydown','touchstart','scroll'];` +
+    `function run(){if(done)return;done=true;` +
+    `ev.forEach(function(e){window.removeEventListener(e,run,{passive:true})});${loader}}` +
+    `ev.forEach(function(e){window.addEventListener(e,run,{passive:true,once:true})});` +
+    `function arm(){setTimeout(run,${ms})}` +
+    `if(document.readyState==='complete')arm();else window.addEventListener('load',arm);})();`
+  )
+}

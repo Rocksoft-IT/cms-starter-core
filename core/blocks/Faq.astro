@@ -24,6 +24,7 @@ import type { FaqBlock } from '../../types/blocks'
 import RichText from '../RichText.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { href as hrefOf, isExternalHref, externalLinkAttrs } from '../../lib/href'
 import { hrefContextFor } from '../pathIndex'
 import { usableCtas } from '../../lib/ctas'
@@ -80,7 +81,10 @@ const slug = (heading ?? 'section')
 const groupName = `faq-${slug || 'section'}`
 ---
 
-<section class:list={['section-faq section-band', backgroundClass(background)]} id={sectionId}>
+<section
+  class:list={['section-faq section-band', backgroundClass(background), textSizeClass(block.data.text_size)]}
+  id={sectionId}
+>
   <div class="faq-inner">
     {
       (heading_icon || eyebrow || heading || intro || cta) && (
@@ -93,11 +97,7 @@ const groupName = `faq-${slug || 'section'}`
               {intro && <p class="faq-intro">{intro}</p>}
             </div>
             {cta && (
-              <a
-                class="faq-action surface-light"
-                href={hrefOf(cta.href, hrefCtx)}
-                {...externalLinkAttrs(cta.href)}
-              >
+              <a class="faq-action surface-light" href={hrefOf(cta.href, hrefCtx)} {...externalLinkAttrs(cta.href)}>
                 {cta.label}
                 {ctaExternal && (
                   <svg

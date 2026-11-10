@@ -33,6 +33,7 @@
 import type { GalleryBlock } from '../../types/blocks'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
@@ -68,7 +69,10 @@ const nextLabel = t('nextPhoto')
 
 {
   tiles.length > 0 && (
-    <section class:list={['section-gallery section-band', backgroundClass(background)]} id={sectionId}>
+    <section
+      class:list={['section-gallery section-band', backgroundClass(background), textSizeClass(block.data.text_size)]}
+      id={sectionId}
+    >
       <div class="gallery-inner">
         <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro}>
           {note && (

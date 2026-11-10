@@ -11,6 +11,7 @@ import type { Block } from '../types/blocks'
 // Type-only, and it has to be: ui-strings.ts reads `cmsConfig`, which is typed by this file. A
 // value import would be a real cycle; a type import is erased before any module ever runs.
 import type { CoreStrings } from './ui-strings'
+import type { TagLoadStrategy } from './analytics'
 
 /**
  * The `pageTypes` key a category archive route carries — mirrors the backend's own name for the
@@ -68,6 +69,20 @@ export interface CmsConfig {
   fonts?: {
     preconnect?: Array<{ href: string; crossorigin?: boolean }>
     stylesheets?: string[]
+  }
+  /** When the Google tag (the GTM container or gtag.js the CMS's Integrations tab configures)
+   *  loads. Which id loads, and whether anything loads at all, stays the CMS's decision
+   *  (core/analytics.ts → resolveAnalytics); this is only about timing, which is a frontend
+   *  performance trade-off the CMS cannot judge.
+   *
+   *  `load: 'interaction'` injects the tag on the visitor's first scroll/press/key, or `fallbackMs`
+   *  (default 5000) after `load` — taking ~300 KB of script off the critical path, at the price of
+   *  not counting a visitor who leaves inside that window without touching the page. Absent or
+   *  `'eager'` = Google's reference install, unchanged. Ignored on a Cookiebot site. See
+   *  `tagLoaderScript` in core/analytics.ts. */
+  analytics?: {
+    load?: TagLoadStrategy
+    fallbackMs?: number
   }
   /** API menu keys consumed via GET /api/menus/{key}.
    *

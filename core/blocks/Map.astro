@@ -7,6 +7,7 @@ import type { MapBlock } from '../../types/blocks'
 import MapEmbed from '../MapEmbed.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import HeadingIcon from '../HeadingIcon.astro'
 
 interface Props {
@@ -21,7 +22,10 @@ const sectionId = sectionAnchorId(anchor_id)
 
 {
   (heading || map_embed_src) && (
-    <section id={sectionId} class:list={['section-map section-band', backgroundClass(background)]}>
+    <section
+      id={sectionId}
+      class:list={['section-map section-band', backgroundClass(background), textSizeClass(block.data.text_size)]}
+    >
       <div class="container-global py-16">
         {/* The section header (dashboard#1958): this block carried `heading` alone and no written
             reason. Left-aligned and drawn here rather than through SectionHeader.astro, which

@@ -12,6 +12,7 @@ import { headingTag } from '../../lib/headingLevel'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { usableCtas } from '../../lib/ctas'
 import HeadingIcon from '../HeadingIcon.astro'
 
@@ -55,7 +56,10 @@ const sectionId = sectionAnchorId(anchor_id)
 const Heading = headingTag(heading_level)
 ---
 
-<section id={sectionId} class:list={['section-promo-split section-band', backgroundClass(background)]}>
+<section
+  id={sectionId}
+  class:list={['section-promo-split section-band', backgroundClass(background), textSizeClass(block.data.text_size)]}
+>
   <div class="promo-split-inner">
     <div class:list={['promo-split-panel', src && 'md:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]']}>
       <div class="promo-split-content">

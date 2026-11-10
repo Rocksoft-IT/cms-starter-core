@@ -4,6 +4,7 @@ import SectionHeader from '../SectionHeader.astro'
 import { coreString } from '../ui-strings'
 import { sectionAnchorId } from '../../lib/anchor'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 interface Props {
   block: VideoSectionBlock
@@ -94,6 +95,7 @@ const titleId = `video-dialog-${sectionId ?? hash(`${videoSrc ?? ''}|${headingTe
       class:list={[
         'video-section video-banner section-video-banner section-band',
         backgroundClass(block.data.background),
+        textSizeClass(block.data.text_size),
       ]}
       data-video-banner
       data-video-anchor={sectionId}
@@ -185,7 +187,11 @@ const titleId = `video-dialog-${sectionId ?? hash(`${videoSrc ?? ''}|${headingTe
   ) : (
     <section
       id={sectionId}
-      class:list={['video-section section-band py-16 px-6', backgroundClass(block.data.background)]}
+      class:list={[
+        'video-section section-band py-16 px-6',
+        backgroundClass(block.data.background),
+        textSizeClass(block.data.text_size),
+      ]}
     >
       <div class="max-w-4xl mx-auto">
         <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
@@ -209,7 +215,9 @@ const titleId = `video-dialog-${sectionId ?? hash(`${videoSrc ?? ''}|${headingTe
             allowfullscreen
           />
         </div>
-        {block.data.body && <p class="mt-6 text-lg">{block.data.body}</p>}
+        {block.data.body && (
+          <p class="mt-6 [font-size:calc(1.125rem*var(--type-scale,1))] [line-height:1.75rem]">{block.data.body}</p>
+        )}
       </div>
     </section>
   )

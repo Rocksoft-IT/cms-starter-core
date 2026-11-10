@@ -24,6 +24,7 @@ import BlockRenderer from '../BlockRenderer.astro'
 import { sectionAnchorId } from '../../lib/anchor'
 import { alignClass } from '../../lib/align'
 import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
 import { IMAGE_SIZES, responsiveImageAttrs } from '../../lib/image'
 import { coreString } from '../ui-strings'
 
@@ -46,7 +47,7 @@ const isCrossfade = transition === 'crossfade'
 const sectionId = sectionAnchorId(anchor_id)
 // The shared section-level tokens, exactly as the banded blocks read them (lib/background.ts,
 // lib/align.ts). A slide with its own photograph paints over the band; one without keeps it.
-const bandClass = backgroundClass(background)
+const bandClass = [backgroundClass(background), textSizeClass(block.data.text_size)]
 const alignModifier = alignClass(align)
 
 // Keep only slides that render something. `anchor` is server-derived; fall back to the index so
@@ -131,14 +132,33 @@ const arrows = [
             >
               {slide.image && (
                 <>
-                  <img
-                    class="carousel-bg"
-                    src={slide.image}
-                    alt={slide.imageAlt}
-                    loading={i === 0 ? 'eager' : 'lazy'}
-                    fetchpriority={i === 0 ? 'high' : undefined}
-                    {...responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed)}
-                  />
+                  {isHidden && isCarousel ? (
+                    // A hidden crossfade slide's picture is NOT requested with the page. The slides
+                    // share one grid cell, so they are all "in the viewport" and `loading="lazy"`
+                    // fetched every one at high priority, competing with slide 1 — the LCP image
+                    // (el-service: 235 KB of slides 2–3 next to a 20 KB hero on mobile). The script
+                    // below swaps `data-*` into the real attributes after `load`, or just before the
+                    // slide is shown. Without JavaScript these slides never become visible anyway.
+                    <img
+                      class="carousel-bg"
+                      alt={slide.imageAlt}
+                      decoding="async"
+                      data-carousel-src={slide.image}
+                      data-carousel-srcset={responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed).srcset}
+                      data-carousel-sizes={responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed).sizes}
+                      width={slide.imageMeta?.width ?? undefined}
+                      height={slide.imageMeta?.height ?? undefined}
+                    />
+                  ) : (
+                    <img
+                      class="carousel-bg"
+                      src={slide.image}
+                      alt={slide.imageAlt}
+                      loading={i === 0 ? 'eager' : 'lazy'}
+                      fetchpriority={i === 0 ? 'high' : undefined}
+                      {...responsiveImageAttrs(slide.imageMeta, IMAGE_SIZES.fullBleed)}
+                    />
+                  )}
                   {/* The scrim is what keeps text over a photograph readable. A token rather than a
                     fixed colour, so a site retunes (or removes) it without overriding the block —
                     the component-level seam `--hero-c1` established. */}
@@ -226,7 +246,22 @@ const arrows = [
         // switch, so flipping it is most of a crossfade slide's transition; inert goes with it so
         // a hidden slide's own CTAs drop out of the tab order instead of sitting there invisible
         // but still reachable by keyboard.
+        // A deferred crossfade picture (see the markup): move data-carousel-* into the real
+        // attributes. srcset/sizes first, so the browser picks a rung instead of fetching src.
+        function hydrate(slide) {
+          var img = slide && slide.querySelector('img[data-carousel-src]')
+          if (!img) return
+          if (img.dataset.carouselSizes) img.sizes = img.dataset.carouselSizes
+          if (img.dataset.carouselSrcset) img.srcset = img.dataset.carouselSrcset
+          img.src = img.dataset.carouselSrc
+          img.removeAttribute('data-carousel-src')
+        }
+        function hydrateAll() { slides.forEach(hydrate) }
+        if (document.readyState === 'complete') setTimeout(hydrateAll, 0)
+        else window.addEventListener('load', function () { setTimeout(hydrateAll, 0) })
+
         function setSlideVisible(slide, visible) {
+          if (visible) hydrate(slide)
           slide.setAttribute('aria-hidden', visible ? 'false' : 'true')
           slide.toggleAttribute('inert', !visible)
         }

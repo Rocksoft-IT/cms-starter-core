@@ -124,7 +124,7 @@ const items: Resolved[] = (fields ?? [])
     margin: 0;
   }
   .custom-field-label {
-    font-size: 0.85rem;
+    font-size: calc(0.85rem * var(--type-scale, 1));
     font-weight: 600;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -133,7 +133,7 @@ const items: Resolved[] = (fields ?? [])
   }
   .custom-field-value {
     margin: 0;
-    font-size: 1.05rem;
+    font-size: calc(1.05rem * var(--type-scale, 1));
     line-height: 1.6;
     color: var(--color-text-primary, #151516);
   }

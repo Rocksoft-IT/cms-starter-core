@@ -203,20 +203,38 @@ elif [ "$preview_ref_found" = "1" ]; then
   # stale), but --offline: the dependencies are the checkout's (checked above), so the store already
   # holds every package and nothing is fetched. Not --ignore-scripts: those are the same install
   # scripts the live install ran, and packages such as esbuild and sharp need theirs to work.
+  #
+  # Without a usable committed lockfile, --no-lockfile would RE-RESOLVE the tree and can pick a newer
+  # version the store does not hold, which --offline then cannot fetch (ERR_PNPM_NO_OFFLINE_TARBALL; a
+  # freshly generated client commits no lockfile). The live install's own resolution is on disk:
+  # pnpm writes it to node_modules/.pnpm/lock.yaml even under --no-lockfile. Installing that frozen
+  # gives the preview exactly the live site's versions, all of them in the store.
+  live_lock="$FRONTEND_DIR/node_modules/.pnpm/lock.yaml"
+  install_without_committed_lock() { # <why>
+    if [ -f "$live_lock" ]; then
+      cp "$live_lock" pnpm-lock.yaml
+      begin "pnpm install --frozen-lockfile --offline (preview ref, $1: the live install's resolution)"
+      if pnpm install --frozen-lockfile --offline; then
+        finish
+        return
+      fi
+      log "    the live install's resolution does not fit — falling back"
+      rm -f pnpm-lock.yaml
+    fi
+    begin "pnpm install --no-lockfile --offline (preview ref, $1)"
+    pnpm install --no-lockfile --offline
+    finish
+  }
   if [ -f pnpm-lock.yaml ]; then
     begin "pnpm install --frozen-lockfile --offline (preview ref)"
     if pnpm install --frozen-lockfile --offline; then
       finish
     else
       log "    lockfile does not match package.json — falling back"
-      begin "pnpm install --no-lockfile --offline (preview ref, stale lockfile)"
-      pnpm install --no-lockfile --offline
-      finish
+      install_without_committed_lock "stale lockfile"
     fi
   else
-    begin "pnpm install --no-lockfile --offline (preview ref, no committed lockfile)"
-    pnpm install --no-lockfile --offline
-    finish
+    install_without_committed_lock "no committed lockfile"
   fi
   preview_ref_sha="$ref_sha"
 fi

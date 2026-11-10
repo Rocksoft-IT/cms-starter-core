@@ -129,6 +129,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -193,6 +202,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "align": {
@@ -306,6 +324,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -416,6 +443,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -479,6 +515,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "align": {
@@ -560,6 +605,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "align": {
@@ -682,6 +736,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "reveal": {
                 "type": "select",
                 "options": {
@@ -783,6 +846,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -867,6 +939,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "align": {
                 "type": "select",
                 "options": {
@@ -942,6 +1023,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "align": {
@@ -1078,6 +1168,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1126,6 +1225,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "anchor_id": {
@@ -1188,6 +1296,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "align": {
@@ -1336,6 +1453,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1431,6 +1557,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -1494,6 +1629,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "anchor_id": {
@@ -1843,6 +1987,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "align": {
                 "type": "select",
                 "options": {
@@ -2030,6 +2183,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -2108,6 +2270,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -2172,6 +2343,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "anchor_id": {
@@ -2300,6 +2480,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -2335,6 +2524,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "anchor_id": {
@@ -2402,6 +2600,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -2431,6 +2638,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "anchor_id": {
@@ -2484,6 +2700,15 @@
                     "dark": "Dark"
                 }
             },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
             "anchor_id": {
                 "type": "text"
             }
@@ -2513,6 +2738,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "anchor_id": {
@@ -2581,6 +2815,15 @@
                     "tint": "Brand tint (soft wash)",
                     "brand": "Brand (solid fill)",
                     "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
                 }
             },
             "align": {
