@@ -24,10 +24,14 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { toPrefixRules, writePrefixRedirects } from './redirectPrefixes.mjs'
 import { writeSeoAliases } from './seoAliases.mjs'
 
 /** Where a mock build reads the map from, relative to the Astro project root. */
 const MOCK_FIXTURE = 'src/fixtures/data/redirects.json'
+
+/** The same for prefix redirects (dashboard #2466). Absent = none. */
+const MOCK_PREFIX_FIXTURE = 'src/fixtures/data/redirect-prefixes.json'
 
 /**
  * How long the CMS gets to answer before the build gives up on redirects.
@@ -123,8 +127,8 @@ function loadSiteEnv(root) {
   }
 }
 
-async function fetchRedirects(baseUrl, token) {
-  const url = `${baseUrl.replace(/\/$/, '')}/api/redirects`
+async function fetchRedirects(baseUrl, token, endpoint = '/api/redirects', empty = {}) {
+  const url = `${baseUrl.replace(/\/$/, '')}${endpoint}`
 
   let res
   try {
@@ -141,21 +145,21 @@ async function fetchRedirects(baseUrl, token) {
   // A backend older than dashboard #1084 has no such route. That is not an error: it is the
   // state every client was in before this shipped, and the build must not depend on the two
   // being deployed in step.
-  if (res.status === 404) return {}
+  if (res.status === 404) return empty
   if (!res.ok) throw new Error(`${res.status} ${res.statusText} — ${url}`)
 
   const json = await res.json()
-  return json?.data ?? {}
+  return json?.data ?? empty
 }
 
-async function readMockRedirects(root) {
-  const file = path.join(root, MOCK_FIXTURE)
+async function readMockRedirects(root, fixture = MOCK_FIXTURE, empty = {}) {
+  const file = path.join(root, fixture)
 
   let raw
   try {
     raw = await readFile(file, 'utf8')
   } catch {
-    return {} // No fixture: a site that has never recorded a redirect, not a failure.
+    return empty // No fixture: a site that has never recorded a redirect, not a failure.
   }
 
   // Deliberately NOT caught — a fixture that exists but does not parse is worth the caller's
@@ -186,6 +190,9 @@ async function readMockRedirects(root) {
  * unreachable fails the build a moment later anyway, in getPages().
  */
 export function cmsRedirects({ baseUrl, token } = {}) {
+  // Fetched with the exact map in config:setup, written into .htaccess once the build exists.
+  let prefixRules = []
+
   return {
     name: '@rocksoft/cms-starter-core:redirects',
     hooks: {
@@ -194,12 +201,14 @@ export function cmsRedirects({ baseUrl, token } = {}) {
 
         const root = fileURLToPath(config.root)
         let raw = {}
+        let rawPrefixes = []
 
         try {
           // Checked before the env is touched: a mock build has no backend by definition, so
           // there are no credentials to look for and no .env probe to pay for.
           if (process.env.ASTRO_API_MOCK === '1') {
             raw = await readMockRedirects(root)
+            rawPrefixes = await readMockRedirects(root, MOCK_PREFIX_FIXTURE, [])
           } else {
             // Only when we are the ones who have to find the credentials: a caller that passed
             // both did not ask us to touch its environment.
@@ -210,6 +219,13 @@ export function cmsRedirects({ baseUrl, token } = {}) {
 
             if (url && key) {
               raw = await fetchRedirects(url, key)
+              // A backend older than dashboard #2466 answers 404: no prefix rules, not an error.
+              // Its own catch: a failure here must not read as "building without CMS redirects"
+              // when the exact map above did arrive.
+              rawPrefixes = await fetchRedirects(url, key, '/api/redirects/prefixes', []).catch((error) => {
+                logger.warn(`${error.message} — building without CMS prefix redirects.`)
+                return []
+              })
             } else {
               logger.warn('ASTRO_API_URL / ASTRO_API_TOKEN are not set — building without CMS redirects.')
             }
@@ -219,6 +235,8 @@ export function cmsRedirects({ baseUrl, token } = {}) {
           // silently going back to 404ing.
           logger.warn(`${error.message} — building without CMS redirects.`)
         }
+
+        prefixRules = toPrefixRules(rawPrefixes)
 
         const redirects = toAstroRedirects(raw)
         const count = Object.keys(redirects).length
@@ -232,7 +250,10 @@ export function cmsRedirects({ baseUrl, token } = {}) {
       // The one redirect a static build can only express as host config: the legacy
       // /robots.xml and /sitemap.xml addresses (seoAliases.mjs). Lives on this integration
       // because every site already registers it, so a pin bump is the whole rollout.
+      // Prefix redirects (dashboard #2466) take the same route, for the same reason: a static build
+      // cannot say "everything under /de-at/" any other way.
       'astro:build:done': async ({ dir, logger }) => {
+        await writePrefixRedirects(fileURLToPath(dir), prefixRules, logger)
         await writeSeoAliases(fileURLToPath(dir), logger)
       },
     },

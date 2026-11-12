@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 
 // `getMenu` and `getFooter` back the two pieces of chrome a layout mounts on EVERY page, so an
 // unmemoized fetch is one request per built page — the cost grows with the site while the answer
@@ -25,6 +25,15 @@ async function freshApi() {
 }
 
 let fetchMock: ReturnType<typeof vi.fn>
+
+// The FIRST import of lib/api transforms its whole module graph, which under a loaded full-suite
+// run took longer than the 5s test timeout. The test that paid for it timed out, kept running in
+// the background, and its late fetch landed in the next test's call count ("called 3 times, got
+// 4"). Paying it once here, with room to spare, leaves every test's own re-import cheap: the
+// transforms are cached, and resetModules only re-evaluates.
+beforeAll(async () => {
+  await import('../lib/api')
+}, 60_000)
 
 beforeEach(() => {
   fetchMock = vi.fn()
