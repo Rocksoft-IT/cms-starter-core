@@ -35,6 +35,7 @@ const SOURCES: Array<{ file: string; prefix: string }> = [
   { file: 'core/customCode.ts', prefix: '[custom-code]' },
   { file: 'core/analytics.ts', prefix: '[consent]' },
   { file: 'core/unregisteredBlocks.ts', prefix: '[cms]' },
+  { file: 'core/protected-zone/settings.ts', prefix: '[cms]' },
 ]
 
 const read = (file: string): string => readFileSync(join(root, file), 'utf8')
@@ -88,6 +89,8 @@ describe('build warnings keep the prefixes the dashboard scans for', () => {
     expect(analytics).toContain('ships no analytics and no banner')
 
     expect(read('core/unregisteredBlocks.ts')).toContain('render as nothing')
+
+    expect(read('core/protected-zone/settings.ts')).toContain('renders only an "unavailable" notice')
   })
 
   // The one warning source that is not TypeScript, so every assertion above walks past it: the

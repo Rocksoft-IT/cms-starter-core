@@ -686,6 +686,10 @@ export interface SiteSettingsData {
    *  VISIBLE. See resolveEffectiveConfig() for why that default is the opposite of the
    *  backend's. */
   search_visible?: boolean
+  /** The per-client Protected zone switch — `endpoint` is the zone API's base URL
+   *  (`{APP_URL}/api/zone`) when `enabled`, else null. ABSENT reads as OFF; resolved by
+   *  core/protected-zone/settings.ts. */
+  protected_zone?: { enabled: boolean; endpoint: string | null }
   [key: string]: unknown
 }
 

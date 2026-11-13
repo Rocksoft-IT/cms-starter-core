@@ -708,6 +708,22 @@ export interface DocumentsBlock {
   }
 }
 
+export interface ProtectedZoneBlock {
+  type: 'protected_zone'
+  data: {
+    heading_icon?: string
+    eyebrow?: string
+    heading?: string
+    intro?: string
+    forgot_password?: string
+    documents_heading?: string
+    empty_message?: string
+    background?: 'default' | 'light' | 'muted' | 'tint' | 'brand' | 'dark'
+    text_size?: 'default' | 'sm' | 'lg' | 'xl'
+    anchor_id?: string
+  }
+}
+
 export interface CardsBlock {
   type: 'cards'
   data: {
@@ -971,6 +987,7 @@ export type Block =
   | PageContentBlock
   | CollectionItemsBlock
   | DocumentsBlock
+  | ProtectedZoneBlock
   | CardsBlock
   | GalleryBlock
   | FaqBlock

@@ -69,6 +69,44 @@ export interface CoreStrings {
   cellPartial: string
   /** The `cards` block's `bento` layout CTA button, when an item sets no `cta_label` of its own. */
   cardCta: string
+  /**
+   * The `protected_zone` block's chrome. The messages are said at RUNTIME, so the renderer writes
+   * them into `data-msg-*` attributes and core/protected-zone/client.ts fills `{minutes}`/`{name}`.
+   */
+  protectedZoneLogin: string
+  protectedZonePassword: string
+  protectedZoneSubmit: string
+  protectedZoneLogout: string
+  protectedZoneLogoutFailed: string
+  protectedZoneInvalidCredentials: string
+  protectedZoneAccountBlocked: string
+  protectedZoneTooManyAttempts: string
+  protectedZoneNetwork: string
+  protectedZoneSessionExpired: string
+  protectedZoneSignedInAs: string
+  /** The list heading when the block's `documents_heading` is empty. */
+  protectedZoneDocuments: string
+  /** The empty-list line when the block's `empty_message` is empty. */
+  protectedZoneEmpty: string
+  protectedZoneView: string
+  protectedZoneDownload: string
+  protectedZoneLoading: string
+  protectedZoneUnavailable: string
+  protectedZoneNoScript: string
+  /** The self-service password reset: the link under the form, its two forms and their messages. */
+  protectedZoneForgot: string
+  protectedZoneForgotHint: string
+  protectedZoneForgotSubmit: string
+  protectedZoneBack: string
+  protectedZoneResetSent: string
+  protectedZoneResetHint: string
+  protectedZoneNewPassword: string
+  protectedZoneRepeatPassword: string
+  protectedZoneResetSubmit: string
+  protectedZoneResetDone: string
+  protectedZoneResetInvalidLink: string
+  protectedZoneResetPasswordInvalid: string
+  protectedZoneResetMismatch: string
 }
 
 /**
@@ -103,6 +141,40 @@ const BUILT_IN: Record<string, CoreStrings> = {
     cellNo: 'No',
     cellPartial: 'Partly',
     cardCta: 'Learn more',
+    protectedZoneLogin: 'Login',
+    protectedZonePassword: 'Password',
+    protectedZoneSubmit: 'Sign in',
+    protectedZoneLogout: 'Sign out',
+    protectedZoneLogoutFailed:
+      'Sign-out could not be confirmed. Check your connection and click Sign out to try again.',
+    protectedZoneInvalidCredentials: 'Incorrect login or password.',
+    protectedZoneAccountBlocked: 'This account is blocked. Please contact the administrator.',
+    protectedZoneTooManyAttempts: 'Too many sign-in attempts. Try again in {minutes} min.',
+    protectedZoneNetwork: 'Could not connect. Check your connection and try again.',
+    protectedZoneSessionExpired: 'Your session has expired. Please sign in again.',
+    protectedZoneSignedInAs: 'Signed in as {name}',
+    protectedZoneDocuments: 'Documents',
+    protectedZoneEmpty: 'No documents.',
+    protectedZoneView: 'Preview',
+    protectedZoneDownload: 'Download',
+    protectedZoneLoading: 'Loading…',
+    protectedZoneUnavailable: 'The protected zone is unavailable.',
+    protectedZoneNoScript: 'JavaScript is required to use the protected zone.',
+    protectedZoneForgot: 'Forgot your password?',
+    protectedZoneForgotHint:
+      'Enter your login. If the account has an e-mail address, we will send a link to set a new password there.',
+    protectedZoneForgotSubmit: 'Send the link',
+    protectedZoneBack: 'Back to sign-in',
+    protectedZoneResetSent:
+      'If this account has an e-mail address, a link to set a new password is on its way. No message? Contact the administrator.',
+    protectedZoneResetHint: 'Set a new password — at least 8 characters.',
+    protectedZoneNewPassword: 'New password',
+    protectedZoneRepeatPassword: 'Repeat the new password',
+    protectedZoneResetSubmit: 'Set the password',
+    protectedZoneResetDone: 'Your password has been changed. Sign in with the new one.',
+    protectedZoneResetInvalidLink: 'This link has expired or was already used. Ask for a new one.',
+    protectedZoneResetPasswordInvalid: 'The password must be 8 to 72 characters long.',
+    protectedZoneResetMismatch: 'The passwords do not match.',
   },
   pl: {
     galleryZoomNamed: 'Powiększ: {name}',
@@ -126,6 +198,41 @@ const BUILT_IN: Record<string, CoreStrings> = {
     cellNo: 'Nie',
     cellPartial: 'Częściowo',
     cardCta: 'Dowiedz się więcej',
+    // `Login` is the Polish word too, and the one Polish sign-in forms use for this field.
+    protectedZoneLogin: 'Login',
+    protectedZonePassword: 'Hasło',
+    protectedZoneSubmit: 'Zaloguj się',
+    protectedZoneLogout: 'Wyloguj się',
+    protectedZoneLogoutFailed:
+      'Nie udało się potwierdzić wylogowania. Sprawdź połączenie i kliknij „Wyloguj się”, aby ponowić.',
+    protectedZoneInvalidCredentials: 'Nieprawidłowy login lub hasło.',
+    protectedZoneAccountBlocked: 'Konto jest zablokowane. Skontaktuj się z administratorem.',
+    protectedZoneTooManyAttempts: 'Zbyt wiele prób logowania. Spróbuj ponownie za {minutes} min.',
+    protectedZoneNetwork: 'Nie udało się połączyć. Sprawdź połączenie i spróbuj ponownie.',
+    protectedZoneSessionExpired: 'Sesja wygasła. Zaloguj się ponownie.',
+    protectedZoneSignedInAs: 'Zalogowano jako {name}',
+    protectedZoneDocuments: 'Dokumenty',
+    protectedZoneEmpty: 'Brak dokumentów.',
+    protectedZoneView: 'Podgląd',
+    protectedZoneDownload: 'Pobierz',
+    protectedZoneLoading: 'Wczytywanie…',
+    protectedZoneUnavailable: 'Strefa chroniona jest niedostępna.',
+    protectedZoneNoScript: 'Do korzystania ze strefy wymagana jest obsługa JavaScript.',
+    protectedZoneForgot: 'Nie pamiętasz hasła?',
+    protectedZoneForgotHint:
+      'Podaj swój login. Jeśli konto ma adres e-mail, wyślemy na niego link do ustawienia nowego hasła.',
+    protectedZoneForgotSubmit: 'Wyślij link',
+    protectedZoneBack: 'Wróć do logowania',
+    protectedZoneResetSent:
+      'Jeśli to konto ma adres e-mail, wysłaliśmy na niego link do ustawienia nowego hasła. Brak wiadomości? Skontaktuj się z administratorem.',
+    protectedZoneResetHint: 'Ustaw nowe hasło — co najmniej 8 znaków.',
+    protectedZoneNewPassword: 'Nowe hasło',
+    protectedZoneRepeatPassword: 'Powtórz nowe hasło',
+    protectedZoneResetSubmit: 'Ustaw hasło',
+    protectedZoneResetDone: 'Hasło zostało zmienione. Zaloguj się nowym hasłem.',
+    protectedZoneResetInvalidLink: 'Ten link wygasł lub został już użyty. Poproś o nowy.',
+    protectedZoneResetPasswordInvalid: 'Hasło musi mieć od 8 do 72 znaków.',
+    protectedZoneResetMismatch: 'Hasła nie są takie same.',
   },
 }
 

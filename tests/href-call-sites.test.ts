@@ -115,6 +115,7 @@ describe('every hop hands the locale down', () => {
       'Hero',
       'Paragraph',
       'PricingTable',
+      'ProtectedZone',
       'Quote',
       'RichContent',
       'Tabs',

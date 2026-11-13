@@ -1021,6 +1021,81 @@ export const coreShortcuts: Record<string, string> = {
     'transition-colors duration-300 ' +
     'hover:bg-transparent hover:text-primary',
 
+  // ── Protected zone block (ProtectedZone.astro) ──────────────────────────────
+  // A sign-in card, then the signed-in document list, on core's neutral tokens; a site restyles any
+  // piece by redefining its key in src/uno.ts. BEM-style names like the consent banner's, so a site
+  // override that keeps them in its own markup keeps this look.
+  //
+  // `[&[hidden]]:hidden` on every key client.ts toggles, for the reason given on `cookie-consent`
+  // below (and in client.ts's header). Every control carries `protected-zone__focus`: the
+  // conformance suite fails a control that takes focus and shows nothing.
+  'protected-zone__focus':
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
+  'section-protected-zone': 'section-y',
+  'protected-zone__inner': 'container-narrow',
+  'protected-zone__card':
+    'flex flex-col gap-6 rounded-[12px] border border-solid border-border bg-surface p-6 sm:p-8 [&[hidden]]:hidden',
+  'protected-zone__form': 'flex flex-col gap-4 w-full max-w-[28rem] [&[hidden]]:hidden',
+  'protected-zone__field': 'flex flex-col gap-1.5',
+  'protected-zone__label': '[font-size:calc(14px*var(--type-scale,1))] font-semibold text-text-primary',
+  // 16px text: anything smaller makes iOS Safari zoom the page on focus.
+  'protected-zone__input':
+    'w-full rounded-[8px] border border-solid border-border bg-surface px-3 py-2.5 ' +
+    '[font-size:calc(16px*var(--type-scale,1))] leading-6 text-text-primary protected-zone__focus',
+  // `border-0` before the one side, so `border-solid` does not frame the other three at 3px.
+  'protected-zone__error':
+    'm-0 rounded-[8px] border-0 border-l-4 border-solid border-primary bg-surface-alt px-3 py-2 ' +
+    '[font-size:calc(14px*var(--type-scale,1))] leading-[1.5] text-text-primary [&[hidden]]:hidden',
+  'protected-zone__submit':
+    'self-start inline-flex items-center justify-center gap-2 rounded-[8px] border-2 border-solid ' +
+    'border-button-primary bg-button-primary px-5 py-2.5 [font-size:calc(16px*var(--type-scale,1))] font-semibold leading-6 ' +
+    'text-button-primary-text cursor-pointer transition-opacity duration-200 hover:opacity-90 ' +
+    'disabled:cursor-wait disabled:opacity-60 protected-zone__focus',
+  'protected-zone__forgot':
+    '[font-size:calc(14px*var(--type-scale,1))] leading-[1.6] text-text-secondary [&_p]:m-0 [&_p+p]:mt-2 [&_a]:underline',
+  'protected-zone__notice': 'm-0 rounded-[8px] bg-surface-alt p-4 text-text-secondary [&[hidden]]:hidden',
+  // The password reset: a status line above the sign-in form, the forms' one-line explanation, the
+  // row a form's two buttons share, and the text button ("Forgot your password?", "Back").
+  'protected-zone__info':
+    'm-0 rounded-[8px] bg-surface-alt px-3 py-2 [font-size:calc(14px*var(--type-scale,1))] leading-[1.5] ' +
+    'text-text-primary [&[hidden]]:hidden',
+  'protected-zone__hint': 'm-0 [font-size:calc(14px*var(--type-scale,1))] leading-[1.6] text-text-secondary',
+  'protected-zone__buttons': 'flex flex-wrap items-center gap-x-4 gap-y-3',
+  'protected-zone__link':
+    'self-start appearance-none border-0 bg-transparent p-0 [font-size:calc(14px*var(--type-scale,1))] leading-6 ' +
+    'text-primary underline cursor-pointer protected-zone__focus',
+  'protected-zone__loading': 'm-0 text-text-secondary [&[hidden]]:hidden',
+  'protected-zone__documents': 'flex flex-col gap-4 [&[hidden]]:hidden',
+  'protected-zone__bar': 'flex flex-wrap items-center justify-between gap-3',
+  'protected-zone__account': 'flex flex-wrap items-center gap-3',
+  'protected-zone__collection': 'contents',
+  'protected-zone__user': 'm-0 [font-size:calc(14px*var(--type-scale,1))] text-text-secondary',
+  'protected-zone__logout':
+    'inline-flex items-center justify-center rounded-[8px] border-2 border-solid border-button-primary ' +
+    'bg-transparent px-4 py-1.5 [font-size:calc(14px*var(--type-scale,1))] font-semibold leading-5 text-button-primary cursor-pointer ' +
+    'transition-colors duration-200 hover:bg-button-primary hover:text-button-primary-text protected-zone__focus',
+  'protected-zone__list-heading':
+    'm-0 font-brand font-bold [font-size:calc(24px*var(--type-scale,1))] leading-[1.3] text-heading protected-zone__focus',
+  'protected-zone__list': 'list-reset flex flex-col gap-3 [&[hidden]]:hidden',
+  'protected-zone__empty': 'm-0 text-text-secondary [&[hidden]]:hidden',
+  'protected-zone__row':
+    'flex flex-col gap-3 rounded-[12px] border border-solid border-border bg-surface p-4 ' +
+    'sm:flex-row sm:items-center sm:gap-4',
+  'protected-zone__row-icon': 'hidden sm:block w-6 h-6 shrink-0 text-text-secondary',
+  'protected-zone__document-icon': 'w-full h-full',
+  'protected-zone__row-body': 'min-w-0 flex-1 flex flex-col gap-1',
+  'protected-zone__row-title': 'm-0 font-semibold text-text-primary break-words',
+  'protected-zone__row-description': 'm-0 [font-size:calc(14px*var(--type-scale,1))] leading-[1.5] text-text-secondary',
+  'protected-zone__row-meta':
+    'm-0 flex flex-wrap gap-x-3 gap-y-1 [font-size:calc(13px*var(--type-scale,1))] text-text-secondary',
+  'protected-zone__type': 'font-semibold',
+  'protected-zone__row-actions': 'flex flex-wrap shrink-0 gap-2',
+  'protected-zone__action':
+    'inline-flex items-center gap-1.5 rounded-[8px] border border-solid border-border bg-surface px-3 py-1.5 ' +
+    '[font-size:calc(14px*var(--type-scale,1))] font-semibold leading-5 text-text-primary no-underline transition-colors duration-200 ' +
+    'hover:border-primary hover:text-primary protected-zone__focus',
+  'protected-zone__action-icon': 'w-4 h-4 shrink-0',
+
   // ── Cookie consent banner (CookieConsent.astro, #521 / #1191) ──────────────
   // The component itself ships no visual CSS by design (like Footer.astro); these are the theme's
   // default look, on the site's own brand tokens, so a fresh client isn't stuck with a bare

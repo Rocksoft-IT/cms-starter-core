@@ -176,8 +176,15 @@ export function toText(html: string | null | undefined): string {
 // "adjust SVG attributes" / "adjust SVG tag names" tables map `viewbox` back to `viewBox` and
 // `lineargradient` back to `linearGradient` inside foreign content. Astro emits static HTML that
 // goes through exactly that parser, so the browser restores the SVG casing. Add new entries in
-// LOWERCASE or they will not survive their first test.
+// LOWERCASE. htmlparser2 12 restores SVG casing itself (`linearGradient`, `clipPath`), so the
+// transform below lowercases every parsed name before the allowlists see it.
 const SVG_OPTS: sanitizeHtml.IOptions = {
+  transformTags: {
+    '*': (tagName, attribs) => ({
+      tagName: tagName.toLowerCase(),
+      attribs: Object.fromEntries(Object.entries(attribs).map(([name, value]) => [name.toLowerCase(), value])),
+    }),
+  },
   allowedTags: [
     'svg',
     'g',
@@ -350,9 +357,8 @@ export function sanitizeIcon(svg: string | null | undefined): string {
   // Attribute-level rewrite rather than a DOM pass: `safe` is already an allowlisted subset, so
   // there is no markup here that a targeted replace can be fooled by, and core stays free of a
   // parser dependency on the render path.
-  const themed = safe.replace(
-    /\s(fill|stroke)="([^"]*)"/g,
-    (whole, attr: string, value: string) => (value.trim().toLowerCase() === 'none' ? whole : ` ${attr}="currentColor"`),
+  const themed = safe.replace(/\s(fill|stroke)="([^"]*)"/g, (whole, attr: string, value: string) =>
+    value.trim().toLowerCase() === 'none' ? whole : ` ${attr}="currentColor"`,
   )
 
   // No <svg> root means nothing renderable. `sanitizeSvg` keeps allowlisted CHILDREN even when

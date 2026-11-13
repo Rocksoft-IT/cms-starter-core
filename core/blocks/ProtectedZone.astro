@@ -1,0 +1,324 @@
+---
+// Protected zone block (`protected_zone`) — a sign-in form on a public page and, once signed in,
+// the documents uploaded under Protected zone → Documents: preview, download, sign out.
+//
+// NOTHING PROTECTED IS EVER IN THIS HTML. `dist/` is public, so the build carries only the block's
+// public copy, the form, the messages and an EMPTY row template; the browser fetches the list after
+// sign-in (core/protected-zone/client.ts, whose header holds the DOM contract). The named slots are
+// decoration for the same reason: whatever a site passes into them ships in the public build.
+//
+// With the zone off for this client (core/protected-zone/settings.ts) the block renders an
+// "unavailable" notice instead of the form, and the build prints one `[cms]` line.
+//
+// Emits no <h1>: the section heading is an <h2>, the list heading one level below it.
+import type { ProtectedZoneBlock } from '../../types/blocks'
+import SectionHeader from '../SectionHeader.astro'
+import RichText from '../RichText.astro'
+import { sectionAnchorId } from '../../lib/anchor'
+import { backgroundClass } from '../../lib/background'
+import { textSizeClass } from '../../lib/textSize'
+import { ICON_PATHS } from '../../lib/icons'
+import { getSiteSettings } from '../../lib/api'
+import { coreString } from '../ui-strings'
+import { defaultLocale } from '../i18n'
+import { reportZoneUnavailable, resolveProtectedZone } from '../protected-zone/settings'
+
+interface Props {
+  block: ProtectedZoneBlock
+  /** The locale tree being built, from core/BlockRenderer.astro — the language of every word core says here. */
+  locale?: string
+}
+
+const { block, locale: localeProp } = Astro.props
+const locale = localeProp ?? defaultLocale
+const {
+  anchor_id,
+  heading_icon,
+  eyebrow,
+  heading,
+  intro,
+  forgot_password,
+  documents_heading,
+  empty_message,
+  background,
+} = block.data
+
+const sectionId = sectionAnchorId(anchor_id)
+const bandClass = backgroundClass(background)
+
+const zone = resolveProtectedZone(await getSiteSettings())
+if (!zone.enabled) reportZoneUnavailable(Astro.url.pathname, zone.reason)
+
+const t = (key: Parameters<typeof coreString>[1]) => coreString(locale, key)
+const filled = (value: string | undefined) => (typeof value === 'string' && value.trim() !== '' ? value : null)
+
+// One level under the section heading, whether or not the editor wrote one.
+const ListHeading = filled(heading) !== null ? 'h3' : 'h2'
+const listHeading = filled(documents_heading) ?? t('protectedZoneDocuments')
+const emptyText = filled(empty_message) ?? t('protectedZoneEmpty')
+const forgotNote = filled(forgot_password)
+
+// The real login endpoint, never empty: lib/smoke.mjs fails a <form> without an `action`. The
+// script intercepts the submit; with JavaScript off the form is never shown.
+const loginAction = zone.enabled ? `${zone.endpoint}/login` : undefined
+
+// Said at RUNTIME, where coreString() cannot run: written in this page's language for client.ts.
+const messages = zone.enabled
+  ? {
+      'data-msg-invalid-credentials': t('protectedZoneInvalidCredentials'),
+      'data-msg-account-blocked': t('protectedZoneAccountBlocked'),
+      'data-msg-too-many-attempts': t('protectedZoneTooManyAttempts'),
+      'data-msg-network': t('protectedZoneNetwork'),
+      'data-msg-logout-failed': t('protectedZoneLogoutFailed'),
+      'data-msg-session-expired': t('protectedZoneSessionExpired'),
+      'data-msg-unavailable': t('protectedZoneUnavailable'),
+      'data-msg-signed-in-as': t('protectedZoneSignedInAs'),
+      'data-msg-reset-sent': t('protectedZoneResetSent'),
+      'data-msg-reset-done': t('protectedZoneResetDone'),
+      'data-msg-reset-invalid-link': t('protectedZoneResetInvalidLink'),
+      'data-msg-reset-password-invalid': t('protectedZoneResetPasswordInvalid'),
+      'data-msg-reset-mismatch': t('protectedZoneResetMismatch'),
+    }
+  : {}
+---
+
+<section
+  id={sectionId}
+  class:list={['section-protected-zone section-band', bandClass, textSizeClass(block.data.text_size)]}
+  data-protected-zone
+  data-endpoint={zone.enabled ? zone.endpoint : undefined}
+  data-state={zone.enabled ? undefined : 'unavailable'}
+  {...messages}
+>
+  <div class="protected-zone__inner">
+    <slot name="header">
+      <SectionHeader headingIcon={heading_icon} {eyebrow} {heading} {intro} />
+    </slot>
+
+    <p class="protected-zone__notice surface-light" data-zone-unavailable hidden={zone.enabled}>
+      {t('protectedZoneUnavailable')}
+    </p>
+
+    {
+      zone.enabled && (
+        <>
+          <noscript>
+            <p class="protected-zone__notice surface-light">{t('protectedZoneNoScript')}</p>
+          </noscript>
+
+          {/* `surface-light`: the card is an opaque light box, so it restores the light text roles
+              inside a dark or brand band. */}
+          <div class="protected-zone__card surface-light" data-zone-card hidden>
+            {/* Hidden until the script decides: a signed-in reload goes straight to the list, and
+                with JavaScript off a visible form would post to the API and show raw JSON. */}
+            <form class="protected-zone__form" data-zone-login action={loginAction} method="post" hidden>
+              {/* A reset link sent, a password changed — said above the form the visitor is back on. */}
+              <p class="protected-zone__info" data-zone-info role="status" hidden />
+              <label class="protected-zone__field">
+                <span class="protected-zone__label">{t('protectedZoneLogin')}</span>
+                <input
+                  class="protected-zone__input"
+                  type="text"
+                  name="login"
+                  autocomplete="username"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  maxlength="191"
+                  required
+                />
+              </label>
+              <label class="protected-zone__field">
+                <span class="protected-zone__label">{t('protectedZonePassword')}</span>
+                <input
+                  class="protected-zone__input"
+                  type="password"
+                  name="password"
+                  autocomplete="current-password"
+                  maxlength="1024"
+                  required
+                />
+              </label>
+              <p class="protected-zone__error" data-zone-error role="alert" hidden />
+              <button type="submit" class="protected-zone__submit">
+                {t('protectedZoneSubmit')}
+              </button>
+              <button type="button" class="protected-zone__link" data-zone-forgot>
+                {t('protectedZoneForgot')}
+              </button>
+              {forgotNote && <RichText class="protected-zone__forgot" html={forgotNote} {locale} />}
+            </form>
+
+            {/* The password reset (client.ts, "THE PASSWORD RESET"), stamped after the login form
+                when first needed. An account with no e-mail address gets no link, which is what
+                the editor's note under the sign-in form is for. */}
+            <template data-zone-reset-forms>
+              <form
+                class="protected-zone__form"
+                data-zone-forgot-form
+                action={`${zone.endpoint}/password/forgot`}
+                method="post"
+                hidden
+              >
+                <p class="protected-zone__hint">{t('protectedZoneForgotHint')}</p>
+                <label class="protected-zone__field">
+                  <span class="protected-zone__label">{t('protectedZoneLogin')}</span>
+                  <input
+                    class="protected-zone__input"
+                    type="text"
+                    name="login"
+                    autocomplete="username"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    maxlength="191"
+                    required
+                  />
+                </label>
+                <p class="protected-zone__error" data-zone-forgot-error role="alert" hidden />
+                <div class="protected-zone__buttons">
+                  <button type="submit" class="protected-zone__submit">
+                    {t('protectedZoneForgotSubmit')}
+                  </button>
+                  <button type="button" class="protected-zone__link" data-zone-back>
+                    {t('protectedZoneBack')}
+                  </button>
+                </div>
+              </form>
+
+              <form
+                class="protected-zone__form"
+                data-zone-reset-form
+                action={`${zone.endpoint}/password/reset`}
+                method="post"
+                novalidate
+                hidden
+              >
+                {/* `novalidate`: client.ts checks the two fields itself and says what is wrong in
+                    the page's language; the attributes below stay for password managers. */}
+                <p class="protected-zone__hint">{t('protectedZoneResetHint')}</p>
+                <label class="protected-zone__field">
+                  <span class="protected-zone__label">{t('protectedZoneNewPassword')}</span>
+                  <input
+                    class="protected-zone__input"
+                    type="password"
+                    name="password"
+                    autocomplete="new-password"
+                    minlength="8"
+                    maxlength="72"
+                    required
+                  />
+                </label>
+                <label class="protected-zone__field">
+                  <span class="protected-zone__label">{t('protectedZoneRepeatPassword')}</span>
+                  <input
+                    class="protected-zone__input"
+                    type="password"
+                    name="password_confirmation"
+                    autocomplete="new-password"
+                    maxlength="72"
+                    required
+                  />
+                </label>
+                <p class="protected-zone__error" data-zone-reset-error role="alert" hidden />
+                <div class="protected-zone__buttons">
+                  <button type="submit" class="protected-zone__submit">
+                    {t('protectedZoneResetSubmit')}
+                  </button>
+                  <button type="button" class="protected-zone__link" data-zone-back>
+                    {t('protectedZoneBack')}
+                  </button>
+                </div>
+              </form>
+            </template>
+
+            <p class="protected-zone__loading" data-zone-loading role="status" hidden>
+              {t('protectedZoneLoading')}
+            </p>
+
+            <div class="protected-zone__documents" data-zone-documents hidden>
+              <p class="protected-zone__error" data-zone-logout-error role="alert" hidden />
+              <div class="protected-zone__bar">
+                <ListHeading class="protected-zone__list-heading" data-zone-heading="" tabindex="-1">
+                  {listHeading}
+                </ListHeading>
+                <div class="protected-zone__account">
+                  <p class="protected-zone__user" data-zone-user />
+                  <button type="button" class="protected-zone__logout" data-zone-logout>
+                    {t('protectedZoneLogout')}
+                  </button>
+                </div>
+              </div>
+              <div class="protected-zone__collection surface-light">
+                <ul class="protected-zone__list" data-zone-list />
+                <p class="protected-zone__empty" data-zone-empty hidden>
+                  {emptyText}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* One row, cloned per document by client.ts. A <template>'s content is inert, so its
+              href-less links are neither rendered nor crawled. */}
+          <template data-zone-row>
+            <li class="protected-zone__row">
+              <span class="protected-zone__row-icon" aria-hidden="true">
+                <slot name="row-icon">
+                  <svg
+                    class="protected-zone__document-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d={ICON_PATHS.document} />
+                  </svg>
+                </slot>
+              </span>
+              <div class="protected-zone__row-body">
+                <p class="protected-zone__row-title" data-zone-title />
+                <p class="protected-zone__row-description" data-zone-description />
+                <p class="protected-zone__row-meta">
+                  <span class="protected-zone__type" data-zone-type />
+                  <time data-zone-date />
+                  <span data-zone-size />
+                </p>
+              </div>
+              <div class="protected-zone__row-actions">
+                <a class="protected-zone__action" data-zone-view target="_blank" rel="noopener noreferrer">
+                  {t('protectedZoneView')}
+                  <slot name="view-icon" />
+                </a>
+                <a class="protected-zone__action" data-zone-download>
+                  <slot name="download-icon">
+                    <svg
+                      class="protected-zone__action-icon"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d={ICON_PATHS.download} />
+                    </svg>
+                  </slot>
+                  {t('protectedZoneDownload')}
+                </a>
+              </div>
+            </li>
+          </template>
+        </>
+      )
+    }
+  </div>
+</section>
+
+<script>
+  // Bundled once per page; initProtectedZone() skips a root it already wired.
+  import { initProtectedZone } from '../protected-zone/client'
+
+  document.querySelectorAll<HTMLElement>('[data-protected-zone]').forEach(initProtectedZone)
+</script>

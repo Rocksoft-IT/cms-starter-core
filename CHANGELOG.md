@@ -27,6 +27,102 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### Protected zone: a forgotten password is reset by an e-mailed link
+
+"Forgot your password?" under the sign-in form asks for the login; the API e-mails a one-time link
+to the address on the account, and the link opens the same page with a "new password" form. The
+page says the same thing whether or not an e-mail went out, and takes the token out of the address
+bar as soon as it loads.
+
+`ZoneApi` gains `requestPasswordReset(login, page)` and `resetPassword(token, password)`, `ZoneError`
+the kinds `invalid_token` and `invalid_password`, `ZoneState` the values `forgot` and `reset`.
+New DOM contract parts, all optional: `[data-zone-info]` and `button[data-zone-forgot]` in the login
+form, and `template[data-zone-reset-forms]` holding `form[data-zone-forgot-form]` and
+`form[data-zone-reset-form]` — stamped only when needed, so a page still has one login and one
+password field until then. New shortcuts `protected-zone__info`, `__hint`, `__buttons`, `__link`;
+the forms reuse `protected-zone__form` and its fields, so a site that themes those needs nothing
+more. Needs a panel with `POST /api/zone/password/forgot` — on an older one the request fails and
+the form says "could not connect".
+
+### Protected zone: a sign-out refused as `zone_unavailable` ends the session
+
+When the zone was switched off after sign-in, `POST /logout` answers 404 `zone_unavailable`, which
+the page treated as a failed sign-out: the tab stayed on "sign-out could not be confirmed", across
+reloads, with the token kept. That answer now ends the session like a refused list does — the token
+is forgotten and the "unavailable" notice shown. Outages (offline, 5xx) still keep the retry.
+
+### Protected zone follows the block text-size setting
+
+`protected_zone` now takes the section `text_size` setting like every block with a root `<section>`:
+the renderer adds `textSizeClass()` and its `protected-zone__*` font sizes scale with `--type-scale`.
+A site that overrides those shortcuts keeps its own sizes.
+
+### Shared protected-zone presentation
+
+The renderer supports decorative header and file-action icon slots, with semantic styling hooks
+for the account bar and document collection. SMBP now reuses the shared form and document template.
+The protected-zone guide documents activation for another client and the custom-renderer contract.
+
+### Security: gallery JSON escaping and patched dependencies
+
+Gallery now escapes `<` in its JSON script data, preventing a CMS image description from closing
+the data element and injecting an executable script. A regression renders the real component
+with a script-closing payload. SVG sanitization normalizes parsed names before applying its
+existing allowlists, preserving gradients and clipping with the updated HTML parser.
+
+The starter updates Astro to 7.2.8, sanitize-html to 2.17.7, Vitest to 4.1.11 and security floors
+for affected transitive dependencies. Both Playwright builds use `scripts/preview-test.mjs`, a
+foreground programmatic preview that supports normal and zone-off output simultaneously without
+Astro's per-project CLI preview lock.
+
+### Protected zone: confirmed sign-out and retry after outages
+
+Sign-out hides protected documents immediately and waits for the server's 204 before forgetting
+the token. A failed request shows a translated notice and can be retried; reloading finishes the
+pending sign-out without restoring documents. Multiple blocks share the pending operation.
+`ZoneApi.logout()` now returns `ZoneResult<void>`; renderers can supply
+`data-zone-logout-error` and `data-msg-logout-failed` (an accessible fallback slot supports older
+site overrides). The additional state is `signing-out`.
+
+### Protected zone block — sign-in and a private document list on a static site (dashboard#protected-zone)
+
+A new core block, `protected_zone`: a sign-in form on a public page; after signing in, the documents
+an admin uploaded under **Protected zone → Documents** in the panel (preview in a new tab,
+download), and sign-out. Accounts, passwords, documents and the login history live in the panel; a
+Super Admin switches the feature on per client (Client settings → Protected zone).
+
+**Nothing protected is ever in the build.** The block renders only its public copy, the form and an
+empty row `<template>`. The browser signs in against `{APP_URL}/api/zone` (cross-origin, a bearer
+token in `sessionStorage` keyed per endpoint, no cookies), fetches the list, and opens the files
+through short-lived signed URLs the CMS streams from a private disk. The list is re-fetched before
+those links expire, timed from the server's `links_expire_in` and only while the visitor is active
+within the session's idle window, so an abandoned tab still idles out.
+
+- `core/blocks/ProtectedZone.astro` — the default renderer, registered in `coreBlocks`; neutral
+  `protected-zone__*` shortcuts in `core/uno.core.ts`, words from eighteen `protectedZone*` keys in
+  `core/ui-strings.ts` (en + pl).
+- `core/protected-zone/client.ts` — `initProtectedZone(root)`, the whole browser half, wired by data
+  attributes only (the DOM contract is in the file's header). **A site that wants its own look
+  overrides the renderer and keeps this**, imported from
+  `@rocksoft/cms-starter-core/core/protected-zone/client`. Every element it toggles must honour
+  `[hidden]`: an override puts `[&[hidden]]:hidden` in a shortcut in its `src/uno.ts`, not as a
+  utility in its markup, which a client repo's extractor does not generate.
+- `core/protected-zone/api.ts` (typed results per error) and `format.ts` (`formatBytes`,
+  `formatDocDate`, `typeLabel`) — importable by an override the same way.
+- `lib/api.ts` — `SiteSettingsData.protected_zone?: { enabled, endpoint }`. Absent reads as off: the
+  block then renders an "unavailable" notice and the build prints one `[cms]` line
+  (`core/protected-zone/settings.ts`).
+
+**No per-client wiring.** A pin bump is the whole adoption step; the block renders only on a page an
+editor places it on. It works in a browser only once the Cloudflare rule that adds a second
+`Access-Control-Allow-Origin` on the panel host is gone (the dashboard's deploy runbook).
+
+Mock builds turn the zone on against `https://cms.example.test/api/zone`, which
+`tests/e2e/protected-zone.spec.ts` answers with `page.route`; `ASTRO_MOCK_ZONE_DISABLED=1` builds it
+off, and `playwright.config.ts` serves that build too (`E2E_ZONE_OFF_PORT`, default `E2E_PORT + 1`)
+for the `zone-off` project — only when the fixtures place the block, so a site that does not pays no
+second build.
+
 ### The Google tag can load on first interaction instead of in `<head>` (opt-in)
 
 el-service scored 54 on mobile PageSpeed with nothing but GA4 in its GTM container: gtm.js plus the gtag bundle it pulls in (~300 KB) were most of the Total Blocking Time and, through Lighthouse's simulated LCP, a large part of the LCP.

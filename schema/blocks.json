@@ -1241,6 +1241,79 @@
             }
         }
     },
+    "protected_zone": {
+        "label": "Protected zone",
+        "description": "A login form for the protected zone. Signed-in visitors see the protected documents uploaded under Protected zone → Documents. Needs the Protected zone feature enabled for this client.",
+        "icon": "heroicon-o-lock-closed",
+        "groups": {
+            "Content": [
+                {
+                    "eyebrow": 1,
+                    "heading": 2
+                },
+                "intro"
+            ],
+            "Sign-in form": [
+                "forgot_password"
+            ],
+            "After signing in": [
+                "documents_heading",
+                "empty_message"
+            ]
+        },
+        "fields": {
+            "heading_icon": {
+                "type": "textarea",
+                "help": "Paste the SVG of your icon. Use currentColor for its fill and stroke — a fixed colour is replaced, so the icon always follows your brand colour."
+            },
+            "eyebrow": {
+                "type": "text"
+            },
+            "heading": {
+                "type": "text"
+            },
+            "intro": {
+                "type": "textarea"
+            },
+            "forgot_password": {
+                "type": "richtext",
+                "label": "Forgot password note",
+                "help": "Shown under the login form — e.g. how to contact the office for a new password."
+            },
+            "documents_heading": {
+                "type": "text",
+                "label": "Documents heading",
+                "help": "Heading above the list after signing in. Empty = \"Documents\"."
+            },
+            "empty_message": {
+                "type": "text",
+                "label": "No documents message"
+            },
+            "background": {
+                "type": "select",
+                "options": {
+                    "default": "Default (page background)",
+                    "light": "Light",
+                    "muted": "Muted",
+                    "tint": "Brand tint (soft wash)",
+                    "brand": "Brand (solid fill)",
+                    "dark": "Dark"
+                }
+            },
+            "text_size": {
+                "type": "select",
+                "options": {
+                    "default": "Default (block design)",
+                    "sm": "Smaller",
+                    "lg": "Larger",
+                    "xl": "Largest"
+                }
+            },
+            "anchor_id": {
+                "type": "text"
+            }
+        }
+    },
     "cards": {
         "label": "Cards",
         "description": "A row of items — icon or image, label, optional value and link — laid out as tiles, cards, numbered steps, bare figures or a picture-led bento grid. Free-form by design: for opening hours as a day/time table use Opening hours, for an address-and-phone section use Contact — those two lay those facts out for you.",

@@ -158,4 +158,20 @@ describe('coreShortcuts', () => {
   test('the granular category panel also actually hides when its hidden attribute is set', () => {
     expect(coreShortcuts['cookie-consent__panel']).toMatch(/\[&\[hidden\]\]:hidden/)
   })
+
+  // Same bug class: core/protected-zone/client.ts drives the zone's views by `hidden` alone, and
+  // each of these sets a `display` of its own.
+  test.each([
+    'protected-zone__card',
+    'protected-zone__form',
+    'protected-zone__error',
+    'protected-zone__notice',
+    'protected-zone__info',
+    'protected-zone__loading',
+    'protected-zone__documents',
+    'protected-zone__list',
+    'protected-zone__empty',
+  ])('the protected zone’s %s actually hides when its hidden attribute is set', (key) => {
+    expect(coreShortcuts[key]).toMatch(/\[&\[hidden\]\]:hidden/)
+  })
 })

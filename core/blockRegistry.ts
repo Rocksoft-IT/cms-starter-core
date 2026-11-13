@@ -51,6 +51,9 @@ export const coreBlocks: Partial<Record<Block['type'], BlockLoader>> = {
   // Documents — a titled list of downloadable files from the Files library; the API resolves each
   // file id into { id, name, description, url, size }. DocumentFile is hand-authored in blocks.ts.
   documents: () => import('./blocks/Documents.astro'),
+  // Protected zone — a sign-in form whose documents the BROWSER fetches after login; the build
+  // carries only public copy. Gated on site-settings.protected_zone.
+  protected_zone: () => import('./blocks/ProtectedZone.astro'),
   gallery: () => import('./blocks/Gallery.astro'),
   cards: () => import('./blocks/Cards.astro'),
   // Ref blocks — the API resolves the referenced collection/component into the block data; their

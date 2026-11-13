@@ -22,7 +22,41 @@ const KEYS = [
   'nextSlide',
   'goToSlide',
   'slidePosition',
+  'protectedZoneLogin',
+  'protectedZonePassword',
+  'protectedZoneSubmit',
+  'protectedZoneLogout',
+  'protectedZoneInvalidCredentials',
+  'protectedZoneAccountBlocked',
+  'protectedZoneTooManyAttempts',
+  'protectedZoneNetwork',
+  'protectedZoneSessionExpired',
+  'protectedZoneSignedInAs',
+  'protectedZoneDocuments',
+  'protectedZoneEmpty',
+  'protectedZoneView',
+  'protectedZoneDownload',
+  'protectedZoneLoading',
+  'protectedZoneUnavailable',
+  'protectedZoneNoScript',
+  'protectedZoneForgot',
+  'protectedZoneForgotHint',
+  'protectedZoneForgotSubmit',
+  'protectedZoneBack',
+  'protectedZoneResetSent',
+  'protectedZoneResetHint',
+  'protectedZoneNewPassword',
+  'protectedZoneRepeatPassword',
+  'protectedZoneResetSubmit',
+  'protectedZoneResetDone',
+  'protectedZoneResetInvalidLink',
+  'protectedZoneResetPasswordInvalid',
+  'protectedZoneResetMismatch',
 ] as const satisfies readonly (keyof CoreStrings)[]
+
+// Keys whose Polish IS the English word, exempt from the must-differ rule below (which would
+// otherwise demand a wrong translation).
+const SAME_IN_PL = new Set<(typeof KEYS)[number]>(['protectedZoneLogin'])
 
 describe('coreString()', () => {
   it('answers in the locale it is given', () => {
@@ -63,8 +97,18 @@ describe('coreString()', () => {
   it('a non-base locale is genuinely translated, not quietly falling through to the base', () => {
     // The failure this catches: adding a key to `en` and forgetting `pl`. The fallback makes that
     // render — in English, on a Polish site — so "not empty" would pass it. Every key must differ.
-    for (const key of KEYS) {
+    for (const key of KEYS.filter((k) => !SAME_IN_PL.has(k))) {
       expect(coreString('pl', key), key).not.toBe(coreString('en', key))
+    }
+  })
+})
+
+describe('coreString() — the protected zone’s runtime messages', () => {
+  it('keeps the placeholders the browser script fills', () => {
+    // Written into data-msg-* attributes at build time and filled by core/protected-zone/client.ts.
+    for (const locale of ['en', 'pl']) {
+      expect(coreString(locale, 'protectedZoneTooManyAttempts'), locale).toContain('{minutes}')
+      expect(coreString(locale, 'protectedZoneSignedInAs'), locale).toContain('{name}')
     }
   })
 })
