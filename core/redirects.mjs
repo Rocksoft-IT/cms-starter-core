@@ -24,6 +24,8 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { writeCanonicalLinks } from './canonicalLinks.mjs'
+import { writeHostRules } from './hostRules.mjs'
 import { toPrefixRules, writePrefixRedirects } from './redirectPrefixes.mjs'
 import { writeSeoAliases } from './seoAliases.mjs'
 
@@ -192,11 +194,16 @@ async function readMockRedirects(root, fixture = MOCK_FIXTURE, empty = {}) {
 export function cmsRedirects({ baseUrl, token } = {}) {
   // Fetched with the exact map in config:setup, written into .htaccess once the build exists.
   let prefixRules = []
+  let site
+  let trailingSlash
 
   return {
     name: '@rocksoft/cms-starter-core:redirects',
     hooks: {
       'astro:config:setup': async ({ config, command, updateConfig, logger }) => {
+        site = config.site
+        trailingSlash = config.trailingSlash
+
         if (!NEEDS_REDIRECTS.has(command)) return
 
         const root = fileURLToPath(config.root)
@@ -252,9 +259,14 @@ export function cmsRedirects({ baseUrl, token } = {}) {
       // because every site already registers it, so a pin bump is the whole rollout.
       // Prefix redirects (dashboard #2466) take the same route, for the same reason: a static build
       // cannot say "everything under /de-at/" any other way.
+      // So do the slash rule, the 404 page and the internal-link rewrite (dashboard #2477); links
+      // only on a `trailingSlash: 'always'` site, since adding the slash is wrong anywhere else.
       'astro:build:done': async ({ dir, logger }) => {
-        await writePrefixRedirects(fileURLToPath(dir), prefixRules, logger)
-        await writeSeoAliases(fileURLToPath(dir), logger)
+        const dist = fileURLToPath(dir)
+        await writePrefixRedirects(dist, prefixRules, logger)
+        await writeSeoAliases(dist, logger)
+        await writeHostRules(dist, logger)
+        if (trailingSlash === 'always') await writeCanonicalLinks(dist, site, logger)
       },
     },
   }

@@ -52,6 +52,9 @@ const KEYS = [
   'protectedZoneResetInvalidLink',
   'protectedZoneResetPasswordInvalid',
   'protectedZoneResetMismatch',
+  'notFoundTitle',
+  'notFoundText',
+  'notFoundHome',
 ] as const satisfies readonly (keyof CoreStrings)[]
 
 // Keys whose Polish IS the English word, exempt from the must-differ rule below (which would

@@ -1,0 +1,26 @@
+---
+// The body of the not-found page (dashboard #2477), as a core hero block so it takes the site's
+// hero styling. One page in the default locale: the web server serves it for every missing address.
+import type { Block } from '../types/blocks'
+import BlockRenderer from './BlockRenderer.astro'
+import { coreString } from './ui-strings'
+
+interface Props {
+  locale?: string
+}
+
+const { locale } = Astro.props
+
+const blocks: Block[] = [
+  {
+    type: 'hero',
+    data: {
+      heading: `<h1>${coreString(locale, 'notFoundTitle')}</h1>`,
+      paragraph: `<p>${coreString(locale, 'notFoundText')}</p>`,
+      ctas: [{ label: coreString(locale, 'notFoundHome'), href: '/' }],
+    },
+  },
+]
+---
+
+<BlockRenderer blocks={blocks} locale={locale} />

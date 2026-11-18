@@ -107,6 +107,10 @@ export interface CoreStrings {
   protectedZoneResetInvalidLink: string
   protectedZoneResetPasswordInvalid: string
   protectedZoneResetMismatch: string
+  /** The not-found page (core/NotFound.astro): its heading, one line under it and the way home. */
+  notFoundTitle: string
+  notFoundText: string
+  notFoundHome: string
 }
 
 /**
@@ -175,6 +179,9 @@ const BUILT_IN: Record<string, CoreStrings> = {
     protectedZoneResetInvalidLink: 'This link has expired or was already used. Ask for a new one.',
     protectedZoneResetPasswordInvalid: 'The password must be 8 to 72 characters long.',
     protectedZoneResetMismatch: 'The passwords do not match.',
+    notFoundTitle: 'Page not found',
+    notFoundText: 'The address may be wrong, or the page has moved.',
+    notFoundHome: 'Go to the home page',
   },
   pl: {
     galleryZoomNamed: 'Powiększ: {name}',
@@ -233,6 +240,9 @@ const BUILT_IN: Record<string, CoreStrings> = {
     protectedZoneResetInvalidLink: 'Ten link wygasł lub został już użyty. Poproś o nowy.',
     protectedZoneResetPasswordInvalid: 'Hasło musi mieć od 8 do 72 znaków.',
     protectedZoneResetMismatch: 'Hasła nie są takie same.',
+    notFoundTitle: 'Nie znaleziono strony',
+    notFoundText: 'Adres może być błędny albo strona została przeniesiona.',
+    notFoundHome: 'Przejdź na stronę główną',
   },
 }
 

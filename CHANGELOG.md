@@ -27,6 +27,38 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### One-hop trailing slash, internal links straight to their page, a 404 page (dashboard #2477)
+
+Three additions to what `cmsRedirects()` writes after the build, so the pin bump is the rollout:
+
+- `.htaccess` gets `DirectorySlash Off` and an https-aware rewrite (`core/hostRules.mjs`):
+  `https://…/about` → `https://…/about/` in one hop, where Apache used to go through `http://`.
+- `.htaccess` gets `ErrorDocument 404 /404.html` when the build has that page.
+- Internal `<a href>`s in the built HTML are rewritten to the page's own address — the slash added,
+  `/index.html` dropped, this site's own absolute URLs shortened — only when the page exists in the
+  build, and only with `trailingSlash: 'always'` (`core/canonicalLinks.mjs`).
+
+Both `.htaccess` blocks are skipped when the site's own `public/.htaccess` already has
+`DirectorySlash` / `ErrorDocument 404`. New: `core/NotFound.astro` (a hero with the heading, one line
+and a link home) and the core strings `notFoundTitle`, `notFoundText`, `notFoundHome` (en, pl).
+**Per-client wiring for the 404 page:** a repo gets the page by adding `src/pages/404.astro` after
+the bump — without it nothing changes, the rest works on the bump alone:
+
+```astro
+---
+import { getBranding } from '@rocksoft/cms-starter-core/lib/api'
+import { coreString } from '@rocksoft/cms-starter-core/core/ui-strings'
+import NotFound from '@rocksoft/cms-starter-core/core/NotFound.astro'
+import Layout from '../layouts/Layout.astro'
+
+const branding = await getBranding()
+---
+
+<Layout title={coreString(undefined, 'notFoundTitle')} branding={branding} noindex ownsHeading>
+  <NotFound />
+</Layout>
+```
+
 ### Protected zone: a forgotten password is reset by an e-mailed link
 
 "Forgot your password?" under the sign-in form asks for the login; the API e-mails a one-time link
