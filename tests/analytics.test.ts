@@ -2,7 +2,14 @@ import { afterEach, describe, expect, test, vi } from 'vitest'
 import {
   CONSENT_SIGNALS_JS,
   DEFAULT_TAG_FALLBACK_MS,
+  GOOGLE_TAG_ORIGIN,
   classifyAnalyticsId,
+  gtagConfigSnippet,
+  gtagScriptUrl,
+  gtmLoaderSnippet,
+  gtmNoscriptUrl,
+  normalizeTagLoaderUrl,
+  normalizeTaggingOrigin,
   resolveAnalytics,
   tagLoaderScript,
   warnAboutAnalytics,
@@ -401,6 +408,129 @@ describe('resolveAnalytics with Cookiebot', () => {
     expect(resolved.cookiebotId).toBeNull()
     expect(resolved.showBanner).toBe(true)
     expect(resolved.ignored).toContainEqual({ source: 'cookiebot.cbid', reason: 'malformed' })
+  })
+})
+
+// Server-side tagging (a Stape custom domain / custom loader) configured in Integrations, so the
+// container loads first-party AND behind the Consent Mode bootstrap. Before these fields existed the
+// only route was pasting the snippet into Custom Code — rocksoft.pl's, where it ran with no consent
+// default at all. The shapes mirror TaggingServerUrl in packages/cms-core.
+describe('server-side tagging', () => {
+  const LOADER = 'https://s.example.com/3uq42tnbsasee.js?25i=DAFOJicvQyAnIjlWISw8UhNYQU9CRAoaWBccAhgRARIRSwMN'
+  const base = { gtmId: 'GTM-ABC123', taggingOrigin: null, customLoaderUrl: null }
+
+  test.each([
+    ['https://s.example.com', 'https://s.example.com'],
+    ['  https://S.Example.com/ ', 'https://s.example.com'],
+    ['https://sgtm.example.co.uk:8443', 'https://sgtm.example.co.uk:8443'],
+  ])('accepts the origin %j', (raw, expected) => {
+    expect(normalizeTaggingOrigin(raw)).toBe(expected)
+  })
+
+  test.each([
+    'http://s.example.com',
+    'https://s.example.com/path',
+    'https://s.example.com?x=1',
+    "https://s.example.com';alert(1)//",
+    'https://user@s.example.com',
+    's.example.com',
+  ])('refuses the origin %j', (raw) => {
+    expect(normalizeTaggingOrigin(raw)).toBeNull()
+  })
+
+  test('accepts a Stape custom loader verbatim, lower-casing only its host', () => {
+    expect(normalizeTagLoaderUrl(LOADER)).toBe(LOADER)
+    expect(normalizeTagLoaderUrl('https://S.EXAMPLE.com/Ab9.js?X=Y')).toBe('https://s.example.com/Ab9.js?X=Y')
+  })
+
+  test.each([
+    'http://s.example.com/abc.js',
+    'https://s.example.com/abc',
+    'https://s.example.com/abc.js?x="</script>',
+    "https://s.example.com/abc.js?x=';alert(1)//",
+    'https://s.example.com/abc.js#frag',
+  ])('refuses the loader %j', (raw) => {
+    expect(normalizeTagLoaderUrl(raw)).toBeNull()
+  })
+
+  test('the GTM loader uses Google by default, the tagging server when set, and the custom loader over both', () => {
+    expect(gtmLoaderSnippet(base)).toContain(`"${GOOGLE_TAG_ORIGIN}/gtm.js?id=GTM-ABC123"`)
+    expect(gtmLoaderSnippet({ ...base, taggingOrigin: 'https://s.example.com' })).toContain(
+      '"https://s.example.com/gtm.js?id=GTM-ABC123"',
+    )
+    expect(gtmLoaderSnippet({ ...base, taggingOrigin: 'https://s.example.com', customLoaderUrl: LOADER })).toContain(
+      JSON.stringify(LOADER),
+    )
+    // The push Google's reference install makes — what the container's own triggers key off.
+    expect(gtmLoaderSnippet(base)).toContain("'gtm.start'")
+    expect(gtmLoaderSnippet({ ...base, gtmId: null })).toBeNull()
+  })
+
+  test('the noscript iframe follows the tagging server, or the custom loader origin', () => {
+    expect(gtmNoscriptUrl(base)).toBe(`${GOOGLE_TAG_ORIGIN}/ns.html?id=GTM-ABC123`)
+    expect(gtmNoscriptUrl({ ...base, taggingOrigin: 'https://s.example.com' })).toBe(
+      'https://s.example.com/ns.html?id=GTM-ABC123',
+    )
+    expect(gtmNoscriptUrl({ ...base, customLoaderUrl: LOADER })).toBe('https://s.example.com/ns.html?id=GTM-ABC123')
+  })
+
+  test('gtag.js loads from, and sends hits to, the tagging server', () => {
+    expect(gtagScriptUrl('G-XYZ1234567', null)).toBe(`${GOOGLE_TAG_ORIGIN}/gtag/js?id=G-XYZ1234567`)
+    expect(gtagScriptUrl('G-XYZ1234567', 'https://s.example.com')).toBe('https://s.example.com/gtag/js?id=G-XYZ1234567')
+    expect(gtagConfigSnippet('G-XYZ1234567', null)).toBe(`gtag('config',"G-XYZ1234567");`)
+    expect(gtagConfigSnippet('G-XYZ1234567', 'https://s.example.com')).toBe(
+      `gtag('config',"G-XYZ1234567",{server_container_url:"https://s.example.com"});`,
+    )
+  })
+
+  test('resolveAnalytics reads both fields from google_tag', () => {
+    const resolved = resolveAnalytics(
+      settings({
+        google_tag: {
+          container_id: 'GTM-ABC123',
+          server_container_url: 'https://s.example.com/',
+          custom_loader_url: LOADER,
+        },
+      }),
+    )
+
+    expect(resolved).toMatchObject({
+      active: true,
+      gtmId: 'GTM-ABC123',
+      taggingOrigin: 'https://s.example.com',
+      customLoaderUrl: LOADER,
+      ignored: [],
+    })
+  })
+
+  test('a malformed value is dropped and reported, never interpolated', () => {
+    const resolved = resolveAnalytics(
+      settings({
+        google_tag: {
+          container_id: 'GTM-ABC123',
+          server_container_url: 'javascript:alert(1)',
+          custom_loader_url: 'nope',
+        },
+      }),
+    )
+
+    expect(resolved.taggingOrigin).toBeNull()
+    expect(resolved.customLoaderUrl).toBeNull()
+    expect(resolved.ignored).toEqual([
+      { source: 'google_tag.server_container_url', reason: 'malformed' },
+      { source: 'google_tag.custom_loader_url', reason: 'malformed' },
+    ])
+  })
+
+  // The loader IS a GTM container: with only a G- id there is nothing for it to load.
+  test('a custom loader without a GTM container is unused', () => {
+    const resolved = resolveAnalytics(
+      settings({ google_tag: { custom_loader_url: LOADER }, ga4: { measurement_id: 'G-XYZ1234567' } }),
+    )
+
+    expect(resolved.customLoaderUrl).toBeNull()
+    expect(resolved.gtagId).toBe('G-XYZ1234567')
+    expect(resolved.ignored).toContainEqual({ source: 'google_tag.custom_loader_url', reason: 'unused' })
   })
 })
 

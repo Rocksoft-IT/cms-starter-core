@@ -27,6 +27,21 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### GTM through a server-side tagging domain or a Stape custom loader, behind Consent Mode
+
+`google_tag` gains two optional site-settings fields, read by `resolveAnalytics()`:
+`server_container_url` (`https://s.example.com`) loads `gtm.js` / `ns.html` / `gtag/js` from the
+client's tagging server and hands gtag `server_container_url`; `custom_loader_url` (Stape's
+`https://s.example.com/abc.js?…`) is used verbatim as the GTM script `src`. The Consent Mode v2
+bootstrap still runs first — only the URL changes. Both are shape-checked and a malformed one is
+dropped with a build-log line, as an id is. **No per-client wiring**: `<ConsentMode />` and
+`<ConsentModeNoscript />` are already mounted everywhere; a client without the fields builds
+byte-for-byte what it built before, apart from the GTM snippet's script URL now being a JSON string.
+
+The build log also warns when a **custom code** snippet loads a Google tag (GTM, gtag.js, a Stape
+loader): pasted there it runs without Consent Mode, which is how rocksoft.pl's GA4 came to see under
+40% of its search clicks. Configure it in Integrations instead.
+
 ### One-hop trailing slash, internal links straight to their page, a 404 page (dashboard #2477)
 
 Three additions to what `cmsRedirects()` writes after the build, so the pin bump is the rollout:

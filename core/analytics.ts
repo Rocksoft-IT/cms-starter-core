@@ -45,11 +45,51 @@ export function classifyAnalyticsId(raw: unknown): { kind: AnalyticsIdKind; id: 
  *  reaches the built <head> malformed produces a CMP that silently never loads. */
 const COOKIEBOT_CBID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/**
+ * Server-side tagging (a Stape custom domain / custom loader). Interpolated into an inline <script>,
+ * so the shapes are narrow: https, a plain hostname, and for the loader a `.js` path with a URL-safe
+ * query. Mirrors TaggingServerUrl (packages/cms-core) the way GTM_ID / GTAG_ID mirror AnalyticsId.
+ */
+const TAGGING_HOST = String.raw`(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}(?::[0-9]{2,5})?`
+const TAGGING_ORIGIN = new RegExp(String.raw`^https://${TAGGING_HOST}$`)
+const TAG_LOADER_URL = new RegExp(
+  String.raw`^https://${TAGGING_HOST}/[A-Za-z0-9_\-./]*[A-Za-z0-9_\-]\.js(?:\?[A-Za-z0-9_\-.~=&%+/]*)?$`,
+)
+
+/** Used by every loader when no tagging server is configured. */
+export const GOOGLE_TAG_ORIGIN = 'https://www.googletagmanager.com'
+
+/** `https://S.Example.com/` → `https://s.example.com`; null when it is not a tagging server origin. */
+export function normalizeTaggingOrigin(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const origin = raw.trim().toLowerCase().replace(/\/+$/, '')
+  return TAGGING_ORIGIN.test(origin) ? origin : null
+}
+
+/** A Stape custom loader URL, trimmed (its path and query are case-sensitive, its host is not); null when malformed. */
+export function normalizeTagLoaderUrl(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null
+  const match = /^https:\/\/([^/]+)(\/.*)$/.exec(raw.trim())
+  if (match === null) return null
+  const url = `https://${match[1].toLowerCase()}${match[2]}`
+  return TAG_LOADER_URL.test(url) ? url : null
+}
+
 /** One CMS field that held an id the build could not use, and why. */
 export interface IgnoredAnalyticsId {
   /** Dotted path in `site-settings.integrations`, e.g. `google_tag.container_id`. */
   source: string
-  reason: 'malformed'
+  /** `unused`: well-formed, but a custom loader without a `GTM-` container has nothing to load. */
+  reason: 'malformed' | 'unused'
+}
+
+/** The expected shape named in a malformed field's build-log line. */
+const EXPECTED_SHAPE: Record<string, string> = {
+  'google_tag.container_id': 'GTM-…, G-…, GT-…, AW-… or DC-…',
+  'ga4.measurement_id': 'GTM-…, G-…, GT-…, AW-… or DC-…',
+  'cookiebot.cbid': 'a UUID',
+  'google_tag.server_container_url': 'https://your-tagging-server (no path)',
+  'google_tag.custom_loader_url': 'https://your-tagging-server/name.js?…',
 }
 
 export interface ResolvedAnalytics {
@@ -99,6 +139,10 @@ export interface ResolvedAnalytics {
    * signals. Clearing the field hands consent back to the built-in banner on the next build.
    */
   cookiebotId: string | null
+  /** `google_tag.server_container_url`: gtm.js / ns.html / gtag.js load from it, gtag sends hits there. */
+  taggingOrigin: string | null
+  /** `google_tag.custom_loader_url` (Stape), used verbatim as the GTM script `src`; null without a GTM container. */
+  customLoaderUrl: string | null
   /** Configured ids the build refuses to emit; drives the build-log warning. */
   ignored: IgnoredAnalyticsId[]
 }
@@ -148,6 +192,24 @@ export function resolveAnalytics(settings: SiteSettingsData): ResolvedAnalytics 
     else ignored.push({ source: 'cookiebot.cbid', reason: 'malformed' })
   }
 
+  const taggingOrigin = readOptional(
+    settings.integrations?.google_tag?.server_container_url,
+    'google_tag.server_container_url',
+    normalizeTaggingOrigin,
+    ignored,
+  )
+  let customLoaderUrl = readOptional(
+    settings.integrations?.google_tag?.custom_loader_url,
+    'google_tag.custom_loader_url',
+    normalizeTagLoaderUrl,
+    ignored,
+  )
+
+  if (customLoaderUrl !== null && gtmId === null) {
+    ignored.push({ source: 'google_tag.custom_loader_url', reason: 'unused' })
+    customLoaderUrl = null
+  }
+
   return {
     // A tag may load either because our own banner will gate it, or because Cookiebot will.
     // Requiring `consentEnabled` on the Cookiebot path would mean a client who handed consent to
@@ -159,8 +221,56 @@ export function resolveAnalytics(settings: SiteSettingsData): ResolvedAnalytics 
     gtmId,
     gtagId,
     cookiebotId,
+    taggingOrigin,
+    customLoaderUrl,
     ignored,
   }
+}
+
+/** Blank is null; malformed is null and recorded in `ignored`. */
+function readOptional(
+  raw: unknown,
+  source: string,
+  normalize: (raw: unknown) => string | null,
+  ignored: IgnoredAnalyticsId[],
+): string | null {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return null
+  const value = normalize(raw)
+  if (value === null) ignored.push({ source, reason: 'malformed' })
+  return value
+}
+
+/**
+ * Google's reference GTM snippet with its script URL resolved: the custom loader, else
+ * `<tagging origin>/gtm.js`, else Google's. The dataLayer name is always the default, so the `&l=`
+ * branch is dropped.
+ */
+export function gtmLoaderSnippet(
+  resolved: Pick<ResolvedAnalytics, 'gtmId' | 'taggingOrigin' | 'customLoaderUrl'>,
+): string | null {
+  if (resolved.gtmId === null) return null
+  const src = resolved.customLoaderUrl ?? `${resolved.taggingOrigin ?? GOOGLE_TAG_ORIGIN}/gtm.js?id=${resolved.gtmId}`
+  return `(function(w,d,s,l){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s);j.async=true;j.src=${JSON.stringify(src)};f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer');`
+}
+
+/** The `<noscript>` iframe's URL; with only a custom loader, its own origin serves `ns.html`. */
+export function gtmNoscriptUrl(
+  resolved: Pick<ResolvedAnalytics, 'gtmId' | 'taggingOrigin' | 'customLoaderUrl'>,
+): string | null {
+  if (resolved.gtmId === null) return null
+  const origin =
+    resolved.taggingOrigin ?? (resolved.customLoaderUrl ? new URL(resolved.customLoaderUrl).origin : GOOGLE_TAG_ORIGIN)
+  return `${origin}/ns.html?id=${resolved.gtmId}`
+}
+
+export function gtagScriptUrl(gtagId: string, taggingOrigin: string | null): string {
+  return `${taggingOrigin ?? GOOGLE_TAG_ORIGIN}/gtag/js?id=${gtagId}`
+}
+
+export function gtagConfigSnippet(gtagId: string, taggingOrigin: string | null): string {
+  return taggingOrigin === null
+    ? `gtag('config',${JSON.stringify(gtagId)});`
+    : `gtag('config',${JSON.stringify(gtagId)},{server_container_url:${JSON.stringify(taggingOrigin)}});`
 }
 
 // Every route renders the layout, so a per-page warning would bury the build log. This module is
@@ -176,9 +286,11 @@ export function warnAboutAnalytics(resolved: ResolvedAnalytics): void {
   if (warned) return
   warned = true
 
-  for (const { source } of resolved.ignored) {
+  for (const { source, reason } of resolved.ignored) {
     console.warn(
-      `[consent] integrations.${source} is not a recognized Google tag id (expected GTM-…, G-…, GT-…, AW-… or DC-…) — ignored.`,
+      reason === 'unused'
+        ? `[consent] integrations.${source} is set but there is no GTM container (google_tag.container_id = GTM-…) for it to load — ignored.`
+        : `[consent] integrations.${source} is not in the expected shape (${EXPECTED_SHAPE[source] ?? 'see the panel'}) — ignored.`,
     )
   }
 

@@ -3,6 +3,7 @@ import type { SiteSettingsData } from '../lib/api'
 import {
   CUSTOM_CODE_ACTIVATOR_JS,
   emitsCustomCodeActivator,
+  loadsGoogleTag,
   readCustomCode,
   resetCustomCodeWarnings,
   resolveCustomCode,
@@ -167,6 +168,54 @@ describe('warnAboutCustomCode', () => {
     warnAboutCustomCode(resolveCustomCode(stored, 'body'), 'body')
 
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('before any consent'))
+    warn.mockRestore()
+  })
+})
+
+// rocksoft.pl pasted its GTM container (behind a Stape custom loader) here, tagged statistics: it
+// ran with no Consent Mode default and only after "Accept", and GA4 saw under 40% of the site's
+// search clicks. The build says so; CustomScripts::GOOGLE_TAG_PATTERNS says the same in the panel.
+describe('loadsGoogleTag', () => {
+  test.each([
+    [
+      'the stock GTM snippet',
+      "<script>(function(w,d,s,l,i){w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});j.src='https://www.googletagmanager.com/gtm.js?id='+i})(window,document,'script','dataLayer','GTM-ABC123');</script>",
+    ],
+    [
+      'a Stape custom loader on the client domain',
+      '<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({"gtm.start":new Date().getTime(),event:"gtm.js"});j.src="https://s.example.com/3uq42tnbsasee.js?"+i})(window,document,"script","dataLayer","25i=DAFOJ");</script>',
+    ],
+    [
+      'the GTM noscript iframe from a tagging server',
+      '<noscript><iframe src="https://s.example.com/ns.html?id=GTM-ABC123"></iframe></noscript>',
+    ],
+    ['gtag.js', '<script async src="https://www.googletagmanager.com/gtag/js?id=AW-1234567890"></script>'],
+    ['a gtag config call', "<script>gtag('config', 'G-ABC123');</script>"],
+  ])('flags %s', (_name, code) => {
+    expect(loadsGoogleTag(code)).toBe(true)
+  })
+
+  test.each([
+    ['a Clarity tag', '<script>(function(c,l,a,r,i){})(window,document,"clarity","script","abc123");</script>'],
+    ['a chat widget', '<script src="https://widget.chatling.ai/js/embed.js" data-id="x"></script>'],
+  ])('leaves %s alone', (_name, code) => {
+    expect(loadsGoogleTag(code)).toBe(false)
+  })
+})
+
+describe('warnAboutCustomCode on a pasted Google tag', () => {
+  beforeEach(() => resetCustomCodeWarnings())
+
+  test('points at Integrations, gated or not', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const stored = settings({
+      cookie_consent: { enabled: true, privacy_page_id: null },
+      custom_scripts: [snippet({ consent: 'statistics', code: "<script>w[l].push({'gtm.start':1})</script>" })],
+    })
+
+    warnAboutCustomCode(resolveCustomCode(stored, 'head'), 'head')
+
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('Integrations → Google Tag'))
     warn.mockRestore()
   })
 })

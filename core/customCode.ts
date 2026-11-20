@@ -174,6 +174,24 @@ export function warnAboutCustomCode(resolved: ResolvedCustomCode, placement: Cus
       `[custom-code] ${resolved.immediate.length} snippet(s) tagged "necessary" ship in <${placement}> on every page, before any consent — make sure that is what they are.`,
     )
   }
+  const googleTags = [...resolved.immediate, ...resolved.gated].filter((snippet) => loadsGoogleTag(snippet.code))
+  if (googleTags.length > 0) {
+    console.warn(
+      `[custom-code] ${googleTags.length} <${placement}> snippet(s) load a Google tag (GTM / gtag.js / a server-side loader). Pasted as custom code it runs outside Consent Mode — no consent default, and a gated one misses the landing page. Configure it in Integrations → Google Tag (container ID, plus the server container URL / custom loader URL) and remove the snippet.`,
+    )
+  }
+}
+
+/** A pasted Google tag runs outside Consent Mode. Mirrors CustomScripts::GOOGLE_TAG_PATTERNS — keep in step. */
+const GOOGLE_TAG_PATTERNS: readonly RegExp[] = [
+  /['"]gtm\.start['"]/,
+  /googletagmanager\.com\/(?:gtm\.js|gtag\/js|ns\.html)/i,
+  /\/ns\.html\?id=GTM-/i,
+  /\bgtag\(\s*['"]config['"]/,
+]
+
+export function loadsGoogleTag(code: string): boolean {
+  return GOOGLE_TAG_PATTERNS.some((pattern) => pattern.test(code))
 }
 
 /** Test seam: the module-level warn-once latch outlives a vitest file otherwise. */
