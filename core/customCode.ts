@@ -9,7 +9,7 @@
 // settings row, and a failed fetch (getSiteSettings resolves to a default object, never rejects).
 
 import type { SiteSettingsData } from '../lib/api'
-import { CONSENT_SIGNALS_JS } from './analytics'
+import { CONSENT_SIGNALS_JS, isPreviewBuild } from './analytics'
 import { onceLatch } from './onceLatch'
 
 /** Where a snippet is injected. Mirrors CustomScripts::PLACEMENTS. */
@@ -129,10 +129,13 @@ export function emitsCustomCodeActivator(
  * analytics"), and custom code is the escape hatch AROUND those typed providers: if it did not
  * take the same position, pasting a GTM container here would be a supported way to defeat the
  * consent system the rest of this stack exists to enforce.
+ *
+ * A preview build drops them too (it has no banner); `necessary` snippets still ship.
  */
 export function resolveCustomCode(
   settings: SiteSettingsData,
   placement: CustomCodePlacement,
+  preview: boolean = isPreviewBuild(),
 ): ResolvedCustomCode {
   const consentEnabled = settings.cookie_consent?.enabled === true
   const resolved: ResolvedCustomCode = { immediate: [], gated: [], dropped: [] }
@@ -142,6 +145,11 @@ export function resolveCustomCode(
 
     if (snippet.consent === 'necessary') {
       resolved.immediate.push(snippet)
+      continue
+    }
+
+    if (preview) {
+      resolved.dropped.push({ reason: `tagged "${snippet.consent}" and this is a preview build` })
       continue
     }
 
@@ -174,6 +182,24 @@ export function warnAboutCustomCode(resolved: ResolvedCustomCode, placement: Cus
       `[custom-code] ${resolved.immediate.length} snippet(s) tagged "necessary" ship in <${placement}> on every page, before any consent — make sure that is what they are.`,
     )
   }
+  const googleTags = [...resolved.immediate, ...resolved.gated].filter((snippet) => loadsGoogleTag(snippet.code))
+  if (googleTags.length > 0) {
+    console.warn(
+      `[custom-code] ${googleTags.length} <${placement}> snippet(s) load a Google tag (GTM / gtag.js / a server-side loader). Pasted as custom code it runs outside Consent Mode — no consent default, and a gated one misses the landing page. Configure it in Integrations → Google Tag (container ID, plus the server container URL / custom loader URL) and remove the snippet.`,
+    )
+  }
+}
+
+/** A pasted Google tag runs outside Consent Mode. Mirrors CustomScripts::GOOGLE_TAG_PATTERNS — keep in step. */
+const GOOGLE_TAG_PATTERNS: readonly RegExp[] = [
+  /['"]gtm\.start['"]/,
+  /googletagmanager\.com\/(?:gtm\.js|gtag\/js|ns\.html)/i,
+  /\/ns\.html\?id=GTM-/i,
+  /\bgtag\(\s*['"]config['"]/,
+]
+
+export function loadsGoogleTag(code: string): boolean {
+  return GOOGLE_TAG_PATTERNS.some((pattern) => pattern.test(code))
 }
 
 /** Test seam: the module-level warn-once latch outlives a vitest file otherwise. */

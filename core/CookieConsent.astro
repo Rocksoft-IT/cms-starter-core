@@ -20,6 +20,17 @@
 // button, "Customize", which reveals a second panel (Necessary — always on, no control; Statistics;
 // Marketing) with its own confirm button. Accept/Reject stay one-click all-in/all-out shortcuts in
 // BOTH modes — granular mode adds a path to a split choice, it does not remove the fast path.
+//
+// MODAL LAYOUT (#2495, opt-in per client via settings.cookie_consent_layout = modal): instead of the
+// bar, a centred dialog over a dimmed page that has to be answered before the site can be used —
+// the presentation Cookiebot uses by default. The page behind is `inert` and scroll-locked, focus
+// starts on the dialog's title (never on Accept, which would nudge the answer) and stays inside it,
+// and nothing but a choice closes it: no close button, no Esc, no backdrop click. Reject keeps the
+// same size and weight as Accept, so it is a consent dialog and not a cookie wall. Two places keep
+// the bar even on a modal client: the privacy page itself (a visitor must be able to read what they
+// are asked to agree to), and any build without the setting. Its own `cookie-consent-modal*`
+// shortcuts style it; the controls inside share the bar's keys, so a site's override of a button
+// or of the granular panel reaches both layouts.
 import { getSiteSettings, getCookieConsent, getPages } from '../lib/api'
 import { CONSENT_SIGNALS_JS, resolveAnalytics } from './analytics'
 import { consentCopyDefaults } from './consentCopy'
@@ -53,7 +64,7 @@ const settings = await getSiteSettings()
 // this banner is about COOKIES, and analytics is merely the only thing that sets one today. Both
 // values still come from resolveAnalytics(), so the two components cannot drift apart on what
 // "consent is on" means — only on what each of them does about it.
-const { showBanner, granular } = resolveAnalytics(settings)
+const { showBanner, granular, modal: modalLayout } = resolveAnalytics(settings)
 
 const copy = showBanner ? await getCookieConsent(locale).catch(() => null) : null
 
@@ -102,6 +113,30 @@ if (showBanner && typeof privacyId === 'number') {
 }
 const privacyHref = showBanner ? resolvePrivacyHref(fromCms, privacyHrefProp) : null
 
+// The privacy page never blocks (#2495): the modal asks a visitor to agree to what that page
+// explains, so covering it would make the explanation unreachable. Compared as paths with the
+// trailing slash dropped, so `/privacy` and `/privacy/` (and an absolute URL to this same page)
+// count as the same page.
+function samePath(href: string, pathname: string): boolean {
+  let target: string
+  try {
+    target = new URL(href, Astro.url).pathname
+  } catch {
+    return false
+  }
+  const strip = (path: string) => path.replace(/\/+$/, '') || '/'
+  return strip(target) === strip(pathname)
+}
+const onPrivacyPage = privacyHref !== null && samePath(privacyHref, Astro.url.pathname)
+const modal = modalLayout && !onPrivacyPage
+// Markup: on the bar the outer element IS the dialog, as it always was. In the modal it is the
+// dimmed backdrop and the dialog is the card inside it — so `hidden`, which the script toggles on
+// the outer element, shows and hides backdrop and card together in both layouts.
+
+// The title always shows in the modal, where it also names the dialog for assistive tech. On the
+// bar it shows only once an editor wrote one, so a client that never opted in sees no change.
+const title = copy?.title || (modal ? fallback.title : '')
+
 // One script serves both modes: the granular-only elements (customize button, panel, the two
 // checkboxes) are simply absent from the DOM in simple mode, and every handler below null-guards
 // its lookup — so this file has no separate "granular" code path to keep in sync with the plain one.
@@ -110,8 +145,46 @@ ${CONSENT_SIGNALS_JS}
 (function(){
   var el = document.querySelector('[data-cookie-consent]');
   if (!el) return;
-  function open(){ el.hidden = false; }
-  function close(){ el.hidden = true; }
+  // Modal layout (#2495): everything outside the dialog goes \`inert\` (unreachable by pointer,
+  // keyboard and assistive tech) and the page stops scrolling until the visitor answers; both are
+  // undone on close, and focus goes back to whatever opened it (the footer's settings link).
+  var isModal = el.hasAttribute('data-cookie-consent-modal');
+  var inerted = [];
+  var lastFocus = null;
+  var prevOverflow = '';
+  function lockPage(){
+    lastFocus = document.activeElement;
+    for (var node = el; node && node.parentElement && node !== document.body; node = node.parentElement) {
+      var siblings = node.parentElement.children;
+      for (var i = 0; i < siblings.length; i++) {
+        var sib = siblings[i];
+        if (sib !== node && !sib.inert && sib.tagName !== 'SCRIPT' && sib.tagName !== 'STYLE') { sib.inert = true; inerted.push(sib); }
+      }
+    }
+    prevOverflow = document.documentElement.style.overflow;
+    document.documentElement.style.overflow = 'hidden';
+    var start = el.querySelector('[data-cookie-consent-title]') || el.querySelector('button');
+    if (start) { try { start.focus({ preventScroll: true }); } catch(e) { start.focus(); } }
+  }
+  function unlockPage(){
+    for (var i = 0; i < inerted.length; i++) inerted[i].inert = false;
+    inerted = [];
+    document.documentElement.style.overflow = prevOverflow;
+    if (lastFocus && lastFocus !== document.body && typeof lastFocus.focus === 'function' && document.contains(lastFocus)) lastFocus.focus();
+    lastFocus = null;
+  }
+  function open(){ if (!el.hidden) return; el.hidden = false; if (isModal) lockPage(); }
+  function close(){ if (el.hidden) return; el.hidden = true; if (isModal) unlockPage(); }
+  // Keeps Tab inside the dialog where \`inert\` is unsupported (older Safari); harmless elsewhere.
+  if (isModal) el.addEventListener('keydown', function(e){
+    if (e.key !== 'Tab') return;
+    var f = Array.prototype.filter.call(el.querySelectorAll('button, a[href], input'), function(n){ return n.offsetParent !== null; });
+    if (!f.length) return;
+    var first = f[0], last = f[f.length - 1], active = document.activeElement;
+    var outside = f.indexOf(active) === -1;
+    if (e.shiftKey && (active === first || outside)) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && (active === last || outside)) { e.preventDefault(); first.focus(); }
+  });
   // Every way out of the banner is the same three steps in the same order — remember the choice,
   // signal it to Consent Mode, dismiss. Accept and Reject are just fixed values of that one path.
   // writeCookieConsent() is a POST to the site's own origin since #1470 and so completes later,
@@ -158,21 +231,50 @@ ${CONSENT_SIGNALS_JS}
 
 {
   showBanner && (
-    <div class="cookie-consent" role="dialog" aria-live="polite" aria-label={manageLabel} data-cookie-consent hidden>
-      <div class="cookie-consent__top">
-        <p class="cookie-consent__message">
-          {message}
-          {privacyHref && (
-            <>
-              {' '}
-              <a class="cookie-consent__link" href={privacyHref}>
-                {manageLabel}
-              </a>
-            </>
+    <div
+      class={modal ? 'cookie-consent-modal' : 'cookie-consent'}
+      role={modal ? undefined : 'dialog'}
+      aria-live={modal ? undefined : 'polite'}
+      aria-label={modal || title ? undefined : manageLabel}
+      aria-labelledby={!modal && title ? 'cookie-consent-title' : undefined}
+      data-cookie-consent
+      data-cookie-consent-modal={modal ? '' : undefined}
+      hidden
+    >
+      {/* `contents` on the bar: no box of its own, so the bar's flex layout is what it always was. */}
+      <div
+        class={modal ? 'cookie-consent-modal__dialog' : 'contents'}
+        role={modal ? 'dialog' : undefined}
+        aria-modal={modal ? 'true' : undefined}
+        aria-labelledby={modal ? 'cookie-consent-title' : undefined}
+        aria-describedby={modal ? 'cookie-consent-message' : undefined}
+      >
+      <div class={modal ? 'cookie-consent-modal__top' : 'cookie-consent__top'}>
+        <div class={modal ? 'cookie-consent-modal__text' : 'cookie-consent__text'}>
+          {title && (
+            <h2
+              id="cookie-consent-title"
+              class={modal ? 'cookie-consent-modal__title' : 'cookie-consent__title'}
+              tabindex="-1"
+              data-cookie-consent-title
+            >
+              {title}
+            </h2>
           )}
-        </p>
-        <div class="cookie-consent__actions">
-          {granular && (
+          <p id="cookie-consent-message" class={modal ? 'cookie-consent-modal__message' : 'cookie-consent__message'}>
+            {message}
+            {privacyHref && (
+              <>
+                {' '}
+                <a class="cookie-consent__link" href={privacyHref}>
+                  {manageLabel}
+                </a>
+              </>
+            )}
+          </p>
+        </div>
+        <div class={modal ? 'cookie-consent-modal__actions' : 'cookie-consent__actions'}>
+          {granular && !modal && (
             <button
               type="button"
               class="cookie-consent__customize"
@@ -198,6 +300,18 @@ ${CONSENT_SIGNALS_JS}
           >
             {acceptLabel}
           </button>
+          {/* Modal: Customize sits under the two choices, so it comes after them in the markup too. */}
+          {granular && modal && (
+            <button
+              type="button"
+              class="cookie-consent-modal__customize"
+              aria-expanded="false"
+              aria-controls="cookie-consent-panel"
+              data-cookie-consent-customize
+            >
+              {customizeLabel}
+            </button>
+          )}
         </div>
       </div>
       {granular && (
@@ -241,6 +355,7 @@ ${CONSENT_SIGNALS_JS}
           </button>
         </div>
       )}
+      </div>
     </div>
   )
 }

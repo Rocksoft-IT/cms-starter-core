@@ -14,16 +14,18 @@
 // reference install and keep the consent rules in one place, rather than diverging from the
 // snippet every auditor recognizes (#1191).
 import { getSiteSettings } from '../lib/api'
-import { resolveAnalytics } from './analytics'
+import { gtmNoscriptUrl, resolveAnalytics } from './analytics'
 
-const { active, gtmId } = resolveAnalytics(await getSiteSettings())
+const analytics = resolveAnalytics(await getSiteSettings())
+const { active, gtmId } = analytics
+const noscriptSrc = gtmNoscriptUrl(analytics)
 ---
 
 {
   active && gtmId && (
     <noscript>
       <iframe
-        src={`https://www.googletagmanager.com/ns.html?id=${gtmId}`}
+        src={noscriptSrc}
         height="0"
         width="0"
         style="display:none;visibility:hidden"

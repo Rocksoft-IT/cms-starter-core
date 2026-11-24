@@ -1130,10 +1130,27 @@ export const coreShortcuts: Record<string, string> = {
 
   'cookie-consent__top': 'flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
 
+  // Title + message column (#2495). Takes over the `sm:flex-1` the message used to carry, so the
+  // bar splits text | buttons exactly as before; the title only renders here once authored.
+  'cookie-consent__text': 'flex flex-col gap-1 sm:flex-1',
+  'cookie-consent__title':
+    'm-0 [font-size:calc(15px*var(--type-scale,1))] font-semibold leading-snug text-text-primary outline-none',
+
   'cookie-consent__message':
     'm-0 [font-size:calc(14px*var(--type-scale,1))] leading-relaxed text-text-primary sm:flex-1',
 
-  'cookie-consent__link': 'text-primary underline underline-offset-2 hover:text-primary-soft',
+  // One visible focus ring for every control in both layouts (WCAG 2.4.7). The text colour, not the
+  // brand colour: it is the one role guaranteed to contrast with the surface the banner sits on,
+  // whereas a light brand (Diligently's #ffcf00 on white is ~1.5:1) would draw an invisible ring.
+  'cookie-consent__focus':
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-text-primary',
+
+  // The link is the TEXT colour and always underlined (#2495). It used to be `text-primary`, which on
+  // a light brand colour failed WCAG 1.4.3 (contrast) outright and 1.4.1 (colour as the only cue)
+  // with it: measured on Diligently, #ffcf00 on white is ~1.5:1 against the 4.5:1 required. The
+  // underline is what marks it as a link now, and semibold sets it apart from the sentence around it.
+  'cookie-consent__link':
+    'font-semibold text-text-primary underline decoration-1 underline-offset-3 hover:decoration-2 cookie-consent__focus',
 
   'cookie-consent__actions': 'flex flex-row flex-wrap shrink-0 items-center gap-3',
 
@@ -1142,13 +1159,13 @@ export const coreShortcuts: Record<string, string> = {
   // dominant choice and Customize reads as the slower, secondary path.
   'cookie-consent__customize':
     'cursor-pointer border-0 bg-transparent p-0 [font-size:calc(14px*var(--type-scale,1))] font-semibold text-text-secondary underline ' +
-    'underline-offset-2 hover:text-text-primary',
+    'underline-offset-2 hover:text-text-primary cookie-consent__focus',
 
   'cookie-consent__button':
     'inline-flex items-center justify-center gap-2 ' +
     'rounded-[8px] border-[2px] border-solid px-4 py-2 ' +
     '[font-size:calc(14px*var(--type-scale,1))] font-semibold leading-5 no-underline cursor-pointer select-none ' +
-    'transition-colors duration-200',
+    'transition-colors duration-200 cookie-consent__focus',
 
   // Same footprint as --reject below (equal size and weight) — the "not a dark pattern" the
   // component's own comment calls for; only fill vs outline differs, not prominence.
@@ -1197,13 +1214,58 @@ export const coreShortcuts: Record<string, string> = {
   // A real, accessible native checkbox — not a hand-rolled switch graphic. `accent-primary` is
   // the one-line way to put the client's own brand color on it without owning ::before/::after
   // pseudo-element styling for a fake track+thumb.
-  'cookie-consent__toggle': 'h-[20px] w-[20px] shrink-0 cursor-pointer accent-primary',
+  'cookie-consent__toggle': 'h-[20px] w-[20px] shrink-0 cursor-pointer accent-primary cookie-consent__focus',
 
   // Stops the confirm button stretching to the panel's full width — .cookie-consent__panel is a
   // column flex container, whose default cross-axis stretch would otherwise apply to every child
   // including this one, and the category rows above DO want that stretch (so their own
   // `justify-between` header has the full width to split across).
   'cookie-consent__allow-selection': 'self-start',
+
+  // ── Cookie consent, modal layout (#2495, opt-in — settings.cookie_consent_layout = modal) ───
+  // A centred card over a dimmed, slightly blurred page; on a phone a bottom sheet instead, because
+  // that is where the thumb is and a centred card on a 375px screen is a card with no margins. The
+  // controls inside (buttons, link, granular panel) keep the bar's `cookie-consent__*` keys, so a
+  // site that restyled a button restyled it for both layouts. Only the frame and the arrangement
+  // have their own keys here. Every value is a palette token, so the card takes the client's brand
+  // with no edit, and the motion is `motion-safe:` only (WCAG 2.3.3 / prefers-reduced-motion).
+  //
+  // The backdrop needs the same `[&[hidden]]:hidden` as `cookie-consent` above, for the same reason.
+  // The z-index is Cookiebot's order of magnitude, not a token: a sticky navbar (99 on this
+  // template) or a chat widget (often near the 32-bit ceiling) painted ABOVE the dimmed layer reads
+  // as usable, even though `inert` already stops it taking a click.
+  'cookie-consent-modal':
+    'fixed inset-0 z-[2147483600] flex items-end justify-center sm:items-center sm:p-6 ' +
+    'bg-[rgb(0_0_0_/_55%)] backdrop-blur-[2px] ' +
+    'motion-safe:animate-fade-in motion-safe:animate-duration-200 motion-safe:animate-ease-out ' +
+    '[&[hidden]]:hidden',
+  // `overscroll-contain` keeps a long granular panel's scroll from chaining into the locked page.
+  'cookie-consent-modal__dialog':
+    'flex flex-col gap-5 w-full max-h-[85vh] overflow-y-auto overscroll-contain ' +
+    'rounded-t-[16px] sm:rounded-[16px] sm:max-w-[34rem] bg-surface p-6 sm:p-8 ' +
+    // The bottom sheet clears the iPhone home indicator; the centred card from `sm` up does not need to.
+    'pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:pb-8 ' +
+    'shadow-[0_24px_64px_rgb(0_0_0_/_25%)] ' +
+    'motion-safe:animate-fade-in-up motion-safe:animate-duration-300 motion-safe:animate-ease-out',
+  'cookie-consent-modal__top': 'flex flex-col gap-6',
+  'cookie-consent-modal__text': 'flex flex-col gap-3',
+  // Focused programmatically when the dialog opens (so a screen reader starts at the top and Tab
+  // lands on the first button), never by the visitor — hence no ring of its own.
+  'cookie-consent-modal__title':
+    'm-0 font-brand font-bold [font-size:calc(22px*var(--type-scale,1))] leading-[1.25] text-heading outline-none',
+  'cookie-consent-modal__message':
+    'm-0 [font-size:calc(15px*var(--type-scale,1))] leading-relaxed text-text-secondary',
+  // Reject and Accept side by side at EQUAL width from `sm` up, stacked full-width below it; every
+  // button at least 44px tall (WCAG 2.5.5 target size). Equal footprint is the point: the fill vs
+  // outline difference is the only thing that separates them, never size or position.
+  'cookie-consent-modal__actions': 'grid grid-cols-1 gap-3 sm:grid-cols-2 [&>button]:min-h-[44px]',
+  // Customize (granular mode) spans the row under the two choices, as the slower, secondary path —
+  // the same text-link weight it has on the bar. It is LAST in the markup too, not moved there with
+  // `order`, so Tab reaches it where the eye does (WCAG 2.4.3).
+  'cookie-consent-modal__customize':
+    'sm:col-span-2 justify-self-center cursor-pointer border-0 bg-transparent px-2 py-0 ' +
+    '[font-size:calc(14px*var(--type-scale,1))] font-semibold text-text-secondary underline underline-offset-2 ' +
+    'hover:text-text-primary cookie-consent__focus',
 
   // ── Site footer (Footer.astro, dashboard#1852) ─────────────────────────────
   // Same decision as the consent banner above, for the same reason and one step later. Footer.astro

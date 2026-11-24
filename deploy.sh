@@ -239,8 +239,8 @@ elif [ "$preview_ref_found" = "1" ]; then
   preview_ref_sha="$ref_sha"
 fi
 
-# ASTRO_PREVIEW=1 marks a preview build for a future reader; nothing in core reads it today. A
-# preview release is published as-is, so it must not differ from a live build (no noindex: the
+# ASTRO_PREVIEW=1 marks a preview build. Core reads it only in core/analytics.ts isPreviewBuild(),
+# to leave analytics out; otherwise a preview must not differ from a live build (no noindex: the
 # preview host withholds itself from search engines instead). A value leaked from the caller's
 # shell is cleared, so only a real preview build ever carries it.
 unset ASTRO_PREVIEW

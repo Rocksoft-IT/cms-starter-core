@@ -16,7 +16,15 @@
 // The <noscript> half of the stock GTM snippet is ConsentModeNoscript.astro, mounted at the start
 // of <body> — no component can render into both places. Keep the two mounted together.
 import { getSiteSettings } from '../lib/api'
-import { CONSENT_SIGNALS_JS, resolveAnalytics, tagLoaderScript, warnAboutAnalytics } from './analytics'
+import {
+  CONSENT_SIGNALS_JS,
+  gtagConfigSnippet,
+  gtagScriptUrl,
+  gtmLoaderSnippet,
+  resolveAnalytics,
+  tagLoaderScript,
+  warnAboutAnalytics,
+} from './analytics'
 import { cmsConfig } from '~site/cms.config'
 
 const settings = await getSiteSettings()
@@ -26,7 +34,7 @@ const analytics = resolveAnalytics(settings)
 // silently from the outside.
 warnAboutAnalytics(analytics)
 
-const { active, gtmId, gtagId, cookiebotId } = analytics
+const { active, gtmId, gtagId, cookiebotId, taggingOrigin } = analytics
 
 // Default-deny bootstrap, then CONSENT_SIGNALS_JS's readCookieConsent()/applyCookieConsent()
 // replay a stored choice (either schema, #1226; from the cookie or a pre-#1470 localStorage
@@ -61,21 +69,17 @@ const loadStrategy = cookiebotId ? 'eager' : (cmsConfig.analytics?.load ?? 'eage
 const fallbackMs = cmsConfig.analytics?.fallbackMs
 
 // Prefer GTM when both are set (a GTM container usually already hosts the GA4 tag).
-const gtmLoader = gtmId
-  ? tagLoaderScript(
-      `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','${gtmId}');`,
-      loadStrategy,
-      fallbackMs,
-    )
-  : null
+const gtmSnippet = gtmLoaderSnippet(analytics)
+const gtmLoader = gtmSnippet ? tagLoaderScript(gtmSnippet, loadStrategy, fallbackMs) : null
 
 const gtagOnly = !gtmId && gtagId ? gtagId : null
+const gtagSrc = gtagOnly ? gtagScriptUrl(gtagOnly, taggingOrigin) : null
 // The gtag.js path, deferred: the same file the eager <script async src> below loads, injected by
 // the strategy instead. `gtag('config', …)` still runs at once — it only queues on dataLayer.
 const deferredGtag =
   gtagOnly && loadStrategy !== 'eager'
     ? tagLoaderScript(
-        `var j=document.createElement('script');j.async=true;j.src='https://www.googletagmanager.com/gtag/js?id=${gtagOnly}';document.head.appendChild(j);`,
+        `var j=document.createElement('script');j.async=true;j.src=${JSON.stringify(gtagSrc)};document.head.appendChild(j);`,
         loadStrategy,
         fallbackMs,
       )
@@ -105,12 +109,8 @@ const deferredGtag =
       {gtmLoader && <script is:inline set:html={gtmLoader} />}
       {gtagOnly && (
         <>
-          {deferredGtag ? (
-            <script is:inline set:html={deferredGtag} />
-          ) : (
-            <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${gtagOnly}`} />
-          )}
-          <script is:inline set:html={`gtag('config','${gtagOnly}');`} />
+          {deferredGtag ? <script is:inline set:html={deferredGtag} /> : <script is:inline async src={gtagSrc} />}
+          <script is:inline set:html={gtagConfigSnippet(gtagOnly, taggingOrigin)} />
         </>
       )}
     </>

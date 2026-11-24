@@ -1,5 +1,6 @@
 {
   "en": {
+    "title": "Your privacy, your choice",
     "message": "We use cookies to measure traffic and, if you accept, for advertising. Accept to allow them, or reject to keep them off.",
     "accept_label": "Accept",
     "reject_label": "Reject",
@@ -14,6 +15,7 @@
     "allow_selection_label": "Allow selection"
   },
   "pl": {
+    "title": "Twoja prywatność, Twój wybór",
     "message": "Używamy plików cookie do pomiaru ruchu, a po wyrażeniu zgody – także do celów reklamowych. Zaakceptuj, aby na to zezwolić, lub odrzuć, aby pozostały wyłączone.",
     "accept_label": "Akceptuję",
     "reject_label": "Odrzucam",
@@ -28,6 +30,7 @@
     "allow_selection_label": "Zezwól na wybrane"
   },
   "no": {
+    "title": "Ditt personvern, ditt valg",
     "message": "Vi bruker informasjonskapsler for å måle trafikk, og – hvis du godtar – til annonsering. Godta for å tillate dem, eller avvis for å holde dem av.",
     "accept_label": "Godta",
     "reject_label": "Avvis",
@@ -42,6 +45,7 @@
     "allow_selection_label": "Tillat utvalg"
   },
   "de": {
+    "title": "Ihre Privatsphäre, Ihre Wahl",
     "message": "Wir verwenden Cookies, um den Traffic zu messen, und – wenn Sie zustimmen – für Werbung. Akzeptieren Sie, um sie zu erlauben, oder lehnen Sie ab, um sie deaktiviert zu lassen.",
     "accept_label": "Akzeptieren",
     "reject_label": "Ablehnen",

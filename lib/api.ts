@@ -654,7 +654,13 @@ export interface ContactEntry {
 export interface SiteSettingsData {
   /** `granular` opts into the Statistics/Marketing category banner (#1226) — every client
    *  defaults to a plain Accept/Reject choice; meaningless while `enabled` is false. */
-  cookie_consent?: { enabled?: boolean; privacy_page_id?: number | null; granular?: boolean }
+  cookie_consent?: {
+    enabled?: boolean
+    privacy_page_id?: number | null
+    granular?: boolean
+    /** #2495: `bar` (default, non-blocking bottom bar) or `modal` (centred, blocking dialog). */
+    layout?: 'bar' | 'modal'
+  }
   integrations?: Record<string, Record<string, string>>
   /** Per-client CUSTOM CODE — raw `<script>`/HTML the admin pasted in the panel, already filtered
    *  to the ENABLED rows by CustomScripts::payloadFrom(). Typed loosely on purpose: this is the
@@ -714,6 +720,8 @@ export function getSiteSettings(): Promise<SiteSettingsData> {
  *  The last eight fields are granular-mode-only (#1226): unused, and safe to leave unauthored,
  *  on a client whose `cookie_consent.granular` is false. */
 export interface CookieConsentData {
+  /** The banner's heading (#2495) — always shown in the modal layout, on the bar only when authored. */
+  title?: string
   message?: string
   accept_label?: string
   reject_label?: string

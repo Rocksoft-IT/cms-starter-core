@@ -27,6 +27,51 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### Cookie banner: opt-in centred dialog, a title, and an accessible link (dashboard #2495)
+
+`cookie_consent.layout` (site settings, Settings → Privacy → **Banner layout**) picks how the
+banner is shown: `bar` (default, unchanged) or `modal` — a centred dialog over a dimmed page, a
+bottom sheet on phones, that has to be answered before the site can be used. The page behind is
+`inert` and scroll-locked, focus starts on the dialog's title and stays inside it, and only a choice
+closes it (no close button, Esc or backdrop click). Reject keeps Accept's size, so it is a consent
+dialog, not a cookie wall. The privacy page (`privacy_page_id`, or the `privacyHref` prop) always
+gets the bar, so a visitor can read what they are asked to agree to. Styled by new
+`cookie-consent-modal*` shortcuts; the controls inside reuse the bar's keys.
+
+The `cookie_consent` component gains a translatable **`title`** — always shown in the modal (default
+"Your privacy, your choice", en/pl/no/de), on the bar only once authored.
+
+**Visible on every client with the banner on (the bar too):** the privacy link is now the text
+colour, semibold and underlined instead of `text-primary`. On a light brand colour the old link
+failed WCAG 1.4.3 — Diligently's `#ffcf00` on white is ~1.5:1. Every banner control now has a
+visible focus ring in the text colour. The bar's text sits in a new `cookie-consent__text` wrapper
+(it carries the `sm:flex-1` the message had); the layout is unchanged. **No per-client wiring**: a
+client that keeps the bar gets the same banner on the bump apart from the link and focus ring.
+
+Mock build: `ASTRO_MOCK_CONSENT=1 ASTRO_MOCK_CONSENT_MODAL=1` (add `ASTRO_MOCK_ANALYTICS_GRANULAR=1`
+for the Customize panel).
+
+### Preview builds ship no analytics
+
+A panel preview (core `deploy.sh`, `ASTRO_PREVIEW=1`) emits no Google tag, Cookiebot, cookie banner
+or `statistics`/`marketing` custom code; `necessary` snippets still ship. Before this, every look at a
+preview was a session in the client's production GA4. A live build is unchanged. No per-client wiring.
+
+### GTM through a server-side tagging domain or a Stape custom loader, behind Consent Mode
+
+`google_tag` gains two optional site-settings fields, read by `resolveAnalytics()`:
+`server_container_url` (`https://s.example.com`) loads `gtm.js` / `ns.html` / `gtag/js` from the
+client's tagging server and hands gtag `server_container_url`; `custom_loader_url` (Stape's
+`https://s.example.com/abc.js?…`) is used verbatim as the GTM script `src`. The Consent Mode v2
+bootstrap still runs first — only the URL changes. Both are shape-checked and a malformed one is
+dropped with a build-log line, as an id is. **No per-client wiring**: `<ConsentMode />` and
+`<ConsentModeNoscript />` are already mounted everywhere; a client without the fields builds
+byte-for-byte what it built before, apart from the GTM snippet's script URL now being a JSON string.
+
+The build log also warns when a **custom code** snippet loads a Google tag (GTM, gtag.js, a Stape
+loader): pasted there it runs without Consent Mode, which is how rocksoft.pl's GA4 came to see under
+40% of its search clicks. Configure it in Integrations instead.
+
 ### One-hop trailing slash, internal links straight to their page, a 404 page (dashboard #2477)
 
 Three additions to what `cmsRedirects()` writes after the build, so the pin bump is the rollout:
