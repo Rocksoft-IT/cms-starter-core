@@ -90,6 +90,24 @@ describe('flattenMedia() — responsive `_meta` siblings', () => {
     })
   })
 
+  it('carries the media’s own alt text in the sibling when an editor wrote one', () => {
+    expect(flattenMedia({ cover: { ...measured, alt: 'A stage with an LED screen' } })).toEqual({
+      cover: measured.url,
+      cover_meta: { width: 4000, height: 3000, srcset: measured.srcset, alt: 'A stage with an LED screen' },
+    })
+  })
+
+  it('leaves an undescribed image’s sibling exactly as it was', () => {
+    expect(flattenMedia({ cover: { ...measured, alt: null } })).toEqual({
+      cover: measured.url,
+      cover_meta: { width: 4000, height: 3000, srcset: measured.srcset },
+    })
+    expect(flattenMedia({ cover: { ...measured, alt: '   ' } })).toEqual({
+      cover: measured.url,
+      cover_meta: { width: 4000, height: 3000, srcset: measured.srcset },
+    })
+  })
+
   it('never overwrites a `_meta` sibling the API sent itself', () => {
     // A block's `<key>_meta` is authoritative — BlockResolver builds it deliberately (and omits
     // the media's own alt), so a synthesised one must not replace it.

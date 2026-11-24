@@ -157,16 +157,23 @@ function responsiveMetaOf(media: Record<string, unknown>): ResponsiveImageMeta |
   // Checked, not cast: the payload is untyped JSON, and a cast would let a stringly-typed width
   // through as a number — a wrong `<img width>` rather than an absent one.
   const num = (v: unknown): number | null => (typeof v === 'number' ? v : null)
-  const meta = {
+  const meta: ResponsiveImageMeta = {
     width: num(media.width),
     height: num(media.height),
     srcset: typeof media.srcset === 'string' ? media.srcset : null,
   }
 
+  // The editor's alt text, per locale, rides along when there is one. Flattening used to drop it
+  // with the rest of the object, so a page-level picture (a case study's cover, a post's
+  // thumbnail) could never render the alt the CMS holds for it. Only a non-empty string is
+  // carried: an image nobody described keeps exactly the sibling it had before this existed.
+  const alt = typeof media.alt === 'string' && media.alt.trim() !== '' ? media.alt : null
+  if (alt !== null) meta.alt = alt
+
   // All three null is what an unmeasured, unconverted image looks like — a sibling saying only
   // "nothing is known" is noise on every payload, and `responsiveImageAttrs` emits nothing for it
   // anyway. Absent and all-null mean the same thing to the renderer, so prefer absent.
-  return meta.width === null && meta.height === null && meta.srcset === null ? undefined : meta
+  return meta.width === null && meta.height === null && meta.srcset === null && alt === null ? undefined : meta
 }
 
 /**

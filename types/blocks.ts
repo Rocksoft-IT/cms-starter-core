@@ -514,6 +514,12 @@ export interface ResponsiveImageMeta {
    * A one-candidate srcset would become the browser's only choice.
    */
   srcset: string | null
+  /**
+   * The media's own alt text in the requested locale, when an editor wrote one. Present only on a
+   * PAGE-level picture flattened by `flattenMedia` (a block's sibling is built by BlockResolver,
+   * which keeps alt in the block's own `<key>_alt` field). Absent, never empty.
+   */
+  alt?: string
 }
 
 // --- GENERATED BELOW: do not edit, run `pnpm cms:types` ---

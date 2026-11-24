@@ -27,6 +27,15 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### Page-level images keep their alt text through `flattenMedia` (dashboard #2499)
+
+`flattenMedia` reduced a page-level media object (a case study's `cover`, a post's `thumbnail`) to
+its URL plus a `<key>_meta` sibling holding only `width`, `height` and `srcset`, so the per-locale
+alt an editor wrote in the CMS never reached a template. The sibling now carries `alt` too, **only
+when it is a non-empty string**: an undescribed image keeps exactly the sibling it had, so nothing
+changes on a site until it reads `meta.alt`. `ResponsiveImageMeta` gains the optional `alt`. No
+per-client wiring; a client opts in by reading it (rocksoft.pl's case study template does).
+
 ### Cookie banner: opt-in centred dialog, a title, and an accessible link (dashboard #2495)
 
 `cookie_consent.layout` (site settings, Settings → Privacy → **Banner layout**) picks how the
