@@ -17,6 +17,14 @@ describe('toAstroRedirects()', () => {
     })
   })
 
+  it('keeps an anchor after the trailing slash, not inside it (dashboard #2503)', () => {
+    expect(toAstroRedirects({ '/galeria/': '/pokoje/#galeria' })).toEqual({ '/galeria/': '/pokoje/#galeria' })
+    expect(toAstroRedirects({ galeria: 'pokoje#galeria/' })).toEqual({ '/galeria/': '/pokoje/#galeria/' })
+    expect(toAstroRedirects({ kontakt: '/#kontakt' })).toEqual({ '/kontakt/': '/#kontakt' })
+    // An empty fragment names no anchor.
+    expect(toAstroRedirects({ galeria: '/pokoje#' })).toEqual({ '/galeria/': '/pokoje/' })
+  })
+
   it('passes an absolute destination through untouched', () => {
     expect(toAstroRedirects({ old: 'https://example.com/new' })).toEqual({
       '/old/': 'https://example.com/new',

@@ -67,10 +67,12 @@ const NEEDS_REDIRECTS = new Set(['build', 'dev'])
  * process boundary — the CMS's is Redirect::publicPath().
  */
 export function publicPath(value) {
-  const trimmed = String(value)
-    .trim()
-    .replace(/^\/+|\/+$/g, '')
-  return trimmed === '' ? '/' : `/${trimmed}/`
+  // A `#fragment` stays after the trailing slash: `/rooms/#gallery` (dashboard #2503).
+  const raw = String(value).trim()
+  const hash = raw.indexOf('#')
+  const fragment = hash === -1 ? '' : raw.slice(hash + 1).trim()
+  const trimmed = (hash === -1 ? raw : raw.slice(0, hash)).replace(/^\/+|\/+$/g, '')
+  return (trimmed === '' ? '/' : `/${trimmed}/`) + (fragment === '' ? '' : `#${fragment}`)
 }
 
 /** An absolute destination (another origin) passes through untouched — Astro supports those. */

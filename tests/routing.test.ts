@@ -201,3 +201,22 @@ describe('buildStaticPaths() category archive routes', () => {
     expect(paths).toHaveLength(0)
   })
 })
+
+// Dashboard #2503: an item listed with `own_page: false` gets no route and no "will 404" warning.
+describe('buildStaticPaths() items without a page of their own', () => {
+  it('builds no route for an item with own_page: false, and says nothing about it', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const room = { ...page(2, 'page', 'pokoje/jednoosobowy'), own_page: false } as PageApiItem
+
+    const paths = await build([page(1, 'section', 'pokoje'), room])
+
+    expect(paths.map((p) => p.params.uri)).toEqual(['pokoje/'])
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('still builds an item whose payload predates the field', async () => {
+    const paths = await build([page(1, 'section', 'pokoje'), page(2, 'page', 'pokoje/jednoosobowy')])
+
+    expect(paths).toHaveLength(2)
+  })
+})

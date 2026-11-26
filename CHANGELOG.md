@@ -27,6 +27,17 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### Items with no page of their own, and an anchor on a redirect destination (dashboard #2503)
+
+- `buildStaticPaths` builds no route for an item listed with `own_page: false` (its section turned item
+  pages off, `meta.section.item_pages`). `PageApiItem` gains the optional `own_page`; an older API
+  omits it and every item builds as before.
+- `redirects.mjs`' `publicPath()` keeps a `#fragment` after the trailing slash (`/pokoje/#galeria`,
+  not `/pokoje/#galeria/`).
+
+Both arrive with a pin bump. The starter's `SectionLanding` lists such an item as an unlinked card with
+`id="<slug>"`; that is site layer, so an existing client repo changes its own landing if it wants it.
+
 ### Page-level images keep their alt text through `flattenMedia` (dashboard #2499)
 
 `flattenMedia` reduced a page-level media object (a case study's `cover`, a post's `thumbnail`) to

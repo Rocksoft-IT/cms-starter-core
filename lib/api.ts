@@ -80,6 +80,9 @@ export interface PageApiItem {
    *  Carried by the LIST payload (`GET /api/pages`), as `collection` and `path` are; a single page
    *  from `GET /api/pages/{path}` has none of the three. */
   section_key?: string | null
+  /** False for an item whose section turned item pages off (dashboard #2503): listed, never routed.
+   *  Absent on an older API, where every item has a page. LIST payload only. */
+  own_page?: boolean
   seo_description?: string | null
   // Derived social-share metadata (og:*, canonical). Present once the backend ships #469;
   // the <Seo> renderer falls back to name/seo_description while it's absent.

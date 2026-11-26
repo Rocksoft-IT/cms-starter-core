@@ -173,6 +173,8 @@ export async function buildStaticPaths(
 
   const mainPaths = pages
     .filter((p) => {
+      // An item without a page of its own (dashboard #2503): no route and no "will 404" warning.
+      if (p.own_page === false) return false
       if (isRoutable(p, registeredTypes, enabledSections)) return true
       if (
         !registeredTypes.includes(p.type) &&
