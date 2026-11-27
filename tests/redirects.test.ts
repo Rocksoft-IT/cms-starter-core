@@ -25,6 +25,15 @@ describe('toAstroRedirects()', () => {
     expect(toAstroRedirects({ galeria: '/pokoje#' })).toEqual({ '/galeria/': '/pokoje/' })
   })
 
+  it('keeps a query string after the trailing slash, without the slash the CMS appends to it', () => {
+    expect(toAstroRedirects({ '/2026-09-22/': '/prelekcja-pdf/?utm_source=qr&utm_campaign=targi/' })).toEqual({
+      '/2026-09-22/': '/prelekcja-pdf/?utm_source=qr&utm_campaign=targi',
+    })
+    expect(toAstroRedirects({ a: 'pdf?x=1#top' })).toEqual({ '/a/': '/pdf/?x=1#top' })
+    // An empty query names nothing.
+    expect(toAstroRedirects({ a: '/pdf?' })).toEqual({ '/a/': '/pdf/' })
+  })
+
   it('passes an absolute destination through untouched', () => {
     expect(toAstroRedirects({ old: 'https://example.com/new' })).toEqual({
       '/old/': 'https://example.com/new',

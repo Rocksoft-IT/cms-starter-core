@@ -14,17 +14,18 @@
 // Vite alias — both undefined here. Same reason lib/smoke.mjs is a .mjs.
 //
 // What a static build emits per entry is an HTML file with `<meta http-equiv="refresh">`,
-// `<meta name="robots" content="noindex">` and a canonical pointing at the destination. Not a
-// 301 at the edge — that needs host config this build cannot write (the client sites are static
-// files behind nginx) — but a redirect every crawler and browser follows, which is what the old
-// URL needs and did not have. An adapter that understands redirects (Netlify, Vercel,
-// Cloudflare) upgrades the same config to real 301s with no change here.
+// `<meta name="robots" content="noindex">` and a canonical pointing at the destination — a 200,
+// not a 301. The real 301 is host config: `astro:build:done` writes the same map into the build's
+// `.htaccess` (exactRedirects.mjs), which Apache answers before the meta-refresh page is served.
+// The page stays as the fallback for a host that reads no .htaccess. An adapter that understands
+// redirects (Netlify, Vercel, Cloudflare) upgrades the same config to real 301s on its own.
 
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { writeCanonicalLinks } from './canonicalLinks.mjs'
+import { toExactRules, writeExactRedirects } from './exactRedirects.mjs'
 import { writeHostRules } from './hostRules.mjs'
 import { toPrefixRules, writePrefixRedirects } from './redirectPrefixes.mjs'
 import { writeSeoAliases } from './seoAliases.mjs'
@@ -71,8 +72,24 @@ export function publicPath(value) {
   const raw = String(value).trim()
   const hash = raw.indexOf('#')
   const fragment = hash === -1 ? '' : raw.slice(hash + 1).trim()
-  const trimmed = (hash === -1 ? raw : raw.slice(0, hash)).replace(/^\/+|\/+$/g, '')
-  return (trimmed === '' ? '/' : `/${trimmed}/`) + (fragment === '' ? '' : `#${fragment}`)
+  const beforeHash = hash === -1 ? raw : raw.slice(0, hash)
+  // So does a `?query`: `/pdf/?utm_source=qr`, not `/pdf/?utm_source=qr/`. The CMS stores some
+  // destinations with a slash appended after the query (rocksoft.pl's QR-code row ends in
+  // `utm_campaign=targi-atrakcji/`), which lands in the campaign value; it is trimmed off too.
+  const mark = beforeHash.indexOf('?')
+  const query =
+    mark === -1
+      ? ''
+      : beforeHash
+          .slice(mark + 1)
+          .trim()
+          .replace(/\/+$/, '')
+  const trimmed = (mark === -1 ? beforeHash : beforeHash.slice(0, mark)).replace(/^\/+|\/+$/g, '')
+  return (
+    (trimmed === '' ? '/' : `/${trimmed}/`) +
+    (query === '' ? '' : `?${query}`) +
+    (fragment === '' ? '' : `#${fragment}`)
+  )
 }
 
 /** An absolute destination (another origin) passes through untouched — Astro supports those. */
@@ -194,8 +211,9 @@ async function readMockRedirects(root, fixture = MOCK_FIXTURE, empty = {}) {
  * unreachable fails the build a moment later anyway, in getPages().
  */
 export function cmsRedirects({ baseUrl, token } = {}) {
-  // Fetched with the exact map in config:setup, written into .htaccess once the build exists.
+  // Fetched in config:setup, written into .htaccess once the build exists.
   let prefixRules = []
+  let exactRules = []
   let site
   let trailingSlash
 
@@ -248,6 +266,7 @@ export function cmsRedirects({ baseUrl, token } = {}) {
         prefixRules = toPrefixRules(rawPrefixes)
 
         const redirects = toAstroRedirects(raw)
+        exactRules = toExactRules(redirects)
         const count = Object.keys(redirects).length
 
         if (count === 0) return
@@ -266,6 +285,9 @@ export function cmsRedirects({ baseUrl, token } = {}) {
       'astro:build:done': async ({ dir, logger }) => {
         const dist = fileURLToPath(dir)
         await writePrefixRedirects(dist, prefixRules, logger)
+        // After the prefix block, because each writer puts its block FIRST: an exact row is the
+        // more specific rule and must be the one Apache meets first (exactRedirects.mjs).
+        await writeExactRedirects(dist, exactRules, logger)
         await writeSeoAliases(dist, logger)
         await writeHostRules(dist, logger)
         if (trailingSlash === 'always') await writeCanonicalLinks(dist, site, logger)

@@ -27,6 +27,24 @@ floor** — it is present and silent there.
 
 ## Unreleased
 
+### CMS redirects answer with a real 301 (`.htaccess`), and keep their query string
+
+- Every exact redirect from `GET /api/redirects` was a static meta-refresh page answering **200**
+  — measured on rocksoft.pl, where `/post/…`, `/code-audit/` and the other 100+ rows all did, and
+  SEO audits flagged every one. `cmsRedirects()` now also writes the map into the build's
+  `.htaccess` as `R=301` rules (`core/exactRedirects.mjs`), in its own marked block placed first,
+  ahead of the prefix redirects and the trailing-slash rule, so an old address lands in one hop.
+  Each rule matches the path with and without its trailing slash; a site-path destination is
+  https-aware (`X-Forwarded-Proto`) like the prefix rules; percent-encoded sources are written
+  decoded, as Apache matches them. A destination with its own query string keeps it and drops the
+  incoming one; without one, the incoming query string carries over. The meta-refresh pages stay
+  as the fallback for a host without `.htaccess`. A source a real page occupies in the build is
+  skipped and named in a warning.
+- `publicPath()` keeps a `?query` after the trailing slash (`/pdf/?utm_source=qr`, not
+  `/pdf/?utm_source=qr/`) and trims the slash the CMS appends after a query.
+
+Arrives with a pin bump; no per-client wiring (every site already registers `cmsRedirects()`).
+
 ### Items with no page of their own, and an anchor on a redirect destination (dashboard #2503)
 
 - `buildStaticPaths` builds no route for an item listed with `own_page: false` (its section turned item
